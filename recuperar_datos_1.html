@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Recuperar Datos — Lazos Tricolor</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #0a0a0f; color: #f0f0f5; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+  .box { background: #1c1c28; border: 1px solid #2a2a3a; border-radius: 16px; padding: 40px; max-width: 500px; width: 90%; text-align: center; }
+  h1 { color: #FFD600; font-size: 22px; margin-bottom: 8px; }
+  p { color: #7a7a9a; font-size: 14px; margin-bottom: 24px; line-height: 1.6; }
+  button { background: #FFD600; color: #000; border: none; border-radius: 8px; padding: 14px 28px; font-size: 16px; font-weight: 700; cursor: pointer; width: 100%; margin-bottom: 12px; }
+  button:hover { background: #ffe033; }
+  .status { margin-top: 16px; padding: 14px; border-radius: 8px; font-size: 14px; display: none; line-height: 1.5; }
+  .ok { background: #00ff8820; color: #00ff88; border: 1px solid #00ff8840; }
+  .err { background: #cf142b20; color: #cf142b; border: 1px solid #cf142b40; }
+  .step { background: #ffd60020; color: #FFD600; border: 1px solid #ffd60040; }
+  .info { background: #ffffff08; border: 1px solid #2a2a3a; border-radius: 8px; padding: 12px; margin-bottom: 20px; font-size: 13px; color: #7a7a9a; text-align: left; }
+  .info strong { color: #FFD600; }
+</style>
+</head>
+<body>
+<div class="box">
+  <div style="font-size:48px;margin-bottom:16px;">💾</div>
+  <h1>Recuperar Datos de la Academia</h1>
+  <p>Tus datos están listos para subirse a Firebase. Solo haz clic en el botón.</p>
+  
+  <div class="info">
+    <strong>📊 Datos encontrados:</strong><br>
+    ✅ 14 alumnas registradas<br>
+    ✅ 14 registros de pagos<br>
+    ✅ 1 profesor<br>
+    ✅ Asistencias y clases
+  </div>
+
+  <button onclick="iniciarRecuperacion()">☁️ Subir mis datos a Firebase</button>
+  <div class="status" id="status"></div>
+</div>
+
+<script type="module">
+const firebaseConfig = {
+  apiKey: "AIzaSyCIj32zyCreKyCGJSMo6T5yTDhMeqctpG4",
+  authDomain: "lazos-tricolor-academia.firebaseapp.com",
+  projectId: "lazos-tricolor-academia",
+  storageBucket: "lazos-tricolor-academia.firebasestorage.app",
+  messagingSenderId: "284048193120",
+  appId: "1:284048193120:web:96cacf134a537c9ad57505"
+};
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+const DATOS = {"alumnos": [{"nombre": "Derlyng Thyxianna Domínguez Pérez", "nacimiento": "2009-03-17", "categoria": "Juvenil", "direccion": "Carrera 12f 9-86s", "barrio": "Ducales", "pantalon": "14", "camiseta": "S", "calzado": "39", "peso": "54", "estatura": "166", "experiencia": "No", "repNombre": "Wilmary Carolina Pérez León", "correo": "perezleonwilmarycarolina@gmail.com", "telefono": "3160851721", "conocio": "Internet", "familiar": false, "foto": null, "id": 1, "fechaIngreso": "2026-04-05", "_fotoBackup": true}, {"nombre": "Nenyi Junary Macana Barón", "nacimiento": "2008-02-13", "categoria": "Juvenil", "direccion": "Cll 4C #14-16", "barrio": "Hogares Soacha", "pantalon": "28", "camiseta": "M", "calzado": "34", "peso": "50", "estatura": "157", "experiencia": "No", "repNombre": "Sebastián Hernández Hernández", "correo": "sebastian.hernandez@gmail.com", "telefono": "3005994694", "conocio": "Internet", "familiar": false, "foto": null, "id": 2, "fechaIngreso": "2026-04-05", "_fotoBackup": true}, {"nombre": "Cataleya González Marquez", "nacimiento": "2019-10-24", "categoria": "Infantil", "direccion": "Calle 17#19a-157", "barrio": "Prado Vegas", "pantalon": "6", "camiseta": "8", "calzado": "24", "peso": "12", "estatura": "57", "experiencia": "No", "repNombre": "Lina Maria Márquez Herazo", "correo": "mariamarquez1805@hotmail.com", "telefono": "3228074192", "conocio": "", "familiar": false, "foto": null, "id": 3, "fechaIngreso": "2026-04-05"}, {"nombre": "Nicole Daniela Pineda Cristiano", "nacimiento": "2010-01-24", "categoria": "Juvenil", "direccion": "Cra 15A #35-50", "barrio": "Ciudad Latina", "pantalon": "12", "camiseta": "M", "calzado": "36", "peso": "60", "estatura": "163", "experiencia": "Sí", "repNombre": "Maria Cristina Cristiano", "correo": "crisaleman3961@gmail.com", "telefono": "3215922724", "conocio": "Internet", "familiar": false, "foto": null, "id": 4, "fechaIngreso": "2026-04-05"}, {"nombre": "Milena Alexandra Machado Picon", "nacimiento": "2017-03-06", "categoria": "Infantil", "direccion": "CL 17 B1-84", "barrio": "La Esmeralda", "pantalon": "12", "camiseta": "12", "calzado": "33", "peso": "30", "estatura": "130", "experiencia": "No", "repNombre": "Candy Milena Picon", "correo": "candymilenapicon@gmail.com", "telefono": "3204224847", "conocio": "", "familiar": false, "foto": null, "id": 5, "fechaIngreso": "2026-04-05"}, {"nombre": "Khloe Shany Velasco Alzate", "nacimiento": "2020-08-26", "categoria": "Infantil", "direccion": "cra 87b # 86sur -10 manzab ab casa 18", "barrio": "Bosa", "pantalon": "10", "camiseta": "10", "calzado": "27", "peso": "17", "estatura": "100", "experiencia": "No", "repNombre": "Lina Marcela Alzate", "correo": "amparo33gonzalez@hotmail.com", "telefono": "3209574712", "conocio": "", "familiar": false, "foto": null, "id": 6, "fechaIngreso": "2026-04-05"}, {"nombre": "Victoria Carolina Ubaque Jimenez", "nacimiento": "2016-11-17", "categoria": "Infantil", "direccion": "Tv 4D #5 - 41", "barrio": "bosques de Zapan ", "pantalon": "14", "camiseta": "14", "calzado": "32", "peso": "33", "estatura": "127", "experiencia": "No", "repNombre": "Martha Emilia Ubaque", "correo": "katiss19879@hotmail.com", "telefono": "3208252873", "conocio": "Internet", "familiar": false, "foto": null, "id": 7, "fechaIngreso": "2026-04-05"}, {"nombre": "Linda Salome Tapiero Tapiero", "nacimiento": "2018-07-28", "categoria": "Infantil", "direccion": "Calle 22C #18 - 35", "barrio": "El Carmen", "pantalon": "10", "camiseta": "10", "calzado": "29", "peso": "22", "estatura": "", "experiencia": "No", "repNombre": "Yadira Tapiero", "correo": "tapierojh@hotmail.com", "telefono": "3135622541", "conocio": "", "familiar": true, "foto": null, "id": 8, "fechaIngreso": "2026-04-05"}, {"nombre": "Angel David Guapacho Tapiero", "nacimiento": "2015-04-08", "categoria": "Infantil", "direccion": "Calle 22C #18 - 35", "barrio": "El Carmen", "pantalon": "18", "camiseta": "18", "calzado": "35", "peso": "40", "estatura": "", "experiencia": "No", "repNombre": "Yadira Tapiero", "correo": "tapierojh@hotmail.com", "telefono": "3135622541", "conocio": "", "familiar": true, "foto": null, "id": 9, "fechaIngreso": "2026-04-05"}, {"nombre": "Juliana Quiroga Portela", "nacimiento": "2010-03-16", "categoria": "Juvenil", "direccion": "", "barrio": "San Humberto", "pantalon": "m", "camiseta": "M", "calzado": "37", "peso": "49", "estatura": "150", "experiencia": "No", "repNombre": "Angelica Portela Pardo", "correo": "portelapardo@gmail.com", "telefono": "3213636256", "conocio": "", "familiar": false, "foto": null, "id": 10, "fechaIngreso": "2026-04-05", "_fotoBackup": true}, {"nombre": "Sara Alenadra Castro del Rio", "nacimiento": "2009-07-24", "categoria": "Juvenil", "direccion": "", "barrio": "Ciudad Verde", "pantalon": "6", "camiseta": "S", "calzado": "35", "peso": "50", "estatura": "153", "experiencia": "No", "repNombre": "Rosa del Rio", "correo": "ronair31@hotmail.com", "telefono": "3124646617", "conocio": "", "familiar": false, "foto": null, "id": 11, "fechaIngreso": "2026-04-05", "_fotoBackup": true}, {"nombre": "Danna Sofia Cortina Lara", "nacimiento": "2015-04-08", "categoria": "Infantil", "direccion": "", "barrio": "", "pantalon": "", "camiseta": "", "calzado": "", "peso": "", "estatura": "", "experiencia": "No", "repNombre": "Rosa Lara", "correo": "", "telefono": "3024648114", "conocio": "", "familiar": true, "foto": null, "id": 12, "fechaIngreso": "2026-04-05"}, {"nombre": "Katherin Paola Cortina Lara", "nacimiento": "2015-04-08", "categoria": "Infantil", "direccion": "", "barrio": "", "pantalon": "", "camiseta": "", "calzado": "", "peso": "", "estatura": "", "experiencia": "No", "repNombre": "Rosa Lara", "correo": "", "telefono": "3024648114", "conocio": "", "familiar": true, "foto": null, "id": 13, "fechaIngreso": "2026-04-05"}, {"nombre": "Laura Valentina Romo Rodriguez", "nacimiento": "2009-07-12", "categoria": "Juvenil", "direccion": "", "barrio": "", "pantalon": "", "camiseta": "", "calzado": "", "peso": "", "estatura": "", "experiencia": "No", "repNombre": "Leidy Johanna Rodriguez Fajardo", "correo": "", "telefono": "3228745791", "conocio": "", "familiar": false, "foto": null, "id": 14, "fechaIngreso": "2026-04-05", "_fotoBackup": true}], "alumnosRetirados": [], "profesores": [{"nombre": "Javier Montenegro", "correo": "", "telefono": "3159047866", "id": 15}], "profesoresRetirados": [], "pagos": {"1": {"2026-02": {"beca": true, "pagado": true, "fechaPago": "2026-04-05"}, "2026-01": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-03": {"beca": true}}, "2": {"2026-01": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-02": {"pagado": true, "fechaPago": "2026-04-05", "beca": true}, "2026-03": {"beca": true, "pagado": true, "fechaPago": "2026-04-05"}}, "3": {}, "4": {"2026-02": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-03": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-01": {"pagado": true, "fechaPago": "2026-04-05"}}, "5": {"2026-01": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-02": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-03": {"pagado": true, "fechaPago": "2026-04-05"}}, "6": {"2026-02": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-01": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-03": {"pagado": true, "fechaPago": "2026-04-05"}}, "7": {"2026-03": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-02": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-01": {"pagado": true, "fechaPago": "2026-04-05"}}, "8": {"2026-01": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-02": {"pagado": true, "fechaPago": "2026-04-05"}}, "9": {"2026-01": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-02": {"pagado": true, "fechaPago": "2026-04-05"}}, "10": {"2026-03": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-02": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-01": {"pagado": true, "fechaPago": "2026-04-05"}}, "11": {"2026-01": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-02": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-03": {"pagado": true, "fechaPago": "2026-04-05"}}, "12": {}, "13": {}, "14": {}}, "asistencias": {"1": {"2026-04-01": "P", "2026-03-30": "P", "2026-03-28": "P", "2026-03-25": "A", "2026-03-18": "P", "2026-03-14": "P", "2026-03-11": "P", "2026-03-07": "P", "2026-03-04": "P"}, "2": {"2026-04-01": "P", "2026-03-30": "P", "2026-03-28": "P", "2026-03-25": "P", "2026-03-18": "P", "2026-03-14": "P", "2026-03-11": "P", "2026-03-07": "P", "2026-03-04": "P"}, "3": {"2026-04-01": "A"}, "4": {"2026-04-01": "A", "2026-03-30": "A", "2026-03-28": "P", "2026-03-25": "A", "2026-03-18": "P", "2026-03-14": "P", "2026-03-11": "P", "2026-03-07": "P", "2026-03-04": "P"}, "5": {"2026-04-01": "P"}, "6": {"2026-04-01": "P"}, "7": {"2026-04-01": "A"}, "8": {"2026-04-01": "P"}, "9": {"2026-04-01": "P"}, "10": {"2026-04-01": "P", "2026-03-30": "P", "2026-03-28": "P", "2026-03-25": "A", "2026-03-18": "P", "2026-03-14": "P", "2026-03-11": "P", "2026-03-07": "P", "2026-03-04": "P"}, "11": {"2026-04-01": "P", "2026-03-30": "P", "2026-03-28": "P", "2026-03-25": "P", "2026-03-18": "A", "2026-03-14": "P", "2026-03-11": "P", "2026-03-07": "P", "2026-03-04": "P"}, "12": {"2026-04-01": "A"}, "13": {"2026-04-01": "A"}, "14": {"2026-04-01": "A", "2026-03-30": "A", "2026-03-28": "P", "2026-03-25": "P", "2026-03-18": "P", "2026-03-14": "A", "2026-03-11": "P", "2026-03-07": "P", "2026-03-04": "P"}}, "clases": {"15": {"2026-03-24_2026-03-30": 2, "2026-03-17_2026-03-23": 2, "2026-03-10_2026-03-16": 2, "2026-03-03_2026-03-09": 2, "2026-02-03_2026-02-09": 2, "2026-02-10_2026-02-16": 2, "2026-02-17_2026-02-23": 2, "2026-02-24_2026-03-02": 2, "2026-01-20_2026-01-26": 2, "2026-01-27_2026-02-02": 2}}, "gastos": [], "extraDias": {"2026-04": ["2026-04-01"], "2026-03": ["2026-03-30"]}, "presentaciones": [], "nextId": 16};
+
+function mostrar(msg, tipo) {
+  const el = document.getElementById('status');
+  el.style.display = 'block';
+  el.className = 'status ' + tipo;
+  el.innerHTML = msg;
+}
+
+window.iniciarRecuperacion = async function() {
+  mostrar('🔐 Iniciando sesión con Google...', 'step');
+  try {
+    await signInWithPopup(auth, provider);
+    mostrar('✅ Sesión iniciada. Subiendo datos a Firebase...', 'step');
+    
+    const ref = doc(db, 'academias', 'lazos-tricolor', 'datos', 'principal');
+    await setDoc(ref, {
+      data: JSON.stringify(DATOS),
+      updatedAt: new Date().toISOString(),
+      restoredAt: new Date().toISOString()
+    });
+    
+    mostrar('🎉 <strong>¡Datos recuperados exitosamente!</strong><br><br>Tus 14 alumnas y todos los registros ya están en Firebase.<br><br>Ahora cierra esta pestaña y abre tu dashboard normalmente.', 'ok');
+  } catch(e) {
+    mostrar('❌ Error: ' + e.message, 'err');
+  }
+};
+</script>
+</body>
+</html>
