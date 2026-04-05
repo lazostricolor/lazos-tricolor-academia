@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Recuperar Datos — Lazos Tricolor</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #0a0a0f; color: #f0f0f5; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+  .box { background: #1c1c28; border: 1px solid #2a2a3a; border-radius: 16px; padding: 40px; max-width: 600px; width: 90%; text-align: center; }
+  h1 { color: #FFD600; font-size: 22px; margin-bottom: 8px; }
+  p { color: #7a7a9a; font-size: 14px; margin-bottom: 24px; }
+  textarea { width: 100%; height: 150px; background: #13131a; border: 1px solid #2a2a3a; border-radius: 8px; color: #f0f0f5; font-size: 12px; padding: 12px; resize: vertical; margin-bottom: 16px; }
+  button { background: #FFD600; color: #000; border: none; border-radius: 8px; padding: 12px 28px; font-size: 15px; font-weight: 700; cursor: pointer; width: 100%; }
+  button:hover { background: #ffe033; }
+  .status { margin-top: 16px; padding: 12px; border-radius: 8px; font-size: 14px; display: none; }
+  .ok { background: #00ff8820; color: #00ff88; border: 1px solid #00ff8840; }
+  .err { background: #cf142b20; color: #cf142b; border: 1px solid #cf142b40; }
+  .step { background: #ffd60020; color: #FFD600; border: 1px solid #ffd60040; }
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>💾 Recuperar Datos de la Academia</h1>
+  <p>Pega el contenido de tu archivo <strong>backup_lazos.txt</strong> en el cuadro de abajo y haz clic en "Subir a Firebase"</p>
+  <textarea id="datos" placeholder="Pega aquí el contenido del archivo backup_lazos.txt..."></textarea>
+  <button onclick="subirDatos()">☁️ Subir datos a Firebase</button>
+  <div class="status" id="status"></div>
+</div>
+
+<script type="module">
+const firebaseConfig = {
+  apiKey: "AIzaSyCIj32zyCreKyCGJSMo6T5yTDhMeqctpG4",
+  authDomain: "lazos-tricolor-academia.firebaseapp.com",
+  projectId: "lazos-tricolor-academia",
+  storageBucket: "lazos-tricolor-academia.firebasestorage.app",
+  messagingSenderId: "284048193120",
+  appId: "1:284048193120:web:96cacf134a537c9ad57505"
+};
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+// Auto login
+const status = document.getElementById('status');
+
+function mostrar(msg, tipo) {
+  status.style.display = 'block';
+  status.className = 'status ' + tipo;
+  status.textContent = msg;
+}
+
+onAuthStateChanged(auth, (user) => {
+  if(user) {
+    mostrar('✅ Sesión iniciada como: ' + user.email, 'ok');
+  } else {
+    mostrar('🔐 Iniciando sesión con Google...', 'step');
+    signInWithPopup(auth, provider).catch(e => mostrar('❌ Error de login: ' + e.message, 'err'));
+  }
+});
+
+window.subirDatos = async function() {
+  const raw = document.getElementById('datos').value.trim();
+  if(!raw) { mostrar('⚠️ Pega primero el contenido del archivo backup_lazos.txt', 'err'); return; }
+
+  mostrar('🔄 Validando datos...', 'step');
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch(e) {
+    mostrar('❌ El archivo no tiene formato válido. Asegúrate de pegar todo el contenido completo.', 'err');
+    return;
+  }
+
+  const user = auth.currentUser;
+  if(!user) { mostrar('⚠️ Espera — iniciando sesión...', 'step'); return; }
+
+  mostrar('☁️ Subiendo a Firebase... esto puede tardar unos segundos...', 'step');
+  try {
+    const ref = doc(db, 'academias', 'lazos-tricolor', 'datos', 'principal');
+    await setDoc(ref, {
+      data: JSON.stringify(parsed),
+      updatedAt: new Date().toISOString(),
+      restoredFrom: 'backup_lazos.txt'
+    });
+    mostrar('🎉 ¡Datos subidos exitosamente a Firebase! Ya puedes cerrar esta página y abrir tu dashboard normalmente.', 'ok');
+  } catch(e) {
+    mostrar('❌ Error al subir: ' + e.message, 'err');
+  }
+};
+</script>
+</body>
+</html>
