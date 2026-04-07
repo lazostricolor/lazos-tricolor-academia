@@ -225,6 +225,8 @@
     <span class="nav-label">Finanzas</span>
     <div class="nav-item" onclick="showPage('finanzas')"><span class="icon">📊</span> Resumen General</div>
     <div class="nav-item" onclick="showPage('archivo')"><span class="icon">📁</span> Archivo</div>
+    <span class="nav-label">Sistema</span>
+    <div class="nav-item" onclick="showPage('configuracion')"><span class="icon">⚙️</span> Configuración</div>
     <span class="nav-label">Eventos</span>
     <div class="nav-item" onclick="showPage('presentaciones')"><span class="icon">🎪</span> Presentaciones</div>
   </nav>
@@ -430,6 +432,63 @@
         <button class="btn btn-primary" onclick="openPresModal()">+ Nueva Presentación</button>
       </div>
       <div id="presContainer"></div>
+    </div>
+
+    <!-- CONFIGURACIÓN -->
+    <div class="page" id="page-configuracion">
+      <div class="page-title">⚙️ Configuración</div>
+      <div class="page-sub">Exportar e importar datos · Respaldo de seguridad</div>
+
+      <!-- EXPORTAR -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-title">📥 Exportar Datos</div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Descarga una copia completa de todos los datos de la academia en formato JSON. Guárdala en un lugar seguro como respaldo.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;">
+            <div style="font-size:13px;font-weight:600;margin-bottom:6px;">📊 Exportar todo (JSON)</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Incluye alumnas, pagos, asistencias, profesores y presentaciones. Sin fotos.</div>
+            <button class="btn btn-primary btn-sm" onclick="exportarJSON()">⬇️ Descargar JSON</button>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;">
+            <div style="font-size:13px;font-weight:600;margin-bottom:6px;">📋 Exportar alumnas (CSV)</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Lista de alumnas con datos básicos en formato Excel/CSV.</div>
+            <button class="btn btn-ghost btn-sm" onclick="exportarCSV()">⬇️ Descargar CSV</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- IMPORTAR -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-title">📤 Importar Datos</div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Carga un archivo JSON exportado previamente para restaurar todos los datos. <strong style="color:var(--ven);">⚠️ Esto reemplazará los datos actuales.</strong></p>
+        <div style="background:var(--surface);border:1px dashed var(--border);border-radius:10px;padding:24px;text-align:center;margin-bottom:12px;" id="dropZone">
+          <div style="font-size:32px;margin-bottom:8px;">📂</div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:4px;">Arrastra tu archivo JSON aquí</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">o haz clic para seleccionar</div>
+          <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+            📁 Seleccionar archivo
+            <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importarJSON(this)">
+          </label>
+        </div>
+        <div id="importStatus" style="display:none;"></div>
+      </div>
+
+      <!-- SUBIR A FIREBASE -->
+      <div class="card" style="margin-bottom:20px;border-color:var(--col);">
+        <div class="card-title">☁️ Sincronizar con Firebase</div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Fuerza una sincronización manual con la base de datos en la nube.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="forzarSubida()">☁️ Subir datos a Firebase ahora</button>
+          <button class="btn btn-ghost" onclick="forzarDescarga()">🔄 Descargar datos de Firebase</button>
+        </div>
+        <div id="syncStatus2" style="margin-top:12px;font-size:13px;color:var(--muted);"></div>
+      </div>
+
+      <!-- INFO -->
+      <div class="card">
+        <div class="card-title">ℹ️ Información del Sistema</div>
+        <div id="sysInfo" style="font-size:13px;display:flex;flex-direction:column;gap:8px;color:var(--muted);"></div>
+      </div>
     </div>
 
   </main>
@@ -693,7 +752,7 @@ const firebaseConfig = {
         // Merge with local — cloud wins
         window.DB = {...window.DB, ...cloudData};
         console.log('✅ Datos cargados desde Firebase');
-        showToast('✅ Datos sincronizados desde la nube');
+        showToast('✅ Datos sincronizados desde la nube ☁️');
       } else {
         // First time — upload local data to cloud
         const localRaw = localStorage.getItem('lazosDB_v3') || localStorage.getItem('lazosDB_v2') || localStorage.getItem('lazosDB');
@@ -701,12 +760,32 @@ const firebaseConfig = {
           window.DB = {...window.DB, ...JSON.parse(localRaw)};
           await window._fbSave(window.DB);
           showToast('✅ Datos locales migrados a la nube');
+        } else {
+          showToast('☁️ Conectado — base de datos vacía, lista para usar');
         }
       }
-      renderDashboard();
+      // Re-render current active page with fresh data
+      const activePage = document.querySelector('.page.active');
+      if(activePage) {
+        const pageId = activePage.id.replace('page-','');
+        const renders = {
+          dashboard: renderDashboard,
+          alumnos: renderAlumnos,
+          pagos: renderPagos,
+          asistencias: renderAsistencias,
+          profesores: renderProfesores,
+          finanzas: renderFinanzas,
+          archivo: renderArchivo,
+          presentaciones: renderPresentaciones
+        };
+        if(renders[pageId]) renders[pageId]();
+        else renderDashboard();
+      } else {
+        renderDashboard();
+      }
     } catch(e) {
-      console.error('Error cargando:', e);
-      showToast('⚠️ Error al cargar desde la nube — usando datos locales');
+      console.error('Error cargando desde Firebase:', e);
+      showToast('⚠️ Sin conexión a la nube — usando datos locales');
       renderDashboard();
     }
   };
@@ -2083,6 +2162,161 @@ function verFichaCompleta(id) {
   document.getElementById('fichaCompletaContent').innerHTML = content;
   document.getElementById('fichaCompletaModal').classList.add('open');
 }
+
+
+// ══════════════════════════════════════════════
+// CONFIGURACIÓN — EXPORT / IMPORT
+// ══════════════════════════════════════════════
+
+// Backup data embedded (sin fotos) para primera restauración
+const BACKUP_INICIAL = `{"alumnos": [{"nombre": "Derlyng Thyxianna Domínguez Pérez", "nacimiento": "2009-03-17", "categoria": "Juvenil", "direccion": "Carrera 12f 9-86s", "barrio": "Ducales", "pantalon": "14", "camiseta": "S", "calzado": "39", "peso": "54", "estatura": "166", "experiencia": "No", "repNombre": "Wilmary Carolina Pérez León", "correo": "perezleonwilmarycarolina@gmail.com", "telefono": "3160851721", "conocio": "Internet", "familiar": false, "foto": null, "id": 1, "fechaIngreso": "2026-04-05"}, {"nombre": "Nenyi Junary Macana Barón", "nacimiento": "2008-02-13", "categoria": "Juvenil", "direccion": "Cll 4C #14-16", "barrio": "Hogares Soacha", "pantalon": "28", "camiseta": "M", "calzado": "34", "peso": "50", "estatura": "157", "experiencia": "No", "repNombre": "Sebastián Hernández Hernández", "correo": "sebastian.hernandez@gmail.com", "telefono": "3005994694", "conocio": "Internet", "familiar": false, "foto": null, "id": 2, "fechaIngreso": "2026-04-05"}, {"nombre": "Cataleya González Marquez", "nacimiento": "2019-10-24", "categoria": "Infantil", "direccion": "Calle 17#19a-157", "barrio": "Prado Vegas", "pantalon": "6", "camiseta": "8", "calzado": "24", "peso": "12", "estatura": "57", "experiencia": "No", "repNombre": "Lina Maria Márquez Herazo", "correo": "mariamarquez1805@hotmail.com", "telefono": "3228074192", "conocio": "", "familiar": false, "foto": null, "id": 3, "fechaIngreso": "2026-04-05"}, {"nombre": "Nicole Daniela Pineda Cristiano", "nacimiento": "2010-01-24", "categoria": "Juvenil", "direccion": "Cra 15A #35-50", "barrio": "Ciudad Latina", "pantalon": "12", "camiseta": "M", "calzado": "36", "peso": "60", "estatura": "163", "experiencia": "Sí", "repNombre": "Maria Cristina Cristiano", "correo": "crisaleman3961@gmail.com", "telefono": "3215922724", "conocio": "Internet", "familiar": false, "foto": null, "id": 4, "fechaIngreso": "2026-04-05"}, {"nombre": "Milena Alexandra Machado Picon", "nacimiento": "2017-03-06", "categoria": "Infantil", "direccion": "CL 17 B1-84", "barrio": "La Esmeralda", "pantalon": "12", "camiseta": "12", "calzado": "33", "peso": "30", "estatura": "130", "experiencia": "No", "repNombre": "Candy Milena Picon", "correo": "candymilenapicon@gmail.com", "telefono": "3204224847", "conocio": "", "familiar": false, "foto": null, "id": 5, "fechaIngreso": "2026-04-05"}, {"nombre": "Khloe Shany Velasco Alzate", "nacimiento": "2020-08-26", "categoria": "Infantil", "direccion": "cra 87b # 86sur -10 manzab ab casa 18", "barrio": "Bosa", "pantalon": "10", "camiseta": "10", "calzado": "27", "peso": "17", "estatura": "100", "experiencia": "No", "repNombre": "Lina Marcela Alzate", "correo": "amparo33gonzalez@hotmail.com", "telefono": "3209574712", "conocio": "", "familiar": false, "foto": null, "id": 6, "fechaIngreso": "2026-04-05"}, {"nombre": "Victoria Carolina Ubaque Jimenez", "nacimiento": "2016-11-17", "categoria": "Infantil", "direccion": "Tv 4D #5 - 41", "barrio": "bosques de Zapan ", "pantalon": "14", "camiseta": "14", "calzado": "32", "peso": "33", "estatura": "127", "experiencia": "No", "repNombre": "Martha Emilia Ubaque", "correo": "katiss19879@hotmail.com", "telefono": "3208252873", "conocio": "Internet", "familiar": false, "foto": null, "id": 7, "fechaIngreso": "2026-04-05"}, {"nombre": "Linda Salome Tapiero Tapiero", "nacimiento": "2018-07-28", "categoria": "Infantil", "direccion": "Calle 22C #18 - 35", "barrio": "El Carmen", "pantalon": "10", "camiseta": "10", "calzado": "29", "peso": "22", "estatura": "", "experiencia": "No", "repNombre": "Yadira Tapiero", "correo": "tapierojh@hotmail.com", "telefono": "3135622541", "conocio": "", "familiar": true, "foto": null, "id": 8, "fechaIngreso": "2026-04-05"}, {"nombre": "Angel David Guapacho Tapiero", "nacimiento": "2015-04-08", "categoria": "Infantil", "direccion": "Calle 22C #18 - 35", "barrio": "El Carmen", "pantalon": "18", "camiseta": "18", "calzado": "35", "peso": "40", "estatura": "", "experiencia": "No", "repNombre": "Yadira Tapiero", "correo": "tapierojh@hotmail.com", "telefono": "3135622541", "conocio": "", "familiar": true, "foto": null, "id": 9, "fechaIngreso": "2026-04-05"}, {"nombre": "Juliana Quiroga Portela", "nacimiento": "2010-03-16", "categoria": "Juvenil", "direccion": "", "barrio": "San Humberto", "pantalon": "m", "camiseta": "M", "calzado": "37", "peso": "49", "estatura": "150", "experiencia": "No", "repNombre": "Angelica Portela Pardo", "correo": "portelapardo@gmail.com", "telefono": "3213636256", "conocio": "", "familiar": false, "foto": null, "id": 10, "fechaIngreso": "2026-04-05"}, {"nombre": "Sara Alenadra Castro del Rio", "nacimiento": "2009-07-24", "categoria": "Juvenil", "direccion": "", "barrio": "Ciudad Verde", "pantalon": "6", "camiseta": "S", "calzado": "35", "peso": "50", "estatura": "153", "experiencia": "No", "repNombre": "Rosa del Rio", "correo": "ronair31@hotmail.com", "telefono": "3124646617", "conocio": "", "familiar": false, "foto": null, "id": 11, "fechaIngreso": "2026-04-05"}, {"nombre": "Danna Sofia Cortina Lara", "nacimiento": "2015-04-08", "categoria": "Infantil", "direccion": "", "barrio": "", "pantalon": "", "camiseta": "", "calzado": "", "peso": "", "estatura": "", "experiencia": "No", "repNombre": "Rosa Lara", "correo": "", "telefono": "3024648114", "conocio": "", "familiar": true, "foto": null, "id": 12, "fechaIngreso": "2026-04-05"}, {"nombre": "Katherin Paola Cortina Lara", "nacimiento": "2015-04-08", "categoria": "Infantil", "direccion": "", "barrio": "", "pantalon": "", "camiseta": "", "calzado": "", "peso": "", "estatura": "", "experiencia": "No", "repNombre": "Rosa Lara", "correo": "", "telefono": "3024648114", "conocio": "", "familiar": true, "foto": null, "id": 13, "fechaIngreso": "2026-04-05"}, {"nombre": "Laura Valentina Romo Rodriguez", "nacimiento": "2009-07-12", "categoria": "Juvenil", "direccion": "", "barrio": "", "pantalon": "", "camiseta": "", "calzado": "", "peso": "", "estatura": "", "experiencia": "No", "repNombre": "Leidy Johanna Rodriguez Fajardo", "correo": "", "telefono": "3228745791", "conocio": "", "familiar": false, "foto": null, "id": 14, "fechaIngreso": "2026-04-05"}], "alumnosRetirados": [], "profesores": [{"nombre": "Javier Montenegro", "correo": "", "telefono": "3159047866", "id": 15}], "profesoresRetirados": [], "pagos": {"1": {"2026-02": {"beca": true, "pagado": true, "fechaPago": "2026-04-05"}, "2026-01": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-03": {"beca": true}}, "2": {"2026-01": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-02": {"pagado": true, "fechaPago": "2026-04-05", "beca": true}, "2026-03": {"beca": true, "pagado": true, "fechaPago": "2026-04-05"}}, "3": {}, "4": {"2026-02": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-03": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-01": {"pagado": true, "fechaPago": "2026-04-05"}}, "5": {"2026-01": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-02": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-03": {"pagado": true, "fechaPago": "2026-04-05"}}, "6": {"2026-02": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-01": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-03": {"pagado": true, "fechaPago": "2026-04-05"}}, "7": {"2026-03": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-02": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-01": {"pagado": true, "fechaPago": "2026-04-05"}}, "8": {"2026-01": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-02": {"pagado": true, "fechaPago": "2026-04-05"}}, "9": {"2026-01": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-02": {"pagado": true, "fechaPago": "2026-04-05"}}, "10": {"2026-03": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-02": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-01": {"pagado": true, "fechaPago": "2026-04-05"}}, "11": {"2026-01": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-02": {"pagado": true, "fechaPago": "2026-04-05"}, "2026-03": {"pagado": true, "fechaPago": "2026-04-05"}}, "12": {}, "13": {}, "14": {}}, "asistencias": {"1": {"2026-04-01": "P", "2026-03-30": "P", "2026-03-28": "P", "2026-03-25": "A", "2026-03-18": "P", "2026-03-14": "P", "2026-03-11": "P", "2026-03-07": "P", "2026-03-04": "P"}, "2": {"2026-04-01": "P", "2026-03-30": "P", "2026-03-28": "P", "2026-03-25": "P", "2026-03-18": "P", "2026-03-14": "P", "2026-03-11": "P", "2026-03-07": "P", "2026-03-04": "P"}, "3": {"2026-04-01": "A"}, "4": {"2026-04-01": "A", "2026-03-30": "A", "2026-03-28": "P", "2026-03-25": "A", "2026-03-18": "P", "2026-03-14": "P", "2026-03-11": "P", "2026-03-07": "P", "2026-03-04": "P"}, "5": {"2026-04-01": "P"}, "6": {"2026-04-01": "P"}, "7": {"2026-04-01": "A"}, "8": {"2026-04-01": "P"}, "9": {"2026-04-01": "P"}, "10": {"2026-04-01": "P", "2026-03-30": "P", "2026-03-28": "P", "2026-03-25": "A", "2026-03-18": "P", "2026-03-14": "P", "2026-03-11": "P", "2026-03-07": "P", "2026-03-04": "P"}, "11": {"2026-04-01": "P", "2026-03-30": "P", "2026-03-28": "P", "2026-03-25": "P", "2026-03-18": "A", "2026-03-14": "P", "2026-03-11": "P", "2026-03-07": "P", "2026-03-04": "P"}, "12": {"2026-04-01": "A"}, "13": {"2026-04-01": "A"}, "14": {"2026-04-01": "A", "2026-03-30": "A", "2026-03-28": "P", "2026-03-25": "P", "2026-03-18": "P", "2026-03-14": "A", "2026-03-11": "P", "2026-03-07": "P", "2026-03-04": "P"}}, "clases": {"15": {"2026-03-24_2026-03-30": 2, "2026-03-17_2026-03-23": 2, "2026-03-10_2026-03-16": 2, "2026-03-03_2026-03-09": 2, "2026-02-03_2026-02-09": 2, "2026-02-10_2026-02-16": 2, "2026-02-17_2026-02-23": 2, "2026-02-24_2026-03-02": 2, "2026-01-20_2026-01-26": 2, "2026-01-27_2026-02-02": 2}}, "gastos": [], "extraDias": {"2026-04": ["2026-04-01"], "2026-03": ["2026-03-30"]}, "presentaciones": [], "nextId": 16}`;
+
+function renderConfiguracion() {
+  // System info
+  const el = document.getElementById('sysInfo');
+  if(el) el.innerHTML = `
+    <div>👯 Alumnas activas: <strong style="color:var(--text);">${DB.alumnos.length}</strong></div>
+    <div>🎭 Profesores: <strong style="color:var(--text);">${DB.profesores.length}</strong></div>
+    <div>💰 Registros de pagos: <strong style="color:var(--text);">${Object.keys(DB.pagos).length}</strong></div>
+    <div>🎪 Presentaciones: <strong style="color:var(--text);">${DB.presentaciones.length}</strong></div>
+    <div>☁️ Usuario: <strong style="color:var(--text);">${window._fbUser?.email||'No conectado'}</strong></div>
+    <div>🕐 Última actualización: <strong style="color:var(--text);">${new Date().toLocaleString('es-CO')}</strong></div>
+  `;
+
+  // Setup drop zone
+  const dropZone = document.getElementById('dropZone');
+  if(dropZone && !dropZone._ready) {
+    dropZone._ready = true;
+    dropZone.addEventListener('dragover', e=>{ e.preventDefault(); dropZone.style.borderColor='var(--col)'; });
+    dropZone.addEventListener('dragleave', ()=>{ dropZone.style.borderColor='var(--border)'; });
+    dropZone.addEventListener('drop', e=>{
+      e.preventDefault(); dropZone.style.borderColor='var(--border)';
+      const file = e.dataTransfer.files[0];
+      if(file) procesarArchivoImport(file);
+    });
+  }
+}
+
+function exportarJSON() {
+  // Export everything except photos (too large)
+  const exportData = JSON.parse(JSON.stringify(DB));
+  exportData.alumnos = exportData.alumnos.map(a => ({...a, foto:null}));
+  exportData._exportDate = new Date().toISOString();
+  exportData._version = 'lazos-v3';
+
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `lazos-tricolor-backup-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✅ Backup JSON descargado correctamente');
+}
+
+function exportarCSV() {
+  const headers = ['Nombre','Categoría','Nacimiento','Teléfono','Correo','Representante','Familiar','Dirección','Barrio'];
+  const rows = DB.alumnos.map(a => [
+    a.nombre||'', a.categoria||'', a.nacimiento||'',
+    a.telefono||'', a.correo||'', a.repNombre||'',
+    a.familiar?'Sí':'No', a.direccion||'', a.barrio||''
+  ]);
+  const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `lazos-alumnas-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✅ CSV descargado — ábrelo en Excel');
+}
+
+function importarJSON(input) {
+  const file = input.files[0];
+  if(file) procesarArchivoImport(file);
+}
+
+function procesarArchivoImport(file) {
+  const statusEl = document.getElementById('importStatus');
+  statusEl.style.display = 'block';
+  statusEl.innerHTML = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;color:var(--muted);">🔄 Leyendo archivo...</div>';
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if(!data.alumnos) throw new Error('El archivo no tiene el formato correcto');
+
+      statusEl.innerHTML = `<div style="background:#ffd60015;border:1px solid var(--col);border-radius:8px;padding:14px;font-size:13px;">
+        <div style="font-weight:700;color:var(--col);margin-bottom:8px;">📋 Archivo listo para importar</div>
+        <div style="color:var(--muted);">👯 Alumnas: <strong style="color:var(--text);">${data.alumnos.length}</strong></div>
+        <div style="color:var(--muted);">🎭 Profesores: <strong style="color:var(--text);">${data.profesores?.length||0}</strong></div>
+        <div style="color:var(--muted);">🎪 Presentaciones: <strong style="color:var(--text);">${data.presentaciones?.length||0}</strong></div>
+        <div style="margin-top:12px;color:var(--ven);font-size:12px;">⚠️ Esto reemplazará todos los datos actuales</div>
+        <div style="margin-top:12px;display:flex;gap:8px;">
+          <button class="btn btn-primary btn-sm" onclick="confirmarImport(${JSON.stringify(JSON.stringify(data))})">✅ Confirmar importación</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('importStatus').style.display='none'">Cancelar</button>
+        </div>
+      </div>`;
+    } catch(err) {
+      statusEl.innerHTML = `<div style="background:#cf142b15;border:1px solid var(--ven);border-radius:8px;padding:12px;font-size:13px;color:var(--ven);">❌ Error: ${err.message}</div>`;
+    }
+  };
+  reader.readAsText(file);
+}
+
+function confirmarImport(dataStr) {
+  const data = JSON.parse(dataStr);
+  DB = {...DB, ...data};
+  saveAll();
+  renderConfiguracion();
+  showToast('✅ Datos importados: ' + data.alumnos.length + ' alumnas');
+  document.getElementById('importStatus').style.display = 'none';
+}
+
+async function forzarSubida() {
+  const el = document.getElementById('syncStatus2');
+  el.textContent = '☁️ Subiendo datos a Firebase...';
+  if(window._fbSave) {
+    await window._fbSave(DB);
+    el.textContent = '✅ Datos subidos a Firebase correctamente — ' + new Date().toLocaleTimeString('es-CO');
+    el.style.color = 'var(--green)';
+  } else {
+    el.textContent = '⚠️ No hay sesión activa. Inicia sesión primero.';
+    el.style.color = 'var(--orange)';
+  }
+}
+
+async function forzarDescarga() {
+  const el = document.getElementById('syncStatus2');
+  el.textContent = '🔄 Descargando datos de Firebase...';
+  if(window._fbLoadFromCloud) {
+    await window._fbLoadFromCloud();
+    el.textContent = '✅ Datos descargados de Firebase — ' + new Date().toLocaleTimeString('es-CO');
+    el.style.color = 'var(--green)';
+  } else {
+    el.textContent = '⚠️ No hay sesión activa.';
+    el.style.color = 'var(--orange)';
+  }
+}
+
+// ── RESTAURACIÓN INICIAL desde backup embebido ──
+window._restaurarBackupInicial = async function() {
+  try {
+    const data = JSON.parse(BACKUP_INICIAL);
+    DB = {...DB, ...data};
+    saveAll();
+    if(window._fbSave) await window._fbSave(DB);
+    showToast('✅ ' + data.alumnos.length + ' alumnas restauradas desde backup');
+    renderDashboard();
+    return true;
+  } catch(e) {
+    console.error('Error restaurando:', e);
+    return false;
+  }
+};
+
 
 // Firebase Sign In
 window._fbSignIn = async function() {
