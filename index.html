@@ -2567,8 +2567,11 @@ function renderAsistencias(){
   if(!activas.length){
     document.getElementById('asist-content').innerHTML='<p style="color:var(--muted);text-align:center;padding:40px">Sin alumnas en este período</p>';
     const ac=document.getElementById('asist-charts'); if(ac) ac.innerHTML='';
+    const ar=document.getElementById('asist-ranking'); if(ar) ar.innerHTML='';
     return;
   }
+  // ── Ranking top 3 por categoría ──
+  generarRanking(mk);
 
   // ── Gráfico de asistencia ──
   {
@@ -4234,6 +4237,104 @@ function renderOtrosIngresos(){
       </tbody>
     </table>
   `;
+}
+
+
+// ===================== RANKING ASISTENCIAS =====================
+const MENSAJES_RANK = [
+  function(top,mes){ return '🌟 *¡Reconocimiento de Asistencia — '+mes+'!* 🌟\n\n¡Qué mes tan hermoso ha sido este! Celebramos con orgullo a quienes brillaron con su constancia y dedicación.\n\n'+top+'\n\n✨ A quienes no aparecen en este reconocimiento: ¡su momento llegará! Cada clase que no vienen es una oportunidad de crecer que se escapa. La danza nos enseña que la disciplina es el camino más bonito hacia los sueños. Los esperamos con los brazos abiertos. 💃🕺\n\n#LazosTricol or #DanzaConAmor #Soacha'; },
+  function(top,mes){ return '🏆 *Estrellas de Asistencia — '+mes+'* 🏆\n\nLa Academia de Danzas Lazos Tricolor celebra a sus alumnas más comprometidas este mes:\n\n'+top+'\n\n💛 Para el resto de nuestra familia artística: cada paso cuenta, cada clase suma. La danza no espera, ¡nosotros sí los esperamos! Vengan, que aquí siempre hay un lugar para ustedes. Con cariño y disciplina se construyen grandes bailarines. 🎶\n\n#RecordDeAsistencia #LazosTricol or'; },
+  function(top,mes){ return '💃 *¡Aplausos para nuestras alumnas del mes de '+mes+'!* 💃\n\nLa constancia tiene nombre y apellido:\n\n'+top+'\n\n🌺 Y a todas las demás: el arte de la danza se construye día a día, ensayo a ensayo. No dejen que la rutina les robe el ritmo. Cada vez que llegan a clase, invierten en su talento. Los queremos y los esperamos. ¡Juntos somos más fuertes! 💪\n\n#Comprometidas #AcademiaDeDanzas #Soacha'; },
+  function(top,mes){ return '🎭 *¡Reconocemos la entrega de nuestras alumnas — '+mes+'!* 🎭\n\nEste mes, estas estrellas demostraron que la disciplina es el mejor ritmo:\n\n'+top+'\n\n🌸 A quienes todavía están encontrando su camino: la danza nos enseña que caer y levantarse también es parte del baile. No se rindan, el escenario los espera. Con amor y perseverancia, todo es posible en nuestra academia. ¡Los necesitamos a todos! ❤️\n\n#DanzaYVida #LazosTricol or #Perseverancia'; },
+];
+
+function generarRanking(mk){
+  const CATS=['Infantil','Juvenil','Adulto','Adulto Mayor'];
+  const activas=getAlumnasMes(mk);
+  if(!activas.length){ var ar=document.getElementById('asist-ranking'); if(ar) ar.innerHTML=''; return; }
+
+  const stats=activas.map(function(a){
+    var dias=getDiasClaseMes(a,mk);
+    var pres=dias.filter(function(d){return DB.asistencias[a.id]&&DB.asistencias[a.id][d]==='P';}).length;
+    return {id:a.id,nombre:a.nombre,categoria:a.categoria,pres:pres,total:dias.length,
+      pct:dias.length?Math.round(pres/dias.length*100):0};
+  }).filter(function(a){return a.total>0;});
+
+  var rankingPorCat={};
+  CATS.forEach(function(cat){
+    rankingPorCat[cat]=stats.filter(function(a){return a.categoria===cat;})
+      .sort(function(a,b){return b.pct-a.pct||b.pres-a.pres;}).slice(0,3);
+  });
+
+  var catColores={Infantil:'#d6006a',Juvenil:'#1a9900',Adulto:'#c95000','Adulto Mayor':'#0077b6'};
+  var catIconos={Infantil:'💃',Juvenil:'🎭',Adulto:'🌟','Adulto Mayor':'⭐'};
+  var medallas=['🥇','🥈','🥉'];
+  var mesNom=mesLabel(mk);
+
+  // Texto para el mensaje
+  var topTexto='';
+  CATS.forEach(function(cat){
+    var top=rankingPorCat[cat];
+    if(!top.length) return;
+    topTexto+='*'+cat+':*\n';
+    top.forEach(function(a,i){ topTexto+='  '+medallas[i]+' '+a.nombre+' — '+a.pct+'% ('+a.pres+'/'+a.total+' clases)\n'; });
+    topTexto+='\n';
+  });
+
+  var msgIdx=parseInt(mk.replace('-',''))%MENSAJES_RANK.length;
+  var mensaje=MENSAJES_RANK[msgIdx](topTexto.trim(),mesNom);
+
+  // Tarjetas por categoría
+  var catConDatos=CATS.filter(function(c){return rankingPorCat[c].length>0;});
+  var tarjetas='';
+  catConDatos.forEach(function(cat){
+    var top=rankingPorCat[cat];
+    var color=catColores[cat];
+    var filas='';
+    top.forEach(function(a,i){
+      var barWidth=a.pct;
+      filas+='<div class="ranking-row">'
+        +'<span class="ranking-medal">'+medallas[i]+'</span>'
+        +'<span class="ranking-nombre">'+a.nombre.split(' ').slice(0,2).join(' ')+'</span>'
+        +'<div class="ranking-bar-wrap"><div class="ranking-bar" style="width:'+barWidth+'%;background:'+color+'"></div></div>'
+        +'<span class="ranking-pct" style="color:'+color+'">'+a.pct+'%</span>'
+        +'</div>';
+    });
+    tarjetas+='<div style="background:var(--card2);border-radius:12px;padding:14px">'
+      +'<div class="ranking-cat-title" style="color:'+color+'">'+catIconos[cat]+' '+cat+'</div>'
+      +filas
+      +'</div>';
+  });
+
+  var html='<div class="ranking-card">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">'
+      +'<div style="font-size:15px;font-weight:800">🏆 Ranking de Asistencia — '+mesNom+'</div>'
+      +'<button class="ranking-copy-btn" onclick="copiarMensajeRanking()">📋 Copiar mensaje</button>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin-bottom:16px">'+tarjetas+'</div>'
+    +'<div class="ranking-msg-box" id="ranking-mensaje">'+mensaje+'</div>'
+    +'</div>';
+
+  var ar=document.getElementById('asist-ranking');
+  if(ar) ar.innerHTML=html;
+}
+
+function copiarMensajeRanking(){
+  var box=document.getElementById('ranking-mensaje');
+  if(!box) return;
+  var texto=box.textContent||box.innerText;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(texto).then(function(){ toast('📋 Mensaje copiado ✓'); })
+    .catch(function(){ _copiarFallback(texto); });
+  } else { _copiarFallback(texto); }
+}
+function _copiarFallback(texto){
+  var ta=document.createElement('textarea');
+  ta.value=texto; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); toast('📋 Mensaje copiado ✓'); }
+  catch(e){ toast('No se pudo copiar','err'); }
+  document.body.removeChild(ta);
 }
 
 // ===================== CARGA LOCAL =====================
