@@ -1519,7 +1519,7 @@ function mergeDB(local, remoto){
   Object.keys(remoto).forEach(k=>{ if(k.startsWith('_')) base[k]=remoto[k]; });
 
   const secciones=['alumnos','alumnosRetirados','profesores','profesoresRetirados',
-    'pagos','asistencias','clases','gastos','extraDias','presentaciones','planificador','gastosV','otrosIngresos'];
+    'pagos','asistencias','clases','gastos','extraDias','presentaciones','planificador','gastosV','otrosIngresos','extraDias','clases'];
 
   secciones.forEach(s=>{
     const tsL = local['_ts_'+s]  || local._version  || 0;
@@ -1533,10 +1533,12 @@ function mergeDB(local, remoto){
     const localTieneDatos = Array.isArray(localVal) ? localVal.length > 0
       : (localVal && Object.keys(localVal).length > 0);
 
-    if(!remotoTieneTs && localTieneDatos && Array.isArray(localVal)){
+    if(!remotoTieneTs && localTieneDatos){
+      // Remoto nunca tuvo este campo con timestamp propio — conservar local
       base[s] = localVal;
       base['_ts_'+s] = tsL;
-      console.log('🛡️ '+s+': remoto sin timestamp propio — conservando local ('+localVal.length+' items)');
+      const sz = Array.isArray(localVal) ? localVal.length+' items' : Object.keys(localVal).length+' keys';
+      console.log('🛡️ '+s+': remoto sin timestamp propio — conservando local ('+sz+')');
       return;
     }
 
@@ -1569,9 +1571,19 @@ function mergeDB(local, remoto){
         // Para arrays: el más largo O el local si tiene datos que el remoto no tiene
         base[s] = localVal.length >= remotoVal.length ? localVal : remotoVal;
       } else if(Array.isArray(localVal) && !Array.isArray(remotoVal)){
-        // Remoto no tiene este array — conservar local siempre
         base[s] = localVal;
         console.log('🛡️ '+s+': remoto no tiene este campo, conservando local ('+localVal.length+' items)');
+      } else if(s==='extraDias' || s==='clases'){
+        // Objetos indexados: fusionar mes a mes / semana a semana
+        const merged = Object.assign({}, remotoVal||{});
+        Object.keys(localVal||{}).forEach(k=>{
+          if(!merged[k]) merged[k] = localVal[k];
+          else if(Array.isArray(localVal[k]) && Array.isArray(merged[k])){
+            // Para arrays dentro del objeto, usar el más largo
+            if(localVal[k].length > merged[k].length) merged[k] = localVal[k];
+          }
+        });
+        base[s] = merged;
       }
     }
   });
@@ -2684,7 +2696,8 @@ function toggleAsistencia(alumnaId,fecha){
   else delete DB.asistencias[alumnaId][fecha];
   // Guardar versión sin re-renderizar ni disparar polling
   _localVersion = Date.now();
-  tsSeccion('asistencias'); // timestamp específico de asistencias
+  tsSeccion('asistencias');
+  DB._ts_asistencias = Date.now(); // forzar timestamp explícito en Firebase
   snapLocal();
   encolarGuardado();
   _fbSave(DB).then(ok=>{
@@ -2748,9 +2761,16 @@ function guardarDiaExtra(){
   // Quitar si ya existe esa fecha para esas categorías y reemplazar
   DB.extraDias[mk] = DB.extraDias[mk].filter(e=>(e.fecha||e)!==fecha);
   DB.extraDias[mk].push({fecha, cats});
+  tsSeccion('extraDias');
+  DB._ts_extraDias = Date.now();
+  snapLocal();
   cerrarModal('modal-dia-extra');
-  saveAll(); renderAsistencias();
-  toast('✅ Día extra agregado para: '+cats.join(', '));
+  renderAsistencias();
+  toast('⏳ Guardando día extra...');
+  _fbSave(DB).then(function(ok){
+    if(ok){ desencolarGuardado(); _ultimoGuardado=Date.now(); toast('✅ Día extra guardado — '+cats.join(', ')); }
+    else { encolarGuardado(); programarReintento(); toast('⚠️ Guardado local — reintentando...','info'); }
+  });
 }
 
 // ===================== PROFESORES =====================
