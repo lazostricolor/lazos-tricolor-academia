@@ -2058,11 +2058,19 @@ function renderDashCharts(mk,activas){
       let pres=0,tot=0;
       activas.filter(a=>a.categoria===c).forEach(a=>{
         for(let d=new Date(wStart);d<=wEnd;d.setDate(d.getDate()+1)){
-          // Solo contar días dentro del mes navegado
           if(d.getFullYear()===y&&d.getMonth()===m-1){
-            if(DIAS_CLASE[c]&&DIAS_CLASE[c].includes(d.getDay())){
+            const ds=dateStr(new Date(d));
+            // Día fijo de clase O día extra que aplique a esta categoría
+            const esDiaFijo=DIAS_CLASE[c]&&DIAS_CLASE[c].includes(d.getDay());
+            const extrasMk=(DB.extraDias&&DB.extraDias[mk])||[];
+            const esDiaExtra=extrasMk.some(function(e){
+              const fecha=typeof e==='string'?e:e.fecha;
+              const cats=typeof e==='string'?null:e.cats;
+              return fecha===ds&&(!cats||cats.includes(c));
+            });
+            if(esDiaFijo||esDiaExtra){
               tot++;
-              if(DB.asistencias[a.id]&&DB.asistencias[a.id][dateStr(new Date(d))]==='P') pres++;
+              if(DB.asistencias[a.id]&&DB.asistencias[a.id][ds]==='P') pres++;
             }
           }
         }
