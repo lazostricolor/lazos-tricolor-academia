@@ -1835,27 +1835,21 @@ async function _fbSave(datos){
   for(let intento=1; intento<=3; intento++){
     try{
       const ctrl = new AbortController();
-      const tmout = setTimeout(()=>ctrl.abort(), 15000);
-      const r = await fetch(`${FB_URL}?key=${FB_KEY}&updateMask.fieldPaths=data`, {
+      const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+      const timeoutMs = isMobile ? 30000 : 15000; // más tiempo en mobile
+      const tmout = setTimeout(()=>ctrl.abort(), timeoutMs);
+      const fetchOpts = {
         method:'PATCH',
         headers:{'Content-Type':'application/json'},
         body: payload,
-        signal: ctrl.signal
-      });
+        signal: ctrl.signal,
+        keepalive: true // crucial en mobile — sobrevive a cambios de pestaña
+      };
+      const r = await fetch(`${FB_URL}?key=${FB_KEY}&updateMask.fieldPaths=data`, fetchOpts);
       clearTimeout(tmout);
       if(!r.ok){
         const eb = await r.json().catch(()=>({}));
         throw new Error('HTTP '+r.status+': '+(eb?.error?.message||''));
-      }
-      // ── Verificar que Firebase realmente guardó ──
-      await new Promise(res=>setTimeout(res, 500)); // esperar propagación
-      const check = await fetch(`${FB_URL}?key=${FB_KEY}`).catch(()=>null);
-      if(check && check.ok){
-        const cj = await check.json().catch(()=>({}));
-        const saved = JSON.parse(cj.fields?.data?.stringValue||'{}');
-        if(saved._version !== _localVersion){
-          throw new Error('Versión no confirmada en Firebase');
-        }
       }
       _guardandoAhora = false;
       _ultimoGuardado = Date.now();
@@ -5054,6 +5048,79 @@ async function init(){
     toast('Error al iniciar: '+err.message, 'err');
   }
 }
+
+
+// ===================== EVENTOS MOBILE Y CICLO DE VIDA =====================
+
+// Cuando la app vuelve al frente (tab visible de nuevo)
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState === 'visible'){
+    console.log('👁 App visible — verificando datos pendientes...');
+    // Si hay guardado pendiente, reintentarlo
+    if(hayGuardadoPendiente() && !_guardandoAhora){
+      toast('🔄 Sincronizando...','info');
+      _fbSave(DB).then(function(ok){
+        if(ok){ desencolarGuardado(); actualizarIndicadorGuardado(true); toast('✅ Datos sincronizados','ok'); }
+        else programarReintento();
+      });
+    }
+    // Si llevamos más de 2 min sin ver Firebase, cargar cambios de otros dispositivos
+    if(!_guardandoAhora && (Date.now() - _ultimoGuardado) > 120000){
+      _fbCargar().then(function(ok){
+        if(ok){ repararFechasIngreso(); renderSection(activeSection); }
+      });
+    }
+  } else {
+    // App va a background — guardar local de inmediato
+    if(_localVersion > 0) snapLocal();
+    console.log('🌑 App en background — snapshot local guardado');
+  }
+});
+
+// Cuando recupera conexión a internet
+window.addEventListener('online', function(){
+  console.log('🌐 Conexión recuperada');
+  setSyncStatus('syncing');
+  if(hayGuardadoPendiente() && !_guardandoAhora){
+    toast('🌐 Conexión recuperada — sincronizando...','info');
+    setTimeout(function(){
+      _fbSave(DB).then(function(ok){
+        if(ok){ desencolarGuardado(); actualizarIndicadorGuardado(true); toast('✅ Datos guardados','ok'); }
+        else programarReintento();
+      });
+    }, 1000); // pequeña espera para que la conexión estabilice
+  }
+});
+
+// Cuando pierde conexión
+window.addEventListener('offline', function(){
+  console.log('📵 Sin conexión');
+  setSyncStatus('error');
+  toast('📵 Sin conexión — cambios guardados localmente','info');
+});
+
+// Antes de cerrar o navegar fuera — guardar todo
+window.addEventListener('pagehide', function(){
+  if(_localVersion > 0){
+    snapLocal();
+    // Intento final con keepalive=true (el único que funciona en pagehide)
+    if(hayGuardadoPendiente()){
+      const sinFotos = {...DB, alumnos: DB.alumnos?.map(a=>({...a,foto:null})), _version: _localVersion};
+      const payload = JSON.stringify({fields:{data:{stringValue:JSON.stringify(sinFotos)}}});
+      navigator.sendBeacon
+        ? fetch(`${FB_URL}?key=${FB_KEY}&updateMask.fieldPaths=data`, {
+            method:'PATCH', headers:{'Content-Type':'application/json'},
+            body: payload, keepalive: true
+          }).catch(()=>{})
+        : null;
+    }
+  }
+});
+
+// También beforeunload como respaldo
+window.addEventListener('beforeunload', function(){
+  if(_localVersion > 0) snapLocal();
+});
 
 // Arrancar
 if(checkSession()){
