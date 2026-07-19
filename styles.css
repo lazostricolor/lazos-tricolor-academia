@@ -499,6 +499,32 @@ select:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-lt)}
 .ranking-msg-box{background:var(--card2);border-radius:10px;padding:14px 16px;font-size:12px;line-height:1.7;color:var(--text);white-space:pre-wrap;margin-top:12px;border:1px solid var(--border)}
 
 
+
+/* ── SUB-PESTAÑAS ── */
+.subtabs{display:flex;gap:6px;margin-bottom:20px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.subtab{background:none;border:none;border-bottom:2px solid transparent;padding:9px 16px;font-size:13px;font-family:inherit;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;margin-bottom:-1px}
+.subtab:hover{color:var(--primary)}
+.subtab.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:700}
+
+/* ── VESTUARIO ── */
+.vest-card{background:var(--card);border-radius:var(--r);border:1px solid var(--border);margin-bottom:18px;overflow:hidden}
+.vest-header{padding:14px 18px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.vest-dot{width:26px;height:26px;border-radius:7px;flex-shrink:0;border:2px solid rgba(0,0,0,.08)}
+.vest-body{padding:14px 18px}
+.pieza-chip{display:inline-flex;align-items:center;gap:5px;padding:6px 11px;border-radius:8px;font-size:12px;font-weight:700;border:2px solid;cursor:pointer;transition:all .15s;margin:0 5px 5px 0}
+.pieza-chip:hover{transform:translateY(-1px);box-shadow:var(--shadow-sm)}
+.pieza-chip.libre{background:var(--card2);border-color:var(--border);color:var(--text)}
+.pieza-chip.enuso{background:rgba(58,87,232,.1);border-color:var(--primary);color:var(--primary)}
+.pieza-chip.dano{background:rgba(244,169,22,.12);border-color:var(--warning);color:#a06d00}
+.pieza-chip.reparacion{background:rgba(8,177,186,.1);border-color:var(--info);color:#067076}
+.pieza-chip.baja{background:var(--card2);border-color:var(--border);color:var(--text2);opacity:.5;text-decoration:line-through}
+.pieza-chip.perdida{background:rgba(192,50,33,.1);border-color:var(--danger);color:var(--danger)}
+.uso-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.uso-row:last-child{border-bottom:none}
+.uso-cod{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:800;font-size:12px;background:var(--primary-lt);color:var(--primary);padding:3px 8px;border-radius:6px;white-space:nowrap}
+.vest-leyenda{display:flex;gap:12px;flex-wrap:wrap;font-size:10px;color:var(--text2);margin-top:10px}
+.vest-leyenda i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:3px}
+
 /* ── RIFAS ── */
 .rifa-card{background:var(--card);border-radius:var(--r);border:1px solid var(--border);margin-bottom:18px;overflow:hidden}
 .rifa-header{padding:16px 20px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;border-bottom:1px solid var(--border);flex-wrap:wrap}

@@ -291,9 +291,16 @@
       <div id="sec-presentaciones" class="section">
         <div class="section-header">
           <div class="section-title">🎭 Presentaciones</div>
-          <button class="btn btn-primary btn-sm" onclick="abrirModalPresentacion()">➕ Nueva Presentación</button>
+          <button class="btn btn-primary btn-sm" id="btn-nueva-pres" onclick="abrirModalPresentacion()">➕ Nueva Presentación</button>
+          <button class="btn btn-primary btn-sm" id="btn-nuevo-vest" style="display:none" onclick="abrirModalVestuario()">➕ Nuevo Vestuario</button>
+          <button class="btn btn-ghost btn-sm" id="btn-nuevo-uso" style="display:none" onclick="abrirModalUso()">📋 Registrar uso</button>
         </div>
-        <div id="pres-list"></div>
+        <div class="subtabs">
+          <button class="subtab active" id="stab-presentaciones" onclick="tabPres('presentaciones')">🎭 Presentaciones</button>
+          <button class="subtab" id="stab-vestuario" onclick="tabPres('vestuario')">👗 Vestuario</button>
+        </div>
+        <div id="tabpres-presentaciones"><div id="pres-list"></div></div>
+        <div id="tabpres-vestuario" style="display:none"><div id="vest-content"></div></div>
       </div>
 
 
@@ -680,6 +687,172 @@
 
 
 
+
+<!-- MODAL VESTUARIO -->
+<div class="modal-overlay" id="modal-vestuario">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <h3 id="modal-vestuario-title">Nuevo Vestuario</h3>
+      <button class="modal-close" onclick="cerrarModal('modal-vestuario')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid" style="grid-template-columns:1fr 1fr">
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Nombre del vestuario *</label>
+          <input type="text" id="vest-nombre" placeholder="Ej: Negro Tricolor, Amarillo, Rosado">
+        </div>
+        <div class="form-group">
+          <label>Prefijo de código *</label>
+          <input type="text" id="vest-prefijo" maxlength="3" placeholder="Ej: A" style="text-transform:uppercase">
+        </div>
+        <div class="form-group">
+          <label>Color de referencia</label>
+          <input type="color" id="vest-color" value="#3a57e8" style="height:38px;padding:4px">
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Descripción / región</label>
+          <input type="text" id="vest-desc" placeholder="Ej: Joropo llanero, uso en festivales">
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--text2);margin-top:12px">El prefijo se usa para los códigos de cada pieza: A1, A2, A3&hellip;</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" id="btn-borrar-vest" style="display:none;margin-right:auto" onclick="eliminarVestuario()">&#128465; Eliminar</button>
+      <button class="btn btn-ghost" onclick="cerrarModal('modal-vestuario')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarVestuario()">&#128190; Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PIEZA -->
+<div class="modal-overlay" id="modal-pieza">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <h3 id="modal-pieza-title">Nueva Pieza</h3>
+      <button class="modal-close" onclick="cerrarModal('modal-pieza')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div id="pieza-vest-info" style="background:var(--card2);border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px"></div>
+      <div class="form-grid" style="grid-template-columns:1fr 1fr">
+        <div class="form-group">
+          <label>Código *</label>
+          <input type="text" id="pieza-cod" placeholder="A12" style="text-transform:uppercase;font-weight:800">
+        </div>
+        <div class="form-group">
+          <label>Tipo de prenda *</label>
+          <select id="pieza-tipo">
+            <option>Falda</option><option>Blusa</option><option>Vestido</option>
+            <option>Camisa</option><option>Pantal&oacute;n</option><option>Sombrero</option>
+            <option>Alpargatas</option><option>Accesorio</option><option>Otro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Talla</label>
+          <input type="text" id="pieza-talla" placeholder="Ej: M, 10, 38">
+        </div>
+        <div class="form-group">
+          <label>Estado actual</label>
+          <select id="pieza-estado">
+            <option value="buena">&#9989; Buena</option>
+            <option value="dano">&#9888;&#65039; Con da&ntilde;o</option>
+            <option value="reparacion">&#128295; En reparaci&oacute;n</option>
+            <option value="baja">&#9940; Dada de baja</option>
+          </select>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Observaciones</label>
+          <input type="text" id="pieza-nota" placeholder="Ej: dobladillo descosido, falta un boton">
+        </div>
+      </div>
+      <div id="pieza-lote-wrap" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+        <div class="form-group">
+          <label>&#9889; Crear varias de una vez (opcional)</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="number" id="pieza-lote" min="2" max="60" placeholder="Ej: 12" style="max-width:120px">
+            <span style="font-size:11px;color:var(--text2)">crea A1, A2, A3&hellip; con el mismo tipo y talla</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" id="btn-borrar-pieza" style="display:none;margin-right:auto" onclick="eliminarPieza()">&#128465; Eliminar</button>
+      <button class="btn btn-ghost" onclick="cerrarModal('modal-pieza')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarPieza()">&#128190; Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL REGISTRAR USO -->
+<div class="modal-overlay" id="modal-uso">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <h3 id="modal-uso-title">Registrar uso de vestuario</h3>
+      <button class="modal-close" onclick="cerrarModal('modal-uso')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid" style="grid-template-columns:1fr 1fr">
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Presentaci&oacute;n *</label>
+          <select id="uso-pres" onchange="onCambioPresUso()"></select>
+        </div>
+        <div class="form-group">
+          <label>Fecha</label>
+          <input type="date" id="uso-fecha">
+        </div>
+        <div class="form-group">
+          <label>Vestuario *</label>
+          <select id="uso-vest" onchange="cargarPiezasUso()"></select>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Alumna *</label>
+          <select id="uso-alumna"></select>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Piezas entregadas * <span style="font-weight:400;text-transform:none;letter-spacing:0">(solo aparecen las disponibles)</span></label>
+          <div id="uso-piezas" style="max-height:200px;overflow-y:auto;background:var(--card2);border-radius:8px;padding:10px;border:1px solid var(--border)"></div>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Nota de entrega</label>
+          <input type="text" id="uso-nota" placeholder="Ej: entregado el viernes en el ensayo">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModal('modal-uso')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarUso()">&#9989; Registrar entrega</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DEVOLUCION -->
+<div class="modal-overlay" id="modal-devolucion">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h3>&#8617;&#65039; Registrar devoluci&oacute;n</h3>
+      <button class="modal-close" onclick="cerrarModal('modal-devolucion')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div id="dev-info" style="background:var(--card2);border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px"></div>
+      <div class="form-group" style="margin-bottom:14px">
+        <label>&iquest;C&oacute;mo volvi&oacute; la prenda? *</label>
+        <select id="dev-estado">
+          <option value="buena">&#9989; En buen estado</option>
+          <option value="dano">&#9888;&#65039; Con da&ntilde;o</option>
+          <option value="perdida">&#9940; No devuelta / perdida</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Observaci&oacute;n</label>
+        <textarea id="dev-nota" rows="2" placeholder="Ej: cremallera rota, mancha en el ruedo"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModal('modal-devolucion')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarDevolucion()">&#128190; Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL RIFA -->
 <div class="modal-overlay" id="modal-rifa">
   <div class="modal" style="max-width:560px">
@@ -1026,6 +1199,7 @@
 <script src="js/planificador.js"></script>
 <script src="js/preinscripciones.js"></script>
 <script src="js/archivo.js"></script>
+<script src="js/vestuario.js"></script>
 <script src="js/config.js"></script>
 <script src="js/app.js"></script>
 
