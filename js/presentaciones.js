@@ -130,8 +130,13 @@ function guardarPresentacion(){
   if(!titulo){toast('El título es obligatorio','err');return;}
   const alumnas=todosLosAlumnos().filter(a=>document.getElementById('ev-a-'+a.id)?.checked).map(a=>a.id);
   const ev={titulo,fecha:document.getElementById('ev-fecha').value,hora:document.getElementById('ev-hora').value,lugar:document.getElementById('ev-lugar').value,descripcion:document.getElementById('ev-desc').value,alumnas};
-  if(editPresId!==null) DB.presentaciones[editPresId]=ev;
-  else DB.presentaciones.push(ev);
+  // id estable para poder vincular el uso de vestuario
+  if(editPresId!==null){
+    ev.id = DB.presentaciones[editPresId] && DB.presentaciones[editPresId].id
+          ? DB.presentaciones[editPresId].id : 'pres_'+Date.now();
+    DB.presentaciones[editPresId]=ev;
+  }
+  else { ev.id = 'pres_'+Date.now(); DB.presentaciones.push(ev); }
   cerrarModal('modal-presentacion');
   saveAll(); renderPresentaciones(); toast('Presentación guardada ✓');
 }

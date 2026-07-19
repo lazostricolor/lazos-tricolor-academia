@@ -52,7 +52,7 @@ function mergeDB(local, remoto){
   const defaults = {
     alumnos:[],alumnosRetirados:[],profesores:[],profesoresRetirados:[],
     pagos:{},asistencias:{},clases:{},gastos:[],gastosV:[],otrosIngresos:[],recaudos:[],extraDias:{},
-    presentaciones:[],planificador:[],rifas:[],nextId:1
+    presentaciones:[],planificador:[],rifas:[],vestuarios:[],usosVestuario:[],nextId:1
   };
 
   // Base: defaults + remoto, pero NUNCA reemplazar un array local con undefined/null
@@ -65,7 +65,7 @@ function mergeDB(local, remoto){
   Object.keys(remoto).forEach(k=>{ if(k.startsWith('_')) base[k]=remoto[k]; });
 
   const secciones=['alumnos','alumnosRetirados','profesores','profesoresRetirados',
-    'pagos','asistencias','clases','gastos','extraDias','presentaciones','planificador','gastosV','otrosIngresos','recaudos','rifas'];
+    'pagos','asistencias','clases','gastos','extraDias','presentaciones','planificador','gastosV','otrosIngresos','recaudos','rifas','vestuarios','usosVestuario'];
 
   secciones.forEach(s=>{
     // SIN fallback a _version: una sección sin timestamp propio NUNCA debe

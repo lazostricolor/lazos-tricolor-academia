@@ -16,7 +16,7 @@ const DIAS_CLASE = {
 const CATS = ['Infantil','Juvenil','Adulto','Adulto Mayor'];
 
 // ===================== STATE =====================
-let DB = { alumnos:[], alumnosRetirados:[], profesores:[], profesoresRetirados:[], pagos:{}, asistencias:{}, clases:{}, gastos:[], gastosV:[], extraDias:{}, presentaciones:[], planificador:[], otrosIngresos:[], recaudos:[], rifas:[], nextId:1 };
+let DB = { alumnos:[], alumnosRetirados:[], profesores:[], profesoresRetirados:[], pagos:{}, asistencias:{}, clases:{}, gastos:[], gastosV:[], extraDias:{}, presentaciones:[], planificador:[], otrosIngresos:[], recaudos:[], rifas:[], vestuarios:[], usosVestuario:[], nextId:1 };
 // Mes activo por sección — se inicializa en init() con el mes real
 let mesSec={dash:'',alumnos:'',pagos:'',asist:'',fin:'',gastos:'',ingresos:''};
 let semanaOfs=0;

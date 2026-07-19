@@ -25,7 +25,12 @@ function renderSection(name){
   else if(name==='asistencias') renderAsistencias();
   else if(name==='profesores') renderProfesores();
   else if(name==='finanzas') renderFinanzas();
-  else if(name==='presentaciones') renderPresentaciones();
+  else if(name==='presentaciones'){
+    renderPresentaciones();
+    // Si la sub-pestaña activa es Vestuario, refrescarla también
+    var tv=document.getElementById('tabpres-vestuario');
+    if(tv && tv.style.display!=='none' && typeof renderVestuario==='function') renderVestuario();
+  }
   else if(name==='archivo') renderArchivo();
   else if(name==='config') renderConfig();
   else if(name==='planificador'){ renderPlanificador(); }
