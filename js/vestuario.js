@@ -1,38 +1,45 @@
 /* ═══════════════════════════════════════════════════════════
    vestuario.js
-   Vestuarios, piezas codificadas y trazabilidad de uso
+   Vestuarios, conjuntos codificados y trazabilidad de uso
    Academia de Danzas Lazos Tricolor — Soacha, Cundinamarca
 ═══════════════════════════════════════════════════════════ */
 
 /*
   MODELO DE DATOS
+
+  Un CONJUNTO es el traje completo de una bailarina.
+  Todas sus prendas llevan el MISMO código: falda A12 + blusa A12 = conjunto A12.
+
   DB.vestuarios = [{ id, nombre, prefijo, color, desc,
-                     piezas:[{ cod, tipo, talla, estado, nota }] }]
-       estado pieza: 'buena' | 'dano' | 'reparacion' | 'baja'
+                     prendas: ['Falda','Blusa','Cinta'],        // qué compone un conjunto
+                     conjuntos: [{ cod, talla, estado, nota, fija }] }]
+       estado: 'buena' | 'dano' | 'reparacion' | 'baja'
+       fija:   id de la alumna a la que suele asignarse (opcional)
 
   DB.usosVestuario = [{ id, presId, presTitulo, fecha, vestId, cod,
                         alumnaId, alumnaNombre, nota,
-                        devuelto: null | 'buena' | 'dano' | 'perdida',
-                        devNota, devFecha }]
+                        devuelto: null|'buena'|'dano'|'perdida',
+                        devNota, devPrendas:[], devFecha }]
 
-  Una pieza está EN USO si tiene un uso con devuelto === null.
+  Un conjunto está ENTREGADO si tiene un uso con devuelto === null.
 */
 
-let editVestId   = null;
+let editVestId    = null;
 let editPiezaVest = null, editPiezaCod = null;
-let devUsoId     = null;
-let vestFiltro   = '';
+let devUsoId      = null;
+let vestFiltro    = '';
+let usoPreVest    = null, usoPreCod = null;   // preselección al asignar desde una fila
 
 const EST_PIEZA = {
-  buena:      { txt: '✅ Buena',          cls: 'libre' },
-  dano:       { txt: '⚠️ Con daño',       cls: 'dano' },
-  reparacion: { txt: '🔧 En reparación',  cls: 'reparacion' },
-  baja:       { txt: '⛔ Dada de baja',   cls: 'baja' }
+  buena:      { txt: '✅ Bueno',          cls: 'libre',      badge: 'badge-paid'    },
+  dano:       { txt: '⚠️ Con daño',       cls: 'dano',       badge: 'badge-partial' },
+  reparacion: { txt: '🔧 En reparación',  cls: 'reparacion', badge: 'badge-partial' },
+  baja:       { txt: '⛔ Dado de baja',   cls: 'baja',       badge: 'badge-unpaid'  }
 };
 const EST_DEV = {
-  buena:   { txt: '✅ Devuelta en buen estado', color: 'var(--success)' },
-  dano:    { txt: '⚠️ Devuelta con daño',       color: 'var(--warning)' },
-  perdida: { txt: '⛔ No devuelta / perdida',   color: 'var(--danger)' }
+  buena:   { txt: '✅ Devuelto en buen estado', color: 'var(--success)' },
+  dano:    { txt: '⚠️ Devuelto con daño',       color: 'var(--warning)' },
+  perdida: { txt: '⛔ No devuelto / perdido',   color: 'var(--danger)'  }
 };
 
 function _saveVest(){
@@ -45,22 +52,42 @@ function _saveVest(){
   });
 }
 
-// Asigna id a presentaciones antiguas que no lo tengan (no rompe nada existente)
+// Migra el formato anterior (piezas sueltas por tipo) a conjuntos completos
+function _migrarVestuarios(){
+  var cambio = false;
+  (DB.vestuarios||[]).forEach(function(v){
+    if(v.piezas && !v.conjuntos){
+      var tipos = [];
+      v.piezas.forEach(function(p){ if(p.tipo && tipos.indexOf(p.tipo)<0) tipos.push(p.tipo); });
+      v.prendas   = tipos.length ? tipos : ['Falda','Blusa'];
+      v.conjuntos = v.piezas.map(function(p){
+        return { cod:p.cod, talla:p.talla||'', estado:p.estado||'buena', nota:p.nota||'', fija:null };
+      });
+      delete v.piezas;
+      cambio = true;
+    }
+    if(!v.conjuntos){ v.conjuntos = []; }
+    if(!v.prendas || !v.prendas.length){ v.prendas = ['Falda','Blusa']; cambio = true; }
+  });
+  return cambio;
+}
+
+// Asigna id a presentaciones antiguas para poder vincular el uso
 function _migrarIdsPresentaciones(){
   var cambio = false;
   (DB.presentaciones||[]).forEach(function(p,i){
-    if(!p.id){ p.id = 'pres_'+i+'_'+(p.fecha||'').replace(/-/g,''); cambio = true; }
+    if(!p.id){ p.id = 'pres_'+i+'_'+String(p.fecha||'').replace(/-/g,''); cambio = true; }
   });
   return cambio;
 }
 
 function _vest(id){ return (DB.vestuarios||[]).find(function(v){ return String(v.id)===String(id); }); }
-function _pieza(vestId, cod){
+function _conj(vestId, cod){
   var v = _vest(vestId);
   if(!v) return null;
-  return (v.piezas||[]).find(function(p){ return String(p.cod).toUpperCase()===String(cod).toUpperCase(); });
+  return (v.conjuntos||[]).find(function(c){ return String(c.cod).toUpperCase()===String(cod).toUpperCase(); });
 }
-// Uso activo (sin devolver) de una pieza
+
 function _usoActivo(vestId, cod){
   return (DB.usosVestuario||[]).find(function(u){
     return String(u.vestId)===String(vestId)
@@ -71,6 +98,21 @@ function _usoActivo(vestId, cod){
 function _nombreAlumna(id){
   var a = todosLosAlumnos().find(function(x){ return String(x.id)===String(id); });
   return a ? a.nombre : 'Alumna retirada';
+}
+function _ordenarConj(v, lista){
+  return lista.slice().sort(function(a,b){
+    var na = parseInt(String(a.cod).replace(v.prefijo,''),10),
+        nb = parseInt(String(b.cod).replace(v.prefijo,''),10);
+    if(!isNaN(na) && !isNaN(nb)) return na-nb;
+    return String(a.cod).localeCompare(String(b.cod));
+  });
+}
+function _optsAlumnas(sel){
+  return '<option value="">— Sin asignación fija —</option>'
+    + (DB.alumnos||[]).slice().sort(function(a,b){ return a.nombre.localeCompare(b.nombre); })
+        .map(function(a){
+          return '<option value="'+a.id+'"'+(String(sel)===String(a.id)?' selected':'')+'>'+a.nombre+'</option>';
+        }).join('');
 }
 
 // ═════════════════ SUB-PESTAÑAS ═════════════════
@@ -90,15 +132,16 @@ function tabPres(tab){
   if(tab==='vestuario') renderVestuario();
 }
 
-// ═════════════════ VESTUARIOS (CRUD) ═════════════════
+// ═════════════════ VESTUARIOS ═════════════════
 function abrirModalVestuario(id){
   editVestId = id ? String(id) : null;
   var v = id ? _vest(id) : null;
   document.getElementById('modal-vestuario-title').textContent = v ? 'Editar Vestuario' : 'Nuevo Vestuario';
-  document.getElementById('vest-nombre').value  = v ? v.nombre   : '';
-  document.getElementById('vest-prefijo').value = v ? v.prefijo  : '';
+  document.getElementById('vest-nombre').value  = v ? v.nombre  : '';
+  document.getElementById('vest-prefijo').value = v ? v.prefijo : '';
   document.getElementById('vest-color').value   = v ? (v.color||'#3a57e8') : '#3a57e8';
   document.getElementById('vest-desc').value    = v ? (v.desc||'') : '';
+  document.getElementById('vest-prendas').value = v ? (v.prendas||[]).join(', ') : 'Falda, Blusa';
   var bd = document.getElementById('btn-borrar-vest');
   if(bd) bd.style.display = v ? 'inline-flex' : 'none';
   abrirModal('modal-vestuario');
@@ -111,37 +154,42 @@ function guardarVestuario(){
   if(!prefijo) { toast('El prefijo de código es obligatorio','err'); return; }
   if(!DB.vestuarios) DB.vestuarios = [];
 
-  // El prefijo no puede repetirse entre vestuarios
   var choque = DB.vestuarios.find(function(v){
     return v.prefijo===prefijo && String(v.id)!==String(editVestId);
   });
   if(choque){ toast('El prefijo "'+prefijo+'" ya lo usa '+choque.nombre,'err'); return; }
 
+  var prendas = document.getElementById('vest-prendas').value
+        .split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+  if(!prendas.length) prendas = ['Falda','Blusa'];
+
   var datos = {
     nombre: nombre, prefijo: prefijo,
-    color: document.getElementById('vest-color').value,
-    desc:  document.getElementById('vest-desc').value.trim()
+    color:   document.getElementById('vest-color').value,
+    desc:    document.getElementById('vest-desc').value.trim(),
+    prendas: prendas
   };
   if(editVestId){
     var idx = DB.vestuarios.findIndex(function(v){ return String(v.id)===String(editVestId); });
-    // Object.assign: NUNCA reconstruir el objeto, se perderían las piezas
+    // Object.assign: NUNCA reconstruir el objeto o se perderían los conjuntos
     if(idx>=0) DB.vestuarios[idx] = Object.assign(DB.vestuarios[idx], datos);
   } else {
     datos.id = 'v_'+Date.now();
-    datos.piezas = [];
+    datos.conjuntos = [];
     DB.vestuarios.push(datos);
   }
+  var eraNuevo = !editVestId;
   cerrarModal('modal-vestuario');
   renderVestuario();
   _saveVest();
-  toast('✅ Vestuario guardado');
+  toast(eraNuevo ? '✅ Vestuario creado — ahora agrégale sus conjuntos' : '✅ Vestuario actualizado');
 }
 
 function eliminarVestuario(){
   var v = _vest(editVestId);
   if(!v) return;
   var usos = (DB.usosVestuario||[]).filter(function(u){ return String(u.vestId)===String(v.id); }).length;
-  if(!confirm('¿Eliminar el vestuario "'+v.nombre+'"?\n\nSe borrarán sus '+(v.piezas||[]).length+' pieza(s) y '+usos+' registro(s) de uso.')) return;
+  if(!confirm('¿Eliminar el vestuario "'+v.nombre+'"?\n\nSe borrarán sus '+(v.conjuntos||[]).length+' conjunto(s) y '+usos+' registro(s) de uso.')) return;
   DB.vestuarios    = (DB.vestuarios||[]).filter(function(x){ return String(x.id)!==String(v.id); });
   DB.usosVestuario = (DB.usosVestuario||[]).filter(function(u){ return String(u.vestId)!==String(v.id); });
   cerrarModal('modal-vestuario');
@@ -150,37 +198,39 @@ function eliminarVestuario(){
   toast('Vestuario eliminado');
 }
 
-// ═════════════════ PIEZAS ═════════════════
+// ═════════════════ CONJUNTOS ═════════════════
 function abrirModalPieza(vestId, cod){
   editPiezaVest = String(vestId);
   editPiezaCod  = cod ? String(cod) : null;
   var v = _vest(vestId);
   if(!v){ toast('Vestuario no encontrado','err'); return; }
-  var p = cod ? _pieza(vestId, cod) : null;
+  _migrarVestuarios();
+  var c = cod ? _conj(vestId, cod) : null;
 
-  document.getElementById('modal-pieza-title').textContent = p ? 'Editar pieza '+p.cod : 'Nueva pieza';
+  document.getElementById('modal-pieza-title').textContent = c ? 'Conjunto '+c.cod : 'Nuevo conjunto';
   document.getElementById('pieza-vest-info').innerHTML =
-    '<strong>'+v.nombre+'</strong> · prefijo <strong>'+v.prefijo+'</strong>'
-    + (p ? '' : '<br><span style="font-size:11px;color:var(--text2)">Siguiente código sugerido: <strong>'+_sugerirCod(v)+'</strong></span>');
+    '<strong>'+v.nombre+'</strong> · prefijo <strong>'+v.prefijo+'</strong><br>'
+    + '<span style="font-size:11px;color:var(--text2)">Cada conjunto incluye: <strong>'+(v.prendas||[]).join(' + ')+'</strong>'
+    + (c ? '' : ' · siguiente código sugerido: <strong>'+_sugerirCod(v)+'</strong>') + '</span>';
 
-  document.getElementById('pieza-cod').value    = p ? p.cod : _sugerirCod(v);
-  document.getElementById('pieza-tipo').value   = p ? p.tipo : 'Falda';
-  document.getElementById('pieza-talla').value  = p ? (p.talla||'') : '';
-  document.getElementById('pieza-estado').value = p ? (p.estado||'buena') : 'buena';
-  document.getElementById('pieza-nota').value   = p ? (p.nota||'') : '';
+  document.getElementById('pieza-cod').value    = c ? c.cod : _sugerirCod(v);
+  document.getElementById('pieza-talla').value  = c ? (c.talla||'') : '';
+  document.getElementById('pieza-estado').value = c ? (c.estado||'buena') : 'buena';
+  document.getElementById('pieza-nota').value   = c ? (c.nota||'') : '';
+  document.getElementById('pieza-fija').innerHTML = _optsAlumnas(c ? c.fija : '');
   document.getElementById('pieza-lote').value   = '';
 
   var wrap = document.getElementById('pieza-lote-wrap');
-  if(wrap) wrap.style.display = p ? 'none' : 'block';
+  if(wrap) wrap.style.display = c ? 'none' : 'block';
   var bd = document.getElementById('btn-borrar-pieza');
-  if(bd) bd.style.display = p ? 'inline-flex' : 'none';
+  if(bd) bd.style.display = c ? 'inline-flex' : 'none';
   abrirModal('modal-pieza');
 }
 
 function _sugerirCod(v){
   var max = 0;
-  (v.piezas||[]).forEach(function(p){
-    var n = parseInt(String(p.cod).replace(v.prefijo,''), 10);
+  (v.conjuntos||[]).forEach(function(c){
+    var n = parseInt(String(c.cod).replace(v.prefijo,''), 10);
     if(!isNaN(n) && n>max) max = n;
   });
   return v.prefijo + (max+1);
@@ -189,56 +239,56 @@ function _sugerirCod(v){
 function guardarPieza(){
   var v = _vest(editPiezaVest);
   if(!v) return;
-  if(!v.piezas) v.piezas = [];
+  if(!v.conjuntos) v.conjuntos = [];
 
   var cod    = document.getElementById('pieza-cod').value.trim().toUpperCase();
-  var tipo   = document.getElementById('pieza-tipo').value;
   var talla  = document.getElementById('pieza-talla').value.trim();
   var estado = document.getElementById('pieza-estado').value;
   var nota   = document.getElementById('pieza-nota').value.trim();
+  var fija   = document.getElementById('pieza-fija').value || null;
   if(!cod){ toast('El código es obligatorio','err'); return; }
 
-  // Crear en lote
+  // Crear varios de una vez
   var lote = parseInt(document.getElementById('pieza-lote').value, 10);
   if(!editPiezaCod && lote && lote>1){
     var base = parseInt(cod.replace(v.prefijo,''), 10);
     if(isNaN(base)){ toast('Para crear en lote el código debe terminar en número','err'); return; }
-    var creadas = 0, saltadas = 0;
+    var creados = 0, saltados = 0;
     for(var i=0; i<lote; i++){
-      var c = v.prefijo + (base+i);
-      if(_pieza(v.id, c)){ saltadas++; continue; }
-      v.piezas.push({ cod:c, tipo:tipo, talla:talla, estado:'buena', nota:nota });
-      creadas++;
+      var cc = v.prefijo + (base+i);
+      if(_conj(v.id, cc)){ saltados++; continue; }
+      v.conjuntos.push({ cod:cc, talla:talla, estado:'buena', nota:nota, fija:null });
+      creados++;
     }
     cerrarModal('modal-pieza');
     renderVestuario();
     _saveVest();
-    toast('✅ '+creadas+' piezas creadas'+(saltadas?' ('+saltadas+' ya existían)':''));
+    toast('✅ '+creados+' conjuntos creados'+(saltados?' ('+saltados+' ya existían)':''));
     return;
   }
 
-  // Código duplicado dentro del mismo vestuario
-  var dup = (v.piezas||[]).find(function(p){
-    return String(p.cod).toUpperCase()===cod && String(p.cod).toUpperCase()!==String(editPiezaCod||'').toUpperCase();
+  var dup = (v.conjuntos||[]).find(function(c){
+    return String(c.cod).toUpperCase()===cod
+        && String(c.cod).toUpperCase()!==String(editPiezaCod||'').toUpperCase();
   });
   if(dup){ toast('El código '+cod+' ya existe en este vestuario','err'); return; }
 
   if(editPiezaCod){
-    var pz = _pieza(v.id, editPiezaCod);
-    if(pz) Object.assign(pz, { cod:cod, tipo:tipo, talla:talla, estado:estado, nota:nota });
-    // Si cambió el código, actualizar los usos históricos para no perder el rastro
+    var cj = _conj(v.id, editPiezaCod);
+    if(cj) Object.assign(cj, { cod:cod, talla:talla, estado:estado, nota:nota, fija:fija });
+    // Si cambió el código, arrastrar el historial para no perder el rastro
     if(String(editPiezaCod).toUpperCase()!==cod){
       (DB.usosVestuario||[]).forEach(function(u){
         if(String(u.vestId)===String(v.id) && String(u.cod).toUpperCase()===String(editPiezaCod).toUpperCase()) u.cod = cod;
       });
     }
   } else {
-    v.piezas.push({ cod:cod, tipo:tipo, talla:talla, estado:estado, nota:nota });
+    v.conjuntos.push({ cod:cod, talla:talla, estado:estado, nota:nota, fija:fija });
   }
   cerrarModal('modal-pieza');
   renderVestuario();
   _saveVest();
-  toast('✅ Pieza guardada');
+  toast('✅ Conjunto guardado');
 }
 
 function eliminarPieza(){
@@ -247,34 +297,40 @@ function eliminarPieza(){
   var usos = (DB.usosVestuario||[]).filter(function(u){
     return String(u.vestId)===String(v.id) && String(u.cod).toUpperCase()===String(editPiezaCod).toUpperCase();
   }).length;
-  if(!confirm('¿Eliminar la pieza '+editPiezaCod+'?'+(usos?'\n\nTiene '+usos+' registro(s) de uso que también se borrarán.':''))) return;
-  v.piezas = (v.piezas||[]).filter(function(p){ return String(p.cod).toUpperCase()!==String(editPiezaCod).toUpperCase(); });
+  if(!confirm('¿Eliminar el conjunto '+editPiezaCod+'?'+(usos?'\n\nTiene '+usos+' registro(s) de uso que también se borrarán.':''))) return;
+  v.conjuntos = (v.conjuntos||[]).filter(function(c){ return String(c.cod).toUpperCase()!==String(editPiezaCod).toUpperCase(); });
   DB.usosVestuario = (DB.usosVestuario||[]).filter(function(u){
     return !(String(u.vestId)===String(v.id) && String(u.cod).toUpperCase()===String(editPiezaCod).toUpperCase());
   });
   cerrarModal('modal-pieza');
   renderVestuario();
   _saveVest();
-  toast('Pieza eliminada');
+  toast('Conjunto eliminado');
 }
 
-// ═════════════════ REGISTRO DE USO ═════════════════
+// ═════════════════ ASIGNAR CONJUNTO ═════════════════
+function asignarConjunto(vestId, cod){
+  usoPreVest = String(vestId);
+  usoPreCod  = String(cod);
+  abrirModalUso();
+}
+
 function abrirModalUso(){
+  _migrarVestuarios();
   if(!(DB.vestuarios||[]).length){ toast('Primero crea un vestuario','info'); return; }
+  var hayConj = (DB.vestuarios||[]).some(function(v){ return (v.conjuntos||[]).length>0; });
+  if(!hayConj){ toast('Primero agrega conjuntos con «➕ Conjunto»','info'); return; }
   if(_migrarIdsPresentaciones()) snapLocal();
 
-  // Presentaciones ordenadas de más reciente a más antigua
   var pres = (DB.presentaciones||[]).slice().sort(function(a,b){
     return String(b.fecha||'').localeCompare(String(a.fecha||''));
   });
   document.getElementById('uso-pres').innerHTML =
-    '<option value="">— Sin presentación (uso suelto) —</option>'
-    + pres.map(function(p){
-        return '<option value="'+p.id+'">'+p.titulo+(p.fecha?' · '+p.fecha:'')+'</option>';
-      }).join('');
+    '<option value="">— Sin presentación (ensayo o uso suelto) —</option>'
+    + pres.map(function(p){ return '<option value="'+p.id+'">'+p.titulo+(p.fecha?' · '+p.fecha:'')+'</option>'; }).join('');
 
   document.getElementById('uso-vest').innerHTML = (DB.vestuarios||[]).map(function(v){
-    return '<option value="'+v.id+'">'+v.nombre+' ('+v.prefijo+')</option>';
+    return '<option value="'+v.id+'"'+(usoPreVest&&String(v.id)===usoPreVest?' selected':'')+'>'+v.nombre+' ('+v.prefijo+')</option>';
   }).join('');
 
   document.getElementById('uso-alumna').innerHTML =
@@ -285,6 +341,15 @@ function abrirModalUso(){
   document.getElementById('uso-fecha').value = dateStr(getHoyReal());
   document.getElementById('uso-nota').value  = '';
   cargarPiezasUso();
+
+  // Si vino desde una fila concreta: marcar ese conjunto y sugerir su alumna habitual
+  if(usoPreCod){
+    var chk = document.querySelectorAll('.uso-pz-check');
+    for(var i=0;i<chk.length;i++){ if(chk[i].value===usoPreCod) chk[i].checked = true; }
+    var cj = _conj(usoPreVest, usoPreCod);
+    if(cj && cj.fija) document.getElementById('uso-alumna').value = cj.fija;
+  }
+  usoPreVest = null; usoPreCod = null;
   abrirModal('modal-uso');
 }
 
@@ -298,24 +363,25 @@ function cargarPiezasUso(){
   var vestId = document.getElementById('uso-vest').value;
   var v = _vest(vestId);
   var cont = document.getElementById('uso-piezas');
-  if(!v || !(v.piezas||[]).length){
-    cont.innerHTML = '<p style="font-size:12px;color:var(--text2);text-align:center;padding:10px">Este vestuario no tiene piezas. Agrégalas primero.</p>';
+  if(!v || !(v.conjuntos||[]).length){
+    cont.innerHTML = '<p style="font-size:12px;color:var(--text2);text-align:center;padding:10px">Este vestuario no tiene conjuntos. Agrégalos con «➕ Conjunto».</p>';
     return;
   }
-  var libres = v.piezas.filter(function(p){
-    return p.estado!=='baja' && !_usoActivo(v.id, p.cod);
-  });
+  var libres = _ordenarConj(v, v.conjuntos.filter(function(c){
+    return c.estado!=='baja' && !_usoActivo(v.id, c.cod);
+  }));
   if(!libres.length){
-    cont.innerHTML = '<p style="font-size:12px;color:var(--text2);text-align:center;padding:10px">Todas las piezas están entregadas o dadas de baja.</p>';
+    cont.innerHTML = '<p style="font-size:12px;color:var(--text2);text-align:center;padding:10px">Todos los conjuntos están entregados o dados de baja.</p>';
     return;
   }
-  cont.innerHTML = libres.map(function(p){
+  cont.innerHTML = libres.map(function(c){
     return '<label class="check-group" style="padding:5px 0">'
-      + '<input type="checkbox" class="uso-pz-check" value="'+p.cod+'">'
-      + '<span style="font-size:13px"><strong style="font-family:ui-monospace,monospace">'+p.cod+'</strong> · '+p.tipo
-      + (p.talla?' · talla '+p.talla:'')
-      + (p.estado==='dano'?' <span style="color:var(--warning);font-size:11px">⚠️ con daño</span>':'')
-      + (p.estado==='reparacion'?' <span style="color:var(--info);font-size:11px">🔧 en reparación</span>':'')
+      + '<input type="checkbox" class="uso-pz-check" value="'+c.cod+'">'
+      + '<span style="font-size:13px"><strong style="font-family:ui-monospace,monospace">'+c.cod+'</strong>'
+      + (c.talla?' · talla '+c.talla:'')
+      + (c.fija?' · <span style="color:var(--primary);font-size:11px">habitual: '+_nombreAlumna(c.fija).split(' ')[0]+'</span>':'')
+      + (c.estado==='dano'?' <span style="color:var(--warning);font-size:11px">⚠️ con daño</span>':'')
+      + (c.estado==='reparacion'?' <span style="color:var(--info);font-size:11px">🔧 en reparación</span>':'')
       + '</span></label>';
   }).join('');
 }
@@ -328,7 +394,7 @@ function guardarUso(){
   if(!fecha){ toast('Indica la fecha','err'); return; }
 
   var cods = [].slice.call(document.querySelectorAll('.uso-pz-check:checked')).map(function(c){ return c.value; });
-  if(!cods.length){ toast('Selecciona al menos una pieza','err'); return; }
+  if(!cods.length){ toast('Selecciona al menos un conjunto','err'); return; }
 
   var presId = document.getElementById('uso-pres').value;
   var pres = (DB.presentaciones||[]).find(function(x){ return String(x.id)===String(presId); });
@@ -346,14 +412,14 @@ function guardarUso(){
       alumnaId: alumnaId,
       alumnaNombre: _nombreAlumna(alumnaId),
       nota: nota,
-      devuelto: null, devNota: '', devFecha: ''
+      devuelto: null, devNota: '', devPrendas: [], devFecha: ''
     });
   });
 
   cerrarModal('modal-uso');
   renderVestuario();
   _saveVest();
-  toast('✅ '+cods.length+' pieza(s) entregadas a '+_nombreAlumna(alumnaId).split(' ')[0]);
+  toast('✅ '+cods.join(', ')+' → '+_nombreAlumna(alumnaId).split(' ')[0]);
 }
 
 // ═════════════════ DEVOLUCIÓN ═════════════════
@@ -362,12 +428,32 @@ function abrirModalDevolucion(usoId){
   var u = (DB.usosVestuario||[]).find(function(x){ return String(x.id)===devUsoId; });
   if(!u) return;
   var v = _vest(u.vestId);
+
   document.getElementById('dev-info').innerHTML =
-    '<strong style="font-family:ui-monospace,monospace">'+u.cod+'</strong> · '+(v?v.nombre:'')+'<br>'
-    + 'Entregada a <strong>'+u.alumnaNombre+'</strong> el '+u.fecha
-    + (u.presTitulo?'<br><span style="font-size:11px;color:var(--text2)">'+u.presTitulo+'</span>':'');
+    '<strong style="font-family:ui-monospace,monospace;font-size:15px">'+u.cod+'</strong> · '+(v?v.nombre:'')+'<br>'
+    + 'Lo tiene <strong>'+u.alumnaNombre+'</strong> desde el '+u.fecha
+    + (u.presTitulo?'<br><span style="font-size:11px;color:var(--text2)">'+u.presTitulo+'</span>':'')
+    + (v&&v.prendas?'<br><span style="font-size:11px;color:var(--text2)">Incluye: '+v.prendas.join(' + ')+'</span>':'');
+
   document.getElementById('dev-estado').value = u.devuelto || 'buena';
   document.getElementById('dev-nota').value   = u.devNota || '';
+
+  // Checkboxes de prendas con novedad
+  var wrap = document.getElementById('dev-prendas-wrap');
+  var cont = document.getElementById('dev-prendas');
+  if(v && v.prendas && v.prendas.length){
+    cont.innerHTML = v.prendas.map(function(pr){
+      var marc = (u.devPrendas||[]).indexOf(pr)>=0 ? ' checked' : '';
+      return '<label class="check-group" style="padding:3px 0">'
+        + '<input type="checkbox" class="dev-pr-check" value="'+pr+'"'+marc+'>'
+        + '<span style="font-size:13px">'+pr+'</span></label>';
+    }).join('');
+  } else { cont.innerHTML = ''; }
+
+  var sel = document.getElementById('dev-estado');
+  if(wrap) wrap.style.display = (sel.value!=='buena') ? 'block' : 'none';
+  sel.onchange = function(){ if(wrap) wrap.style.display = (this.value!=='buena') ? 'block' : 'none'; };
+
   abrirModal('modal-devolucion');
 }
 
@@ -375,17 +461,19 @@ function guardarDevolucion(){
   var u = (DB.usosVestuario||[]).find(function(x){ return String(x.id)===devUsoId; });
   if(!u) return;
   var estado = document.getElementById('dev-estado').value;
-  u.devuelto = estado;
-  u.devNota  = document.getElementById('dev-nota').value.trim();
-  u.devFecha = dateStr(getHoyReal());
+  u.devuelto   = estado;
+  u.devNota    = document.getElementById('dev-nota').value.trim();
+  u.devPrendas = [].slice.call(document.querySelectorAll('.dev-pr-check:checked')).map(function(c){ return c.value; });
+  u.devFecha   = dateStr(getHoyReal());
 
-  // La devolución actualiza el estado de la pieza
-  var pz = _pieza(u.vestId, u.cod);
-  if(pz){
-    if(estado==='dano')         pz.estado = 'dano';
-    else if(estado==='perdida') pz.estado = 'baja';
-    else if(pz.estado!=='reparacion') pz.estado = 'buena';
-    if(u.devNota) pz.nota = u.devNota;
+  var cj = _conj(u.vestId, u.cod);
+  if(cj){
+    if(estado==='dano')         cj.estado = 'dano';
+    else if(estado==='perdida') cj.estado = 'baja';
+    else if(cj.estado!=='reparacion') cj.estado = 'buena';
+    if(estado!=='buena'){
+      cj.nota = (u.devPrendas.length ? u.devPrendas.join(', ')+': ' : '') + (u.devNota||'novedad sin detalle');
+    }
   }
   cerrarModal('modal-devolucion');
   renderVestuario();
@@ -400,6 +488,8 @@ function renderVestuario(){
  try{
   var cont = document.getElementById('vest-content');
   if(!cont) return;
+  if(_migrarVestuarios()) snapLocal();
+
   var vests = DB.vestuarios||[];
   var usos  = DB.usosVestuario||[];
 
@@ -408,31 +498,29 @@ function renderVestuario(){
       '<div style="text-align:center;color:var(--text2);padding:60px 20px">'
       + '<div style="font-size:48px;margin-bottom:12px">👗</div>'
       + '<div style="font-size:15px;font-weight:600;margin-bottom:6px">Sin vestuarios registrados</div>'
-      + '<div style="font-size:13px">Crea uno (Negro Tricolor, Amarillo, Rosado…) y agrégale sus piezas codificadas</div>'
+      + '<div style="font-size:13px">Crea uno (Negro Tricolor, Amarillo, Rosado…) y luego agrégale sus conjuntos numerados</div>'
       + '</div>';
     return;
   }
 
-  // ── Totales ──
-  var totPiezas=0, totUso=0, totDano=0;
+  var totConj=0, totUso=0, totDano=0;
   vests.forEach(function(v){
-    (v.piezas||[]).forEach(function(p){
-      totPiezas++;
-      if(_usoActivo(v.id,p.cod)) totUso++;
-      if(p.estado==='dano'||p.estado==='reparacion') totDano++;
+    (v.conjuntos||[]).forEach(function(c){
+      totConj++;
+      if(_usoActivo(v.id,c.cod)) totUso++;
+      if(c.estado==='dano'||c.estado==='reparacion') totDano++;
     });
   });
   var pendientes = usos.filter(function(u){ return !u.devuelto; });
 
   var html =
     '<div class="cards-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">'
-    + _statCard('👗','Piezas totales', totPiezas, 'var(--text)')
-    + _statCard('📤','Entregadas ahora', totUso, 'var(--primary)')
+    + _statCard('👗','Conjuntos totales', totConj, 'var(--text)')
+    + _statCard('📤','Entregados ahora', totUso, totUso?'var(--primary)':'var(--text2)')
     + _statCard('⚠️','Con daño / reparación', totDano, totDano?'var(--warning)':'var(--success)')
     + _statCard('🎭','Registros de uso', usos.length, 'var(--text)')
     + '</div>';
 
-  // ── Pendientes de devolución ──
   if(pendientes.length){
     html += '<div class="table-card" style="margin-bottom:20px">'
       + '<div class="table-card-header"><h3>📤 Pendientes de devolución ('+pendientes.length+')</h3></div>'
@@ -446,57 +534,67 @@ function renderVestuario(){
               + '<div style="font-size:11px;color:var(--text2)">'+(v?v.nombre:'')+(u.presTitulo?' · '+u.presTitulo:'')+'</div></span>'
             + '<span style="font-size:11px;color:'+(dias>14?'var(--danger)':'var(--text2)')+';white-space:nowrap">'
               + u.fecha + (dias>0 ? ' · hace '+dias+'d' : ' · hoy') + '</span>'
-            + '<button class="btn btn-primary btn-sm" onclick="abrirModalDevolucion(\'' + u.id + '\')">↩️ Devolver</button>'
+            + '<button class="btn btn-primary btn-sm" onclick="abrirModalDevolucion(\'' + u.id + '\')">↩️ Recibir</button>'
             + '</div>';
         }).join('')
       + '</div></div>';
   }
 
-  // ── Tarjeta por vestuario ──
+  // ── Tabla de conjuntos por vestuario ──
   vests.forEach(function(v){
-    var piezas = (v.piezas||[]).slice().sort(function(a,b){
-      var na=parseInt(String(a.cod).replace(v.prefijo,''),10), nb=parseInt(String(b.cod).replace(v.prefijo,''),10);
-      if(!isNaN(na)&&!isNaN(nb)) return na-nb;
-      return String(a.cod).localeCompare(String(b.cod));
-    });
-    var enUso = piezas.filter(function(p){ return !!_usoActivo(v.id,p.cod); }).length;
+    var conj  = _ordenarConj(v, v.conjuntos||[]);
+    var enUso = conj.filter(function(c){ return !!_usoActivo(v.id,c.cod); }).length;
 
     html += '<div class="vest-card">'
       + '<div class="vest-header">'
         + '<span class="vest-dot" style="background:'+(v.color||'#3a57e8')+'"></span>'
         + '<div style="flex:1;min-width:160px">'
           + '<div style="font-size:15px;font-weight:800">'+v.nombre+' <span style="font-size:11px;color:var(--text2);font-weight:600">prefijo '+v.prefijo+'</span></div>'
-          + '<div style="font-size:12px;color:var(--text2)">'+piezas.length+' pieza(s) · '+enUso+' entregada(s)'+(v.desc?' · '+v.desc:'')+'</div>'
+          + '<div style="font-size:12px;color:var(--text2)">'
+            + conj.length+' conjunto(s) · '+enUso+' entregado(s) · incluye <strong>'+(v.prendas||[]).join(' + ')+'</strong>'
+            + (v.desc?' · '+v.desc:'') + '</div>'
         + '</div>'
-        + '<button class="btn btn-ghost btn-sm" onclick="abrirModalPieza(\'' + v.id + '\')">➕ Pieza</button>'
-        + '<button class="btn btn-ghost btn-sm btn-icon" onclick="abrirModalVestuario(\'' + v.id + '\')">✏️</button>'
-      + '</div>'
-      + '<div class="vest-body">';
-
-    if(!piezas.length){
-      html += '<p style="font-size:13px;color:var(--text2);text-align:center;padding:14px">Sin piezas. Usa «➕ Pieza» para agregarlas (puedes crear varias de una vez).</p>';
-    } else {
-      html += piezas.map(function(p){
-        var act = _usoActivo(v.id, p.cod);
-        var cls = act ? 'enuso' : (EST_PIEZA[p.estado]||EST_PIEZA.buena).cls;
-        var tt  = p.tipo + (p.talla?' · talla '+p.talla:'')
-                + ' · ' + (EST_PIEZA[p.estado]||EST_PIEZA.buena).txt
-                + (act ? ' — la tiene '+act.alumnaNombre : '')
-                + (p.nota?' · '+p.nota:'');
-        return '<span class="pieza-chip '+cls+'" title="'+tt.replace(/"/g,'')+'" onclick="abrirModalPieza(\'' + v.id + '\',\'' + p.cod + '\')">'
-          + p.cod
-          + (act ? ' <span style="font-weight:600;font-size:10px">→ '+act.alumnaNombre.split(' ')[0]+'</span>' : '')
-          + (p.estado==='dano' ? ' ⚠️' : p.estado==='reparacion' ? ' 🔧' : p.estado==='baja' ? ' ⛔' : '')
-          + '</span>';
-      }).join('')
-      + '<div class="vest-leyenda">'
-        + '<span><i style="background:var(--card2);border:1px solid var(--border)"></i>disponible</span>'
-        + '<span><i style="background:var(--primary)"></i>entregada</span>'
-        + '<span><i style="background:var(--warning)"></i>con daño</span>'
-        + '<span><i style="background:var(--info)"></i>reparación</span>'
+        + '<button class="btn btn-primary btn-sm" onclick="abrirModalPieza(\'' + v.id + '\')">➕ Conjunto</button>'
+        + '<button class="btn btn-ghost btn-sm btn-icon" onclick="abrirModalVestuario(\'' + v.id + '\')" title="Editar vestuario">✏️</button>'
       + '</div>';
+
+    if(!conj.length){
+      html += '<div class="vest-body"><p style="font-size:13px;color:var(--text2);text-align:center;padding:16px">'
+        + 'Sin conjuntos todavía. Usa <strong>«➕ Conjunto»</strong> — puedes crear varios de una vez (A1, A2, A3…).'
+        + '</p></div>';
+    } else {
+      html += '<table><thead><tr>'
+        + '<th>Código</th><th>Talla</th><th>Estado</th><th>Lo tiene ahora</th><th style="text-align:right">Acción</th>'
+        + '</tr></thead><tbody>'
+        + conj.map(function(c){
+            var act = _usoActivo(v.id, c.cod);
+            var e   = EST_PIEZA[c.estado] || EST_PIEZA.buena;
+            return '<tr>'
+              + '<td><span class="uso-cod" style="font-size:13px">'+c.cod+'</span></td>'
+              + '<td style="font-size:12px;color:var(--text2)">'+(c.talla||'—')+'</td>'
+              + '<td><span class="badge '+e.badge+'" style="font-size:10px">'+e.txt+'</span>'
+                + (c.nota?'<div style="font-size:10px;color:var(--text2);margin-top:2px">'+c.nota+'</div>':'')+'</td>'
+              + '<td style="font-size:12px">'
+                + (act
+                    ? '<strong style="color:var(--primary)">'+act.alumnaNombre+'</strong>'
+                      + '<div style="font-size:10px;color:var(--text2)">desde '+act.fecha+'</div>'
+                    : (c.fija
+                        ? '<span style="color:var(--text2)">habitual: '+_nombreAlumna(c.fija)+'</span>'
+                        : '<span style="color:var(--text2)">disponible</span>'))
+              + '</td>'
+              + '<td style="text-align:right;white-space:nowrap">'
+                + (act
+                    ? '<button class="btn btn-primary btn-sm" onclick="abrirModalDevolucion(\'' + act.id + '\')">↩️ Recibir</button>'
+                    : (c.estado==='baja'
+                        ? '<span style="font-size:11px;color:var(--text2)">dado de baja</span>'
+                        : '<button class="btn btn-ghost btn-sm" onclick="asignarConjunto(\'' + v.id + '\',\'' + c.cod + '\')">👤 Asignar</button>'))
+                + ' <button class="btn btn-ghost btn-sm btn-icon" onclick="abrirModalPieza(\'' + v.id + '\',\'' + c.cod + '\')" title="Editar conjunto">✏️</button>'
+              + '</td>'
+              + '</tr>';
+          }).join('')
+        + '</tbody></table>';
     }
-    html += '</div></div>';
+    html += '</div>';
   });
 
   // ── Historial ──
@@ -519,11 +617,11 @@ function renderVestuario(){
 
   if(!hist.length){
     html += '<p style="text-align:center;color:var(--text2);padding:36px">'
-      + (filtro ? 'Sin resultados para «'+filtro+'»' : 'Sin registros de uso todavía. Usa «📋 Registrar uso».')
+      + (filtro ? 'Sin resultados para «'+filtro+'»' : 'Sin registros de uso todavía. Asigna un conjunto desde la tabla de arriba.')
       + '</p>';
   } else {
     html += '<table><thead><tr>'
-      + '<th>Código</th><th>Alumna</th><th>Vestuario</th><th>Presentación</th><th>Fecha</th><th>Estado</th><th></th>'
+      + '<th>Código</th><th>Alumna</th><th>Vestuario</th><th>Presentación</th><th>Fecha</th><th>Devolución</th><th></th>'
       + '</tr></thead><tbody>'
       + hist.map(function(u){
           var v = _vest(u.vestId);
@@ -536,6 +634,7 @@ function renderVestuario(){
             + '<td style="font-size:12px;color:var(--text2)">'+u.fecha+'</td>'
             + '<td style="font-size:12px;font-weight:600;color:'+(d?d.color:'var(--primary)')+'">'
               + (d ? d.txt : '📤 Sin devolver')
+              + ((u.devPrendas&&u.devPrendas.length)?'<div style="font-size:10px;font-weight:600;color:var(--text2)">'+u.devPrendas.join(', ')+'</div>':'')
               + (u.devNota ? '<div style="font-size:10px;font-weight:400;color:var(--text2)">'+u.devNota+'</div>' : '')
             + '</td>'
             + '<td><button class="btn btn-ghost btn-sm btn-icon" onclick="abrirModalDevolucion(\'' + u.id + '\')" title="Registrar o corregir devolución">↩️</button></td>'

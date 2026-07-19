@@ -293,7 +293,7 @@
           <div class="section-title">🎭 Presentaciones</div>
           <button class="btn btn-primary btn-sm" id="btn-nueva-pres" onclick="abrirModalPresentacion()">➕ Nueva Presentación</button>
           <button class="btn btn-primary btn-sm" id="btn-nuevo-vest" style="display:none" onclick="abrirModalVestuario()">➕ Nuevo Vestuario</button>
-          <button class="btn btn-ghost btn-sm" id="btn-nuevo-uso" style="display:none" onclick="abrirModalUso()">📋 Registrar uso</button>
+          <button class="btn btn-ghost btn-sm" id="btn-nuevo-uso" style="display:none" onclick="abrirModalUso()">📋 Asignar conjunto</button>
         </div>
         <div class="subtabs">
           <button class="subtab active" id="stab-presentaciones" onclick="tabPres('presentaciones')">🎭 Presentaciones</button>
@@ -713,8 +713,15 @@
           <label>Descripción / región</label>
           <input type="text" id="vest-desc" placeholder="Ej: Joropo llanero, uso en festivales">
         </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Prendas que componen un conjunto *</label>
+          <input type="text" id="vest-prendas" placeholder="Falda, Blusa, Cinta">
+        </div>
       </div>
-      <p style="font-size:11px;color:var(--text2);margin-top:12px">El prefijo se usa para los códigos de cada pieza: A1, A2, A3&hellip;</p>
+      <p style="font-size:11px;color:var(--text2);margin-top:12px">
+        Separa las prendas con comas. Todas las prendas de un mismo conjunto llevan el mismo código:
+        la falda <strong>A12</strong> y la blusa <strong>A12</strong> forman el conjunto <strong>A12</strong>.
+      </p>
     </div>
     <div class="modal-footer">
       <button class="btn btn-danger btn-sm" id="btn-borrar-vest" style="display:none;margin-right:auto" onclick="eliminarVestuario()">&#128465; Eliminar</button>
@@ -724,40 +731,36 @@
   </div>
 </div>
 
-<!-- MODAL PIEZA -->
+<!-- MODAL CONJUNTO -->
 <div class="modal-overlay" id="modal-pieza">
   <div class="modal" style="max-width:480px">
     <div class="modal-header">
-      <h3 id="modal-pieza-title">Nueva Pieza</h3>
+      <h3 id="modal-pieza-title">Nuevo Conjunto</h3>
       <button class="modal-close" onclick="cerrarModal('modal-pieza')">&#10005;</button>
     </div>
     <div class="modal-body">
       <div id="pieza-vest-info" style="background:var(--card2);border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px"></div>
       <div class="form-grid" style="grid-template-columns:1fr 1fr">
         <div class="form-group">
-          <label>Código *</label>
-          <input type="text" id="pieza-cod" placeholder="A12" style="text-transform:uppercase;font-weight:800">
-        </div>
-        <div class="form-group">
-          <label>Tipo de prenda *</label>
-          <select id="pieza-tipo">
-            <option>Falda</option><option>Blusa</option><option>Vestido</option>
-            <option>Camisa</option><option>Pantal&oacute;n</option><option>Sombrero</option>
-            <option>Alpargatas</option><option>Accesorio</option><option>Otro</option>
-          </select>
+          <label>C&oacute;digo del conjunto *</label>
+          <input type="text" id="pieza-cod" placeholder="A12" style="text-transform:uppercase;font-weight:800;font-size:16px">
         </div>
         <div class="form-group">
           <label>Talla</label>
           <input type="text" id="pieza-talla" placeholder="Ej: M, 10, 38">
         </div>
         <div class="form-group">
-          <label>Estado actual</label>
+          <label>Estado</label>
           <select id="pieza-estado">
-            <option value="buena">&#9989; Buena</option>
+            <option value="buena">&#9989; Bueno</option>
             <option value="dano">&#9888;&#65039; Con da&ntilde;o</option>
             <option value="reparacion">&#128295; En reparaci&oacute;n</option>
-            <option value="baja">&#9940; Dada de baja</option>
+            <option value="baja">&#9940; Dado de baja</option>
           </select>
+        </div>
+        <div class="form-group">
+          <label>Asignaci&oacute;n habitual</label>
+          <select id="pieza-fija"></select>
         </div>
         <div class="form-group" style="grid-column:1/-1">
           <label>Observaciones</label>
@@ -766,10 +769,10 @@
       </div>
       <div id="pieza-lote-wrap" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
         <div class="form-group">
-          <label>&#9889; Crear varias de una vez (opcional)</label>
+          <label>&#9889; Crear varios conjuntos de una vez</label>
           <div style="display:flex;gap:8px;align-items:center">
             <input type="number" id="pieza-lote" min="2" max="60" placeholder="Ej: 12" style="max-width:120px">
-            <span style="font-size:11px;color:var(--text2)">crea A1, A2, A3&hellip; con el mismo tipo y talla</span>
+            <span style="font-size:11px;color:var(--text2)">crea A1, A2, A3&hellip; con la misma talla</span>
           </div>
         </div>
       </div>
@@ -808,7 +811,7 @@
           <select id="uso-alumna"></select>
         </div>
         <div class="form-group" style="grid-column:1/-1">
-          <label>Piezas entregadas * <span style="font-weight:400;text-transform:none;letter-spacing:0">(solo aparecen las disponibles)</span></label>
+          <label>Conjuntos entregados * <span style="font-weight:400;text-transform:none;letter-spacing:0">(solo aparecen los disponibles)</span></label>
           <div id="uso-piezas" style="max-height:200px;overflow-y:auto;background:var(--card2);border-radius:8px;padding:10px;border:1px solid var(--border)"></div>
         </div>
         <div class="form-group" style="grid-column:1/-1">
@@ -840,6 +843,10 @@
           <option value="dano">&#9888;&#65039; Con da&ntilde;o</option>
           <option value="perdida">&#9940; No devuelta / perdida</option>
         </select>
+      </div>
+      <div class="form-group" id="dev-prendas-wrap" style="margin-bottom:14px;display:none">
+        <label>&iquest;Qu&eacute; prenda del conjunto tiene la novedad?</label>
+        <div id="dev-prendas" style="background:var(--card2);border-radius:8px;padding:10px;border:1px solid var(--border)"></div>
       </div>
       <div class="form-group">
         <label>Observaci&oacute;n</label>
