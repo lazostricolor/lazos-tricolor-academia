@@ -210,9 +210,9 @@ function agregarAleatorios(){
   });
   numsEnEdicion.forEach(_marcar);
 
-  var maxNum = (rifa.totalNums>0 ? rifa.totalNums : 100) - 1;   // 00..99
+  var RIFA_MAX = 99;   // rifa fija 00..99
   var disponibles = [];
-  for(var n=0; n<=maxNum; n++){
+  for(var n=0; n<=RIFA_MAX; n++){
     if(!usados['#'+n] && !usados[String(n)]) disponibles.push(_fmt2(n));
   }
   if(disponibles.length < cant){ toast('Solo quedan '+disponibles.length+' números libres','err'); return; }
@@ -465,9 +465,6 @@ function guardarGanador(){
 function copiarNumerosLibres(rifaId){
   var rifa = (DB.rifas||[]).find(function(r){return r.id===String(rifaId);});
   if(!rifa){ return; }
-  var totalNums = rifa.totalNums||0;
-  if(!totalNums){ toast('Esta rifa no tiene número total definido','info'); return; }
-
   var asignados = {};
   Object.values(rifa.nums||{}).forEach(function(a){
     (a.numeros||[]).forEach(function(n){
@@ -476,9 +473,9 @@ function copiarNumerosLibres(rifaId){
       if(!isNaN(num)) asignados['#'+num]=true;   // normalizar "05"→5
     });
   });
-  var maxNum = (totalNums>0 ? totalNums : 100) - 1;   // 00..99
+  var RIFA_MAX = 99;   // rifa fija 00..99
   var libres = [];
-  for(var n=0;n<=maxNum;n++){ if(!asignados['#'+n] && !asignados[String(n)]) libres.push(_fmt2(n)); }
+  for(var n=0;n<=RIFA_MAX;n++){ if(!asignados['#'+n] && !asignados[String(n)]) libres.push(_fmt2(n)); }
 
   var texto;
   if(!libres.length){
@@ -559,10 +556,10 @@ function renderRifas(){
       var num = parseInt(n,10);
       if(!isNaN(num)) asignadosSet['#'+num] = true;      // valor numérico normalizado (#5)
     });
-    // Rifa de 00 a 99 → 100 números. El rango arranca en 0 (no en 1).
-    var maxNum = (totalNums>0 ? totalNums : 100) - 1;   // totalNums=100 → 00..99
+    // Rifa SIEMPRE de 00 a 99 = 100 números (rango fijo, no depende de totalNums)
+    var RIFA_MAX = 99;
     var listaLibres = [];
-    for(var _n=0; _n<=maxNum; _n++){
+    for(var _n=0; _n<=RIFA_MAX; _n++){
       // libre solo si NO está por valor numérico ni por texto (cubre "05" y "5")
       if(!asignadosSet['#'+_n] && !asignadosSet[String(_n)]) listaLibres.push(_fmt2(_n));
     }
@@ -767,13 +764,13 @@ function renderRifas(){
             +(chipsHTML?'<div style="display:flex;flex-wrap:wrap;gap:6px;background:var(--card2);border-radius:10px;padding:12px">'+chipsHTML+'</div>'
               :'<div style="background:var(--card2);border-radius:10px;padding:20px;text-align:center;color:var(--text2);font-size:13px">Sin números asignados aún</div>')
             // Números NO vendidos — lista completa + botón copiar
-            +(totalNums>0&&listaLibres.length?'<div style="margin-top:12px;background:rgba(244,169,22,.06);border:1px solid rgba(244,169,22,.25);border-radius:10px;padding:12px">'
+            +(listaLibres.length?'<div style="margin-top:12px;background:rgba(244,169,22,.06);border:1px solid rgba(244,169,22,.25);border-radius:10px;padding:12px">'
               +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;flex-wrap:wrap">'
                 +'<span style="font-size:11px;font-weight:700;color:#a06d00;text-transform:uppercase;letter-spacing:.5px">📋 '+listaLibres.length+' números NO vendidos</span>'
                 +'<button class="btn btn-ghost btn-sm rifa-btn-copiar-libres" data-rid="'+rifa.id+'">📋 Copiar aviso</button>'
               +'</div>'
               +'<div style="font-size:12px;color:var(--text);line-height:1.9;word-break:break-word">'+listaLibres.join(', ')+'</div>'
-            +'</div>':(totalNums>0?'<div style="margin-top:12px;background:rgba(26,160,83,.08);border-radius:10px;padding:12px;text-align:center;font-size:12px;color:var(--success);font-weight:600">✅ Todos los números están vendidos</div>':''))
+            +'</div>':'<div style="margin-top:12px;background:rgba(26,160,83,.08);border-radius:10px;padding:12px;text-align:center;font-size:12px;color:var(--success);font-weight:600">✅ Todos los números (00-99) están vendidos</div>')
           +'</div>'
           // Tabla de alumnas
           +'<div>'
