@@ -835,14 +835,23 @@ function renderRifas(){
             +'</div>'
             +(chipsHTML?'<div style="display:flex;flex-wrap:wrap;gap:6px;background:var(--card2);border-radius:10px;padding:12px">'+chipsHTML+'</div>'
               :'<div style="background:var(--card2);border-radius:10px;padding:20px;text-align:center;color:var(--text2);font-size:13px">Sin números asignados aún</div>')
-            // Números NO vendidos — lista completa + botón copiar
-            +(listaLibres.length?'<div style="margin-top:12px;background:rgba(244,169,22,.06);border:1px solid rgba(244,169,22,.25);border-radius:10px;padding:12px">'
+            // Números NO ASIGNADOS — los que nadie tiene (siempre visible para poder verificar)
+            +'<div style="margin-top:12px;background:'+(listaLibres.length?'rgba(244,169,22,.06);border:1px solid rgba(244,169,22,.25)':'rgba(26,160,83,.08);border:1px solid rgba(26,160,83,.25)')+';border-radius:10px;padding:12px">'
               +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;flex-wrap:wrap">'
-                +'<span style="font-size:11px;font-weight:700;color:#a06d00;text-transform:uppercase;letter-spacing:.5px">📋 '+listaLibres.length+' números NO vendidos</span>'
-                +'<button class="btn btn-ghost btn-sm rifa-btn-copiar-libres" data-rid="'+rifa.id+'">📋 Copiar aviso</button>'
+                +'<span style="font-size:11px;font-weight:700;color:'+(listaLibres.length?'#a06d00':'#1aa053')+';text-transform:uppercase;letter-spacing:.5px">'
+                  +(listaLibres.length?'🆓 '+listaLibres.length+' de 100 SIN ASIGNAR':'✅ Los 100 números están asignados')+'</span>'
+                +(listaLibres.length?'<button class="btn btn-ghost btn-sm rifa-btn-copiar-libres" data-rid="'+rifa.id+'">📋 Copiar aviso</button>':'')
               +'</div>'
-              +'<div style="font-size:12px;color:var(--text);line-height:1.9;word-break:break-word">'+listaLibres.join(', ')+'</div>'
-            +'</div>':'<div style="margin-top:12px;background:rgba(26,160,83,.08);border-radius:10px;padding:12px;text-align:center;font-size:12px;color:var(--success);font-weight:600">✅ Todos los números (00-99) están vendidos</div>')
+              +(listaLibres.length?'<div style="font-size:12px;color:var(--text);line-height:1.9;word-break:break-word">'+listaLibres.join(', ')+'</div>'
+                +'<div style="font-size:11px;color:#a06d00;margin-top:6px">Nadie los tiene todavía — están sin vender y sin pagar.</div>':'')
+            +'</div>'
+            // Resumen de estado: asignados / pagados / pendientes / libres
+            +'<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;font-size:11px">'
+              +'<span style="background:var(--card2);border-radius:6px;padding:4px 10px"><strong>'+numsAsignados.length+'</strong>/100 asignados</span>'
+              +'<span style="background:rgba(26,160,83,.1);color:#1aa053;border-radius:6px;padding:4px 10px"><strong>'+numsPagados.length+'</strong> pagados</span>'
+              +'<span style="background:rgba(192,50,33,.1);color:#c03221;border-radius:6px;padding:4px 10px"><strong>'+numsPendientes.length+'</strong> sin pagar</span>'
+              +'<span style="background:rgba(244,169,22,.1);color:#a06d00;border-radius:6px;padding:4px 10px"><strong>'+listaLibres.length+'</strong> sin asignar</span>'
+            +'</div>'
             // Números FUERA DE JUEGO — asignados pero SIN PAGAR (no participan en el sorteo)
             +(numsPendientes.length?'<div style="margin-top:12px;background:rgba(192,50,33,.07);border:1px solid rgba(192,50,33,.3);border-radius:10px;padding:12px">'
               +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;flex-wrap:wrap">'
