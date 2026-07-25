@@ -140,65 +140,100 @@ function eliminarRifa(id){
 // ── Números por alumna ──
 
 
-function generarCamposNums(){
-  var cant = parseInt(document.getElementById('nums-cantidad').value)||0;
-  var html = '';
-  for(var i=0;i<cant;i++){
-    html += '<div style="display:flex;flex-direction:column;gap:3px;align-items:center">'
-      +'<span style="font-size:9px;color:var(--text2);font-weight:700">#'+(i+1)+'</span>'
-      +'<input type="number" id="num-field-'+i+'" class="num-input-small" placeholder="—" min="0">'
-      +'</div>';
+// ── Números por alumna — edición individual con chips ──
+var numsEnEdicion = [];   // array de strings, el estado del modal
+
+function _renderChipsNums(){
+  var cont = document.getElementById('nums-lista-chips');
+  var cnt  = document.getElementById('nums-contador');
+  if(cnt) cnt.textContent = numsEnEdicion.length;
+  if(!cont) return;
+  if(!numsEnEdicion.length){
+    cont.innerHTML = '<span style="font-size:12px;color:var(--text2)">Aún sin números. Agrégalos arriba.</span>';
+    return;
   }
-  document.getElementById('nums-campos').innerHTML = html;
+  var ordenados = numsEnEdicion.slice().sort(function(a,b){
+    var na=isNaN(a)?a:Number(a), nb=isNaN(b)?b:Number(b);
+    return na>nb?1:na<nb?-1:0;
+  });
+  cont.innerHTML = ordenados.map(function(n){
+    return '<span style="display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1.5px solid var(--primary);color:var(--primary);border-radius:8px;padding:5px 8px;font-size:13px;font-weight:700">'
+      + n
+      + '<span style="cursor:pointer;font-size:12px;opacity:.7" onclick="quitarNumEdicion(\'' + n + '\')" title="Quitar">🗑️</span>'
+      + '</span>';
+  }).join('');
 }
 
-function generarNuemrosAleatorios(){
+function agregarNumManual(){
+  var el = document.getElementById('nums-nuevo');
+  var raw = (el.value||'').trim();
+  if(raw===''){ return; }
+  if(numsEnEdicion.indexOf(raw)>=0){ toast('El número '+raw+' ya está en la lista','info'); el.value=''; return; }
+  // ¿ya lo tiene otra persona en esta rifa?
+  var dueno = _duenoDeNumero(numsRifaId, raw, numsAlumnaId);
+  if(dueno){ toast('El número '+raw+' ya es de '+dueno,'err'); return; }
+  numsEnEdicion.push(raw);
+  el.value='';
+  el.focus();
+  _renderChipsNums();
+}
+
+function quitarNumEdicion(n){
+  numsEnEdicion = numsEnEdicion.filter(function(x){ return String(x)!==String(n); });
+  _renderChipsNums();
+}
+
+function agregarAleatorios(){
   var rifa = (DB.rifas||[]).find(function(r){return r.id===numsRifaId;});
   if(!rifa){ return; }
-  var cant = parseInt(document.getElementById('nums-cantidad').value)||0;
-  if(!cant){ toast('Primero indica cuántos números','info'); return; }
+  var cant = parseInt(document.getElementById('nums-cantidad-rnd').value)||0;
+  if(!cant){ toast('Indica cuántos números aleatorios','info'); return; }
 
-  // Obtener todos los números ya asignados en esta rifa
-  var usados = [];
-  Object.values(rifa.nums||{}).forEach(function(a){
-    if(a.numeros) usados = usados.concat(a.numeros.map(function(n){return Number(n);}));
+  // Números ocupados por CUALQUIER persona + los que ya están en edición
+  var usados = {};
+  Object.entries(rifa.nums||{}).forEach(function(entry){
+    if(entry[0]===numsAlumnaId) return; // los propios se reemplazan por la edición
+    (entry[1].numeros||[]).forEach(function(n){ usados[String(n)]=true; });
   });
+  numsEnEdicion.forEach(function(n){ usados[String(n)]=true; });
 
   var max = rifa.totalNums || 999;
   var disponibles = [];
-  for(var n=1; n<=max; n++){
-    if(usados.indexOf(n)<0) disponibles.push(n);
-  }
+  for(var n=1; n<=max; n++){ if(!usados[String(n)]) disponibles.push(String(n)); }
+  if(disponibles.length < cant){ toast('Solo quedan '+disponibles.length+' números libres','err'); return; }
 
-  if(disponibles.length < cant){
-    toast('Solo quedan '+disponibles.length+' números disponibles','err'); return;
-  }
-
-  // Seleccionar aleatoriamente
-  var seleccionados = [];
   var copia = disponibles.slice();
   for(var i=0;i<cant;i++){
     var idx = Math.floor(Math.random()*copia.length);
-    seleccionados.push(copia[idx]);
+    numsEnEdicion.push(copia[idx]);
     copia.splice(idx,1);
   }
-  seleccionados.sort(function(a,b){return a-b;});
-
-  // Si no hay campos aún, generarlos
-  if(!document.getElementById('num-field-0')) generarCamposNums();
-
-  seleccionados.forEach(function(n,i){
-    var el = document.getElementById('num-field-'+i);
-    if(el) el.value = n;
-  });
-  toast('🎲 '+cant+' números generados');
+  document.getElementById('nums-cantidad-rnd').value='';
+  _renderChipsNums();
+  toast('🎲 '+cant+' números agregados');
 }
 
+// Devuelve el nombre del dueño de un número (o null), excluyendo a exceptId
+function _duenoDeNumero(rifaId, num, exceptId){
+  var rifa = (DB.rifas||[]).find(function(r){return r.id===String(rifaId);});
+  if(!rifa) return null;
+  var res = null;
+  Object.entries(rifa.nums||{}).forEach(function(entry){
+    if(entry[0]===exceptId) return;
+    (entry[1].numeros||[]).forEach(function(n){
+      if(String(n)===String(num)){
+        var a = DB.alumnos.find(function(x){return String(x.id)===entry[0];});
+        res = a ? a.nombre : (entry[1].nombreExt||'otra persona');
+      }
+    });
+  });
+  return res;
+}
 
 // ── Asignar números a persona externa (no alumna) ──
 function abrirModalNumsExt(rifaId){
   numsRifaId   = String(rifaId);
-  numsAlumnaId = 'ext_'+Date.now(); // ID temporal para nueva persona externa
+  numsAlumnaId = 'ext_'+Date.now();
   var rifa = (DB.rifas||[]).find(function(r){return r.id===numsRifaId;});
   if(!rifa){ toast('Rifa no encontrada','err'); return; }
 
@@ -208,10 +243,11 @@ function abrirModalNumsExt(rifaId){
     +'Valor por número: <strong style="color:var(--primary)">$'+Number(rifa.valorNum||0).toLocaleString('es-CO')+'</strong><br>'
     +'<span style="font-size:11px;color:var(--text2)">Persona amiga o colaboradora externa a la academia</span>';
 
-  document.getElementById('nums-cantidad').value = '';
-  document.getElementById('nums-pagado').value   = 'pendiente';
-  document.getElementById('nums-nota').value     = '';
-  document.getElementById('nums-campos').innerHTML = '';
+  numsEnEdicion = [];
+  _renderChipsNums();
+  document.getElementById('nums-nuevo').value = '';
+  document.getElementById('nums-cantidad-rnd').value = '';
+  document.getElementById('nums-nota').value = '';
   document.getElementById('nums-nombre-ext-wrap').style.display = 'block';
   document.getElementById('nums-nombre-ext').value = '';
 
@@ -220,130 +256,85 @@ function abrirModalNumsExt(rifaId){
   abrirModal('modal-nums-alumna');
 }
 
-// Actualizar abrirModalNums para externos ya existentes y ocultar campo nombre
-var _origAbrirModalNums = abrirModalNums;
 function abrirModalNums(rifaId, alumnaId){
   var isExt = String(alumnaId).startsWith('ext_');
   numsRifaId   = String(rifaId);
   numsAlumnaId = String(alumnaId);
-  var rifa   = (DB.rifas||[]).find(function(r){return r.id===numsRifaId;});
+  var rifa = (DB.rifas||[]).find(function(r){return r.id===numsRifaId;});
   if(!rifa){ toast('Rifa no encontrada','err'); return; }
 
-  // Ocultar/mostrar campo nombre externo
   var wrapExt = document.getElementById('nums-nombre-ext-wrap');
   if(wrapExt) wrapExt.style.display = isExt ? 'block' : 'none';
 
+  var asig = (rifa.nums&&rifa.nums[numsAlumnaId])||{numeros:[],nota:'',nombreExt:''};
+  var tieneNums = asig.numeros && asig.numeros.length > 0;
+
+  // Cargar el estado de edición con los números actuales (como strings)
+  numsEnEdicion = (asig.numeros||[]).map(function(n){return String(n);});
+
+  var titulo, info;
   if(isExt){
-    var asig = (rifa.nums&&rifa.nums[numsAlumnaId])||{numeros:[],pagado:'pendiente',nota:'',nombreExt:''};
-    var tieneNums = asig.numeros && asig.numeros.length > 0;
-    document.getElementById('modal-nums-title').textContent = '✏️ Editar externo: '+(asig.nombreExt||'sin nombre');
-    document.getElementById('modal-nums-info').innerHTML =
-      'Rifa: <strong>'+rifa.nombre+'</strong><br>'
-      +'Valor por número: <strong style="color:var(--primary)">$'+Number(rifa.valorNum||0).toLocaleString('es-CO')+'</strong>'
-      +(tieneNums?'<br><span style="color:var(--success)">Números: '+asig.numeros.join(', ')+'</span>':'');
-    document.getElementById('nums-cantidad').value = tieneNums ? asig.numeros.length : '';
-    document.getElementById('nums-pagado').value   = 'conservar';
-    document.getElementById('nums-nota').value     = asig.nota||'';
+    titulo = tieneNums ? ('✏️ Editar externo: '+(asig.nombreExt||'sin nombre')) : '👤 Asignar a persona externa';
+    info = 'Rifa: <strong>'+rifa.nombre+'</strong><br>'
+      +'Valor por número: <strong style="color:var(--primary)">$'+Number(rifa.valorNum||0).toLocaleString('es-CO')+'</strong>';
     document.getElementById('nums-nombre-ext').value = asig.nombreExt||'';
-    if(tieneNums){
-      generarCamposNums();
-      setTimeout(function(){
-        asig.numeros.forEach(function(n,i){
-          var el=document.getElementById('num-field-'+i);
-          if(el) el.value=n;
-        });
-      },50);
-    } else {
-      document.getElementById('nums-campos').innerHTML='';
-    }
-    var btnQ=document.getElementById('btn-quitar-nums');
-    if(btnQ) btnQ.style.display=tieneNums?'inline-flex':'none';
   } else {
-    // Alumna normal
     var alumna = DB.alumnos.find(function(a){return String(a.id)===String(alumnaId);});
     if(!alumna){ toast('Alumna no encontrada','err'); return; }
-    var asig = (rifa.nums&&rifa.nums[numsAlumnaId])||{numeros:[],pagado:'pendiente',nota:''};
-    var tieneNums = asig.numeros && asig.numeros.length > 0;
-    document.getElementById('modal-nums-title').textContent =
-      tieneNums ? '✏️ Editar números de '+alumna.nombre.split(' ')[0]
-                : '🎟️ Asignar números a '+alumna.nombre.split(' ')[0];
-    document.getElementById('modal-nums-info').innerHTML =
-      '<strong>'+alumna.nombre+'</strong> · Rifa: <strong>'+rifa.nombre+'</strong><br>'
-      +'Valor por número: <strong style="color:var(--primary)">$'+Number(rifa.valorNum||0).toLocaleString('es-CO')+'</strong>'
-      +(tieneNums?'<br><span style="color:var(--success)">Números actuales: '+asig.numeros.join(', ')+'</span>':'');
-    document.getElementById('nums-cantidad').value = tieneNums ? asig.numeros.length : '';
-    document.getElementById('nums-pagado').value   = 'conservar';
-    document.getElementById('nums-nota').value     = asig.nota||'';
+    titulo = tieneNums ? ('✏️ Editar números de '+alumna.nombre.split(' ')[0])
+                       : ('🎟️ Asignar números a '+alumna.nombre.split(' ')[0]);
+    info = '<strong>'+alumna.nombre+'</strong> · Rifa: <strong>'+rifa.nombre+'</strong><br>'
+      +'Valor por número: <strong style="color:var(--primary)">$'+Number(rifa.valorNum||0).toLocaleString('es-CO')+'</strong>';
     document.getElementById('nums-nombre-ext').value = '';
-    if(tieneNums){
-      generarCamposNums();
-      setTimeout(function(){
-        asig.numeros.forEach(function(n,i){
-          var el=document.getElementById('num-field-'+i);
-          if(el) el.value=n;
-        });
-      },50);
-    } else {
-      document.getElementById('nums-campos').innerHTML='';
-    }
-    var btnQ=document.getElementById('btn-quitar-nums');
-    if(btnQ) btnQ.style.display=tieneNums?'inline-flex':'none';
   }
+  document.getElementById('modal-nums-title').textContent = titulo;
+  document.getElementById('modal-nums-info').innerHTML = info;
+  document.getElementById('nums-nuevo').value = '';
+  document.getElementById('nums-cantidad-rnd').value = '';
+  document.getElementById('nums-nota').value = asig.nota||'';
+  _renderChipsNums();
+
+  var btnQ = document.getElementById('btn-quitar-nums');
+  if(btnQ) btnQ.style.display = tieneNums ? 'inline-flex' : 'none';
   abrirModal('modal-nums-alumna');
 }
 
 function guardarNumsAlumna(){
-  var cant = parseInt(document.getElementById('nums-cantidad').value)||0;
-  if(!cant){ toast('Indica cuántos números','err'); return; }
-  var numeros = [];
-  for(var i=0;i<cant;i++){
-    var el = document.getElementById('num-field-'+i);
-    var raw = el ? el.value.trim() : '';
-    if(raw===''||raw===null){ toast('Completa todos los números (#'+(i+1)+')','err'); return; }
-    // Guardar como string para preservar el 00, 01, etc.
-    var v = raw;
-    if(numeros.indexOf(v)>=0){ toast('Número '+v+' repetido','err'); return; }
-    numeros.push(v);
-  }
-  // Verificar que no estén asignados a otra alumna
+  var numeros = numsEnEdicion.slice();
+  if(!numeros.length){ toast('Agrega al menos un número (o usa 🗑️ Quitar todos para vaciar)','err'); return; }
+
   var rifa = (DB.rifas||[]).find(function(r){return r.id===numsRifaId;});
   if(!rifa) return;
+
+  // Verificar conflictos con otras personas
   var conflicto = null;
-  Object.entries(rifa.nums||{}).forEach(function(entry){
-    if(entry[0]===numsAlumnaId) return; // propia alumna, OK
-    (entry[1].numeros||[]).forEach(function(n){
-      if(numeros.indexOf(String(n))>=0||numeros.indexOf(Number(n))>=0){
-        var otraAlumna = DB.alumnos.find(function(a){return String(a.id)===entry[0];});
-        var otraExt = entry[1].nombreExt||null;
-        var otraNombre = otraAlumna?otraAlumna.nombre:(otraExt||'otra persona');
-        conflicto = 'El número '+n+' ya está asignado a '+otraNombre;
-      }
-    });
+  numeros.forEach(function(num){
+    var dueno = _duenoDeNumero(numsRifaId, num, numsAlumnaId);
+    if(dueno) conflicto = 'El número '+num+' ya es de '+dueno;
   });
   if(conflicto){ toast(conflicto,'err'); return; }
 
   if(!rifa.nums) rifa.nums={};
   var isExt = String(numsAlumnaId).startsWith('ext_');
   var nombreExtVal = document.getElementById('nums-nombre-ext').value.trim();
-  // Si es nuevo externo, usar el ID generado; si ya existe, mantenerlo
   var keyId = numsAlumnaId;
-  var modo = document.getElementById('nums-pagado').value; // conservar|pendiente|pagado
+
+  // Conservar los pagos ya registrados de los números que siguen asignados
   var prevAsig = rifa.nums[keyId]||{};
   var prevPagados = _numsPagados(prevAsig);
-  var hoyPago = dateStr(getHoyReal());
   var pagados = {};
   numeros.forEach(function(n){
     var k = String(n);
-    if(modo==='pagado')       pagados[k] = prevPagados[k]||hoyPago;
-    else if(modo==='conservar' && prevPagados[k]!==undefined) pagados[k] = prevPagados[k];
-    // modo 'pendiente': ninguno pagado
+    if(prevPagados[k]!==undefined) pagados[k] = prevPagados[k];
   });
+
   rifa.nums[keyId] = {
     numeros: numeros.slice().sort(function(a,b){ var na=isNaN(a)?a:Number(a); var nb=isNaN(b)?b:Number(b); return na>nb?1:na<nb?-1:0; }),
     pagados: pagados,
     nota:    document.getElementById('nums-nota').value.trim(),
     nombreExt: isExt ? (nombreExtVal||'Externo') : undefined
   };
+
   cerrarModal('modal-nums-alumna');
   renderRifas();
   tsSeccion('rifas');
@@ -351,20 +342,13 @@ function guardarNumsAlumna(){
   snapLocal();
   toast('⏳ Guardando...');
   _fbSave(DB).then(function(ok){
-    if(ok){
-      desencolarGuardado();
-      _ultimoGuardado = Date.now();
-      toast('✅ Números guardados en Firebase');
-    } else {
-      encolarGuardado();
-      programarReintento();
-      toast('⚠️ Guardado local — reintentando...','info');
-    }
+    if(ok){ desencolarGuardado(); _ultimoGuardado = Date.now(); toast('✅ Números guardados en Firebase'); }
+    else  { encolarGuardado(); programarReintento(); toast('⚠️ Guardado local — reintentando...','info'); }
   });
 }
 
 function quitarNumsAlumna(){
-  if(!confirm('¿Quitar todos los números de esta alumna?')) return;
+  if(!confirm('¿Quitar TODOS los números de esta persona?')) return;
   var rifa = (DB.rifas||[]).find(function(r){return r.id===numsRifaId;});
   if(!rifa) return;
   if(rifa.nums) delete rifa.nums[numsAlumnaId];
@@ -374,7 +358,6 @@ function quitarNumsAlumna(){
   toast('Números eliminados');
 }
 
-// ── Número ganador ──
 function abrirModalGanador(rifaId){
   ganadorRifaId = String(rifaId);
   var rifa = (DB.rifas||[]).find(function(r){return r.id===ganadorRifaId;});
@@ -463,6 +446,52 @@ function guardarGanador(){
 }
 
 // ── Render principal ──
+// ── Copiar aviso de números NO vendidos ──
+function copiarNumerosLibres(rifaId){
+  var rifa = (DB.rifas||[]).find(function(r){return r.id===String(rifaId);});
+  if(!rifa){ return; }
+  var totalNums = rifa.totalNums||0;
+  if(!totalNums){ toast('Esta rifa no tiene número total definido','info'); return; }
+
+  var asignados = {};
+  Object.values(rifa.nums||{}).forEach(function(a){
+    (a.numeros||[]).forEach(function(n){ asignados[String(n)]=true; });
+  });
+  var libres = [];
+  for(var n=1;n<=totalNums;n++){ if(!asignados[String(n)]) libres.push(String(n)); }
+
+  var texto;
+  if(!libres.length){
+    texto = '🎟️ *'+rifa.nombre+'*\n\n✅ ¡Todos los números están vendidos! No quedan boletas disponibles.';
+  } else {
+    texto = '🎟️ *'+rifa.nombre+'*'
+      + (rifa.premio?'\n🏆 Premio: '+rifa.premio:'')
+      + (rifa.sorteo?'\n📅 Sorteo: '+rifa.sorteo:'')
+      + (rifa.valorNum?'\n💵 Valor por número: $'+Number(rifa.valorNum).toLocaleString('es-CO'):'')
+      + '\n\n📋 *Números AÚN DISPONIBLES ('+libres.length+'):*\n'
+      + libres.join(', ')
+      + '\n\n¡Aparta el tuyo antes de que se agote! 🍀';
+  }
+
+  _copiarTexto(texto, libres.length ? '📋 Aviso copiado — '+libres.length+' números disponibles' : '📋 Aviso copiado');
+}
+
+function _copiarTexto(texto, msgOk){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(texto).then(function(){ toast(msgOk||'📋 Copiado'); })
+      .catch(function(){ _copiarFallback(texto, msgOk); });
+  } else { _copiarFallback(texto, msgOk); }
+}
+function _copiarFallback(texto, msgOk){
+  try{
+    var ta=document.createElement('textarea');
+    ta.value=texto; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    toast(msgOk||'📋 Copiado');
+  }catch(e){ toast('No se pudo copiar automáticamente','err'); }
+}
+
 function renderRifas(){
  try{
   if(!DB.rifas||!DB.rifas.length){
@@ -503,6 +532,10 @@ function renderRifas(){
       });
     });
     var numsLibres = totalNums>0 ? totalNums-numsAsignados.length : null;
+    // Lista de números NO vendidos (como strings, respeta el 00)
+    var asignadosSet = {}; numsAsignados.forEach(function(n){ asignadosSet[String(n)]=true; });
+    var listaLibres = [];
+    if(totalNums>0){ for(var _n=1; _n<=totalNums; _n++){ if(!asignadosSet[String(_n)]) listaLibres.push(String(_n)); } }
     var totalRecaudado = numsPagados.length * (rifa.valorNum||0);
     var meta = rifa.meta || (totalNums*(rifa.valorNum||0));
     var pct = meta>0 ? Math.min(100,Math.round(totalRecaudado/meta*100)) : 0;
@@ -702,15 +735,14 @@ function renderRifas(){
             +'</div>'
             +(chipsHTML?'<div style="display:flex;flex-wrap:wrap;gap:6px;background:var(--card2);border-radius:10px;padding:12px">'+chipsHTML+'</div>'
               :'<div style="background:var(--card2);border-radius:10px;padding:20px;text-align:center;color:var(--text2);font-size:13px">Sin números asignados aún</div>')
-            // Números no asignados si hay totalNums
-            +(totalNums>0&&numsAsignados.length<totalNums?'<div style="margin-top:10px"><div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">📋 Números libres</div>'
-              +'<div style="font-size:12px;color:var(--text2);line-height:1.8">'
-              +(function(){
-                var libres=[];
-                for(var n=1;n<=totalNums;n++){if(numsAsignados.indexOf(n)<0)libres.push(n);}
-                return libres.length<=30?libres.join(', '):libres.slice(0,30).join(', ')+' … y '+(libres.length-30)+' más';
-              })()
-              +'</div></div>':'')
+            // Números NO vendidos — lista completa + botón copiar
+            +(totalNums>0&&listaLibres.length?'<div style="margin-top:12px;background:rgba(244,169,22,.06);border:1px solid rgba(244,169,22,.25);border-radius:10px;padding:12px">'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;flex-wrap:wrap">'
+                +'<span style="font-size:11px;font-weight:700;color:#a06d00;text-transform:uppercase;letter-spacing:.5px">📋 '+listaLibres.length+' números NO vendidos</span>'
+                +'<button class="btn btn-ghost btn-sm rifa-btn-copiar-libres" data-rid="'+rifa.id+'">📋 Copiar aviso</button>'
+              +'</div>'
+              +'<div style="font-size:12px;color:var(--text);line-height:1.9;word-break:break-word">'+listaLibres.join(', ')+'</div>'
+            +'</div>':(totalNums>0?'<div style="margin-top:12px;background:rgba(26,160,83,.08);border-radius:10px;padding:12px;text-align:center;font-size:12px;color:var(--success);font-weight:600">✅ Todos los números están vendidos</div>':''))
           +'</div>'
           // Tabla de alumnas
           +'<div>'
@@ -735,6 +767,8 @@ function renderRifas(){
     var btnGanador = e.target.closest('.rifa-btn-ganador');
     var btnElim    = e.target.closest('.rifa-btn-eliminar');
     var btnExt     = e.target.closest('.rifa-btn-ext');
+    var btnCopiar  = e.target.closest('.rifa-btn-copiar-libres');
+    if(btnCopiar){ copiarNumerosLibres(btnCopiar.dataset.rid); return; }
     if(btnNums)    abrirModalNums(btnNums.dataset.rid, btnNums.dataset.aid);
     else if(btnExt)     abrirModalNumsExt(btnExt.dataset.rid);
     else if(btnEditar)  abrirModalRifa(btnEditar.dataset.rid);
