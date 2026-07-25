@@ -321,13 +321,26 @@ function guardarNumsAlumna(){
   var rifa = (DB.rifas||[]).find(function(r){return r.id===numsRifaId;});
   if(!rifa) return;
 
-  // Verificar conflictos con otras personas
-  var conflicto = null;
+  // 1) Deduplicar por valor numérico dentro de esta misma lista (red de seguridad:
+  //    aunque la UI ya lo evita, un dato viejo o un aleatorio no deben colar repetidos)
+  var vistos = {}, dupInterno = [];
+  numeros = numeros.filter(function(n){
+    var k = parseInt(n,10); if(isNaN(k)) k=String(n);
+    if(vistos[k]){ dupInterno.push(_fmt2(n)); return false; }
+    vistos[k] = true; return true;
+  });
+  if(dupInterno.length){ toast('Se quitó el número repetido '+dupInterno.join(', '),'info'); }
+
+  // 2) Verificar conflictos con OTRAS personas — listar todos, no solo el último
+  var conflictos = [];
   numeros.forEach(function(num){
     var dueno = _duenoDeNumero(numsRifaId, num, numsAlumnaId);
-    if(dueno) conflicto = 'El número '+num+' ya es de '+dueno;
+    if(dueno) conflictos.push(_fmt2(num)+' (es de '+dueno+')');
   });
-  if(conflicto){ toast(conflicto,'err'); return; }
+  if(conflictos.length){
+    toast('No se puede guardar. Ya asignados: '+conflictos.join('; '),'err');
+    return;
+  }
 
   if(!rifa.nums) rifa.nums={};
   var isExt = String(numsAlumnaId).startsWith('ext_');
@@ -525,8 +538,6 @@ function copiarNumerosNoPagados(rifaId){
       + '\n\n⛔ *NÚMEROS FUERA DE JUEGO ('+pendientes.length+')*'
       + '\n_Asignados pero SIN PAGAR — no participan en el sorteo hasta cancelar:_\n'
       + soloNums.join(', ')
-      + '\n\n📌 *Detalle por persona:*\n'
-      + pendientes.map(function(p){ return '• '+p.num+' — '+p.quien; }).join('\n')
       + '\n\n💡 Ponte al día con tu pago para no quedar fuera del sorteo. 🍀';
   }
 
@@ -580,13 +591,26 @@ function renderRifas(){
 
     // Calcular stats
     var numsAsignados=[], numsPagados=[], numsPendientes=[];
+    var _duenosPorNum={};   // valor numérico → [nombres] para detectar repetidos
     Object.entries(nums).forEach(function(entry){
       var pagadosMap=_numsPagados(entry[1]);
+      var quien = entry[1].nombreExt
+        || (DB.alumnos.find(function(a){return String(a.id)===entry[0];})||{}).nombre
+        || entry[0];
       (entry[1].numeros||[]).forEach(function(n){
         numsAsignados.push(n);
         if(pagadosMap[String(n)]!==undefined) numsPagados.push(n);
         else numsPendientes.push(n);
+        var k=parseInt(n,10); if(isNaN(k)) k=String(n);
+        (_duenosPorNum[k]=_duenosPorNum[k]||[]).push({cod:_fmt2(n),quien:quien});
       });
+    });
+    // Números asignados a más de una persona (error de datos que debe corregirse)
+    var repetidos=[];
+    Object.keys(_duenosPorNum).forEach(function(k){
+      if(_duenosPorNum[k].length>1){
+        repetidos.push({num:_duenosPorNum[k][0].cod, quienes:_duenosPorNum[k].map(function(d){return d.quien;})});
+      }
     });
     // Set de asignados normalizado POR VALOR NUMÉRICO (así "05", "5" y 5 son el mismo)
     // Se guardan las dos claves: el valor numérico y el texto original, para cubrir 00 y no-numéricos.
@@ -790,6 +814,14 @@ function renderRifas(){
               +'<div style="font-size:12px;color:var(--danger);margin-top:4px;font-weight:600">Este número no entra en juego — debe repetirse el sorteo</div>'
             +'</div>')
           :'')
+        // Alerta de números repetidos (asignados a 2+ personas)
+        +(repetidos.length?'<div style="background:rgba(192,50,33,.1);border:1.5px solid var(--danger);border-radius:10px;padding:12px 14px;margin-bottom:16px">'
+          +'<div style="font-size:13px;font-weight:800;color:var(--danger);margin-bottom:4px">⚠️ '+repetidos.length+' número(s) asignado(s) a más de una persona</div>'
+          +'<div style="font-size:12px;color:var(--text);line-height:1.7">'
+          +repetidos.map(function(r){return '<strong>'+r.num+'</strong>: '+r.quienes.join(' y ');}).join('<br>')
+          +'</div>'
+          +'<div style="font-size:11px;color:var(--danger);margin-top:6px">Corrige quitándolo de una de las personas (✏️ en la tabla).</div>'
+        +'</div>':'')
         // Layout: chips + tabla
         +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'
           // Grilla de números
