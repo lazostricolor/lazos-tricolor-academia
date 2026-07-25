@@ -927,23 +927,21 @@
     </div>
     <div class="modal-body">
       <div id="modal-nums-info" style="background:var(--card2);border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px"></div>
-      <div class="form-group" style="margin-bottom:14px">
-        <label>Cantidad de números a asignar</label>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input type="number" id="nums-cantidad" placeholder="Ej: 5" min="1" style="max-width:120px" oninput="generarCamposNums()">
-          <button class="btn btn-ghost btn-sm" onclick="generarNuemrosAleatorios()">🎲 Generar aleatorios</button>
+      <div class="form-group" style="margin-bottom:12px">
+        <label>Agregar número</label>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input type="text" id="nums-nuevo" placeholder="Ej: 47 o 00" style="max-width:120px" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarNumManual();}">
+          <button class="btn btn-primary btn-sm" onclick="agregarNumManual()">➕ Agregar</button>
+          <span style="color:var(--text2);font-size:12px">o</span>
+          <input type="number" id="nums-cantidad-rnd" placeholder="cuántos" min="1" style="max-width:110px">
+          <button class="btn btn-ghost btn-sm" onclick="agregarAleatorios()">🎲 Aleatorios</button>
         </div>
       </div>
-      <div id="nums-campos" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px"></div>
-      <div class="form-group">
-        <label>Estado del pago</label>
-        <select id="nums-pagado">
-          <option value="conservar">🔒 Conservar pagos ya registrados</option>
-          <option value="pendiente">⏳ Todos pendientes</option>
-          <option value="pagado">✅ Todos pagados</option>
-        </select>
-        <small style="font-size:11px;color:var(--text2);margin-top:4px">💡 Para pagos número a número: haz clic sobre cada número en la tarjeta de la rifa</small>
+      <div class="form-group" style="margin-bottom:14px">
+        <label>Números asignados (<span id="nums-contador">0</span>) <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text2)">— clic en 🗑️ para quitar uno</span></label>
+        <div id="nums-lista-chips" style="display:flex;flex-wrap:wrap;gap:6px;min-height:44px;background:var(--card2);border-radius:8px;padding:10px;border:1px solid var(--border)"></div>
       </div>
+      <input type="hidden" id="nums-pagado" value="conservar">
       <div class="form-group" style="margin-top:10px">
         <label>Nota</label>
         <input type="text" id="nums-nota" placeholder="Ej: Pagó en efectivo, abonó...">
