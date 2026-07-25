@@ -32,6 +32,45 @@ function renderAlumnos(){
     return true;
   });
 
+  // ── Resumen por categoría y género ──
+  const CATS_R=['Infantil','Juvenil','Adulto','Adulto Mayor'];
+  const catColorsR={Infantil:'var(--inf)',Juvenil:'var(--juv)',Adulto:'var(--adu)','Adulto Mayor':'var(--adum)'};
+  // resumen[cat] = {F, M, S} (S = sin género definido)
+  const resumen={}; CATS_R.forEach(c=>resumen[c]={F:0,M:0,S:0});
+  let totF=0,totM=0,totS=0;
+  todasActivas.forEach(a=>{
+    if(!resumen[a.categoria]) return;
+    const g=a.genero==='M'?'M':a.genero==='F'?'F':'S';
+    resumen[a.categoria][g]++;
+    if(g==='F')totF++; else if(g==='M')totM++; else totS++;
+  });
+  const totalR=todasActivas.length;
+  const resWrap=document.getElementById('alumnos-resumen');
+  if(resWrap){
+    let cardsHTML=CATS_R.map(c=>{
+      const r=resumen[c]; const tot=r.F+r.M+r.S;
+      return `<div style="flex:1;min-width:150px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;border-left:4px solid ${catColorsR[c]}">
+        <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">${c}</div>
+        <div style="font-size:26px;font-weight:800;line-height:1;margin-bottom:8px">${tot}</div>
+        <div style="display:flex;gap:12px;font-size:12px">
+          <span style="color:#d6006a;font-weight:600">♀ ${r.F}</span>
+          <span style="color:#0077b6;font-weight:600">♂ ${r.M}</span>
+          ${r.S?`<span style="color:var(--text2)">? ${r.S}</span>`:''}
+        </div>
+      </div>`;
+    }).join('');
+    const totalCard=`<div style="flex:1;min-width:150px;background:linear-gradient(135deg,var(--primary),#5a76f5);color:#fff;border-radius:12px;padding:14px 16px">
+        <div style="font-size:12px;font-weight:700;opacity:.85;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Total activas</div>
+        <div style="font-size:26px;font-weight:800;line-height:1;margin-bottom:8px">${totalR}</div>
+        <div style="display:flex;gap:12px;font-size:12px">
+          <span style="font-weight:600">♀ ${totF}</span>
+          <span style="font-weight:600">♂ ${totM}</span>
+          ${totS?`<span style="opacity:.8">? ${totS}</span>`:''}
+        </div>
+      </div>`;
+    resWrap.innerHTML=`<div style="display:flex;gap:12px;flex-wrap:wrap">${cardsHTML}${totalCard}</div>`;
+  }
+
   // ── Gráfico de distribución por categoría ──
   const dist={Infantil:0,Juvenil:0,Adulto:0,'Adulto Mayor':0};
   todasActivas.forEach(a=>{ if(dist[a.categoria]!==undefined) dist[a.categoria]++; });
@@ -161,7 +200,7 @@ function abrirModalAlumna(id=null){
   editAlumnaId=id;
   fotoTemp=null;
   document.getElementById('modal-alumna-title').textContent=id?'Editar Alumna':'Nueva Alumna';
-  const campos=['nombre','nacimiento','categoria','fechaIngreso','direccion','barrio','pantalon','camiseta','calzado','peso','estatura','experiencia','repNombre','correo','telefono','conocio'];
+  const campos=['nombre','nacimiento','categoria','genero','fechaIngreso','direccion','barrio','pantalon','camiseta','calzado','peso','estatura','experiencia','repNombre','correo','telefono','conocio'];
   if(id){
     const a=DB.alumnos.find(x=>x.id===id);
     if(!a)return;
@@ -174,6 +213,7 @@ function abrirModalAlumna(id=null){
   } else {
     campos.forEach(c=>{ const el=document.getElementById('a-'+c); if(el) el.value=''; });
     document.getElementById('a-categoria').value='Adulto';
+    document.getElementById('a-genero').value='F';
     document.getElementById('a-fechaIngreso').value=dateStr(getHoyReal());
     document.getElementById('a-familiar').checked=false;
     document.getElementById('foto-preview').innerHTML='👤';
@@ -194,6 +234,7 @@ async function guardarAlumna(){
     nombre,
     nacimiento:document.getElementById('a-nacimiento').value,
     categoria:document.getElementById('a-categoria').value,
+    genero:document.getElementById('a-genero').value,
     fechaIngreso:fi,
     direccion:document.getElementById('a-direccion').value,
     barrio:document.getElementById('a-barrio').value,
