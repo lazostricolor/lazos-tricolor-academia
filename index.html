@@ -124,6 +124,7 @@
           </select>
           <button class="btn btn-ghost btn-sm" onclick="toggleVistaAlumnos()">🔀 <span id="vista-label">Vista Agrupada</span></button>
         </div>
+        <div id="alumnos-resumen" style="margin-bottom:20px"></div>
         <div id="alumnos-charts" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px"></div>
         <div id="alumnos-list"></div>
       </div>
@@ -397,6 +398,13 @@
             <label>Categoría *</label>
             <select id="a-categoria">
               <option>Infantil</option><option>Juvenil</option><option selected>Adulto</option><option>Adulto Mayor</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Género</label>
+            <select id="a-genero">
+              <option value="F">Femenino</option>
+              <option value="M">Masculino</option>
             </select>
           </div>
           <div class="form-group">
