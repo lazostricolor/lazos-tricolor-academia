@@ -493,6 +493,46 @@ function copiarNumerosLibres(rifaId){
   _copiarTexto(texto, libres.length ? '📋 Aviso copiado — '+libres.length+' números disponibles' : '📋 Aviso copiado');
 }
 
+// ── Copiar aviso de números FUERA DE JUEGO (asignados sin pagar) ──
+function copiarNumerosNoPagados(rifaId){
+  var rifa = (DB.rifas||[]).find(function(r){return r.id===String(rifaId);});
+  if(!rifa){ return; }
+
+  // Recorrer cada asignación y separar números pagados vs sin pagar
+  var pendientes = [];   // {num, quien}
+  Object.entries(rifa.nums||{}).forEach(function(entry){
+    var asig = entry[1];
+    var pagados = _numsPagados(asig);
+    var quien = asig.nombreExt
+      || (DB.alumnos.find(function(a){return String(a.id)===entry[0];})||{}).nombre
+      || 'Sin nombre';
+    (asig.numeros||[]).forEach(function(n){
+      if(pagados[String(n)]===undefined){
+        pendientes.push({ num:_fmt2(n), quien:quien });
+      }
+    });
+  });
+
+  var texto;
+  if(!pendientes.length){
+    texto = '🎟️ *'+rifa.nombre+'*\n\n✅ ¡Todos los números asignados están PAGADOS! Todos participan en el sorteo.';
+  } else {
+    // Ordenar por número
+    pendientes.sort(function(a,b){ return parseInt(a.num,10)-parseInt(b.num,10); });
+    var soloNums = pendientes.map(function(p){return p.num;});
+    texto = '🎟️ *'+rifa.nombre+'*'
+      + (rifa.sorteo?'\n📅 Sorteo: '+rifa.sorteo:'')
+      + '\n\n⛔ *NÚMEROS FUERA DE JUEGO ('+pendientes.length+')*'
+      + '\n_Asignados pero SIN PAGAR — no participan en el sorteo hasta cancelar:_\n'
+      + soloNums.join(', ')
+      + '\n\n📌 *Detalle por persona:*\n'
+      + pendientes.map(function(p){ return '• '+p.num+' — '+p.quien; }).join('\n')
+      + '\n\n💡 Ponte al día con tu pago para no quedar fuera del sorteo. 🍀';
+  }
+
+  _copiarTexto(texto, pendientes.length ? '📋 Aviso copiado — '+pendientes.length+' números fuera de juego' : '📋 Aviso copiado');
+}
+
 function _copiarTexto(texto, msgOk){
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(texto).then(function(){ toast(msgOk||'📋 Copiado'); })
@@ -771,6 +811,15 @@ function renderRifas(){
               +'</div>'
               +'<div style="font-size:12px;color:var(--text);line-height:1.9;word-break:break-word">'+listaLibres.join(', ')+'</div>'
             +'</div>':'<div style="margin-top:12px;background:rgba(26,160,83,.08);border-radius:10px;padding:12px;text-align:center;font-size:12px;color:var(--success);font-weight:600">✅ Todos los números (00-99) están vendidos</div>')
+            // Números FUERA DE JUEGO — asignados pero SIN PAGAR (no participan en el sorteo)
+            +(numsPendientes.length?'<div style="margin-top:12px;background:rgba(192,50,33,.07);border:1px solid rgba(192,50,33,.3);border-radius:10px;padding:12px">'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;flex-wrap:wrap">'
+                +'<span style="font-size:11px;font-weight:700;color:#c03221;text-transform:uppercase;letter-spacing:.5px">⛔ '+numsPendientes.length+' números FUERA DE JUEGO (sin pagar)</span>'
+                +'<button class="btn btn-ghost btn-sm rifa-btn-copiar-nopagados" data-rid="'+rifa.id+'">📋 Copiar aviso</button>'
+              +'</div>'
+              +'<div style="font-size:12px;color:var(--text);line-height:1.9;word-break:break-word">'+numsPendientes.map(function(n){return _fmt2(n);}).sort().join(', ')+'</div>'
+              +'<div style="font-size:11px;color:#c03221;margin-top:6px">Estos números NO participan en el sorteo hasta que se paguen.</div>'
+            +'</div>':(numsPagados.length?'<div style="margin-top:12px;background:rgba(26,160,83,.08);border-radius:10px;padding:10px;text-align:center;font-size:12px;color:var(--success);font-weight:600">✅ Todos los números asignados están pagados</div>':''))
           +'</div>'
           // Tabla de alumnas
           +'<div>'
@@ -797,6 +846,8 @@ function renderRifas(){
     var btnExt     = e.target.closest('.rifa-btn-ext');
     var btnCopiar  = e.target.closest('.rifa-btn-copiar-libres');
     if(btnCopiar){ copiarNumerosLibres(btnCopiar.dataset.rid); return; }
+    var btnNoPag   = e.target.closest('.rifa-btn-copiar-nopagados');
+    if(btnNoPag){ copiarNumerosNoPagados(btnNoPag.dataset.rid); return; }
     if(btnNums)    abrirModalNums(btnNums.dataset.rid, btnNums.dataset.aid);
     else if(btnExt)     abrirModalNumsExt(btnExt.dataset.rid);
     else if(btnEditar)  abrirModalRifa(btnEditar.dataset.rid);
