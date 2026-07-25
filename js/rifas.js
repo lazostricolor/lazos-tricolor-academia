@@ -14,6 +14,13 @@ let ganadorRifaId = null;
 // ── Pagos por número individual ──
 // Nueva estructura: asig.pagados = { 'numStr': 'YYYY-MM-DD' } (solo los pagados)
 // Migración: si existe asig.pagado==='pagado' legacy, todos sus números cuentan como pagados
+// Formato de número de rifa a 2 dígitos (00-99). Deja intacto lo no numérico.
+function _fmt2(n){
+  var num = parseInt(n,10);
+  if(isNaN(num)) return String(n);
+  return num<10 ? '0'+num : String(num);
+}
+
 function _numsPagados(asig){
   if(asig.pagados) return asig.pagados;
   var out={};
@@ -158,7 +165,7 @@ function _renderChipsNums(){
   });
   cont.innerHTML = ordenados.map(function(n){
     return '<span style="display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1.5px solid var(--primary);color:var(--primary);border-radius:8px;padding:5px 8px;font-size:13px;font-weight:700">'
-      + n
+      + _fmt2(n)
       + '<span style="cursor:pointer;font-size:12px;opacity:.7" onclick="quitarNumEdicion(\'' + n + '\')" title="Quitar">🗑️</span>'
       + '</span>';
   }).join('');
@@ -168,11 +175,16 @@ function agregarNumManual(){
   var el = document.getElementById('nums-nuevo');
   var raw = (el.value||'').trim();
   if(raw===''){ return; }
-  if(numsEnEdicion.indexOf(raw)>=0){ toast('El número '+raw+' ya está en la lista','info'); el.value=''; return; }
+  var num = parseInt(raw,10);
+  if(isNaN(num) || num<0 || num>99){ toast('Ingresa un número entre 00 y 99','err'); return; }
+  var val = _fmt2(num);   // normalizar: "5" → "05"
+  // ¿ya está en la lista? (comparar por valor, no por texto)
+  var yaEsta = numsEnEdicion.some(function(x){ return parseInt(x,10)===num; });
+  if(yaEsta){ toast('El número '+val+' ya está en la lista','info'); el.value=''; return; }
   // ¿ya lo tiene otra persona en esta rifa?
-  var dueno = _duenoDeNumero(numsRifaId, raw, numsAlumnaId);
-  if(dueno){ toast('El número '+raw+' ya es de '+dueno,'err'); return; }
-  numsEnEdicion.push(raw);
+  var dueno = _duenoDeNumero(numsRifaId, val, numsAlumnaId);
+  if(dueno){ toast('El número '+val+' ya es de '+dueno,'err'); return; }
+  numsEnEdicion.push(val);
   el.value='';
   el.focus();
   _renderChipsNums();
@@ -191,15 +203,18 @@ function agregarAleatorios(){
 
   // Números ocupados por CUALQUIER persona + los que ya están en edición
   var usados = {};
+  function _marcar(n){ usados[String(n)]=true; var v=parseInt(n,10); if(!isNaN(v)) usados['#'+v]=true; }
   Object.entries(rifa.nums||{}).forEach(function(entry){
     if(entry[0]===numsAlumnaId) return; // los propios se reemplazan por la edición
-    (entry[1].numeros||[]).forEach(function(n){ usados[String(n)]=true; });
+    (entry[1].numeros||[]).forEach(_marcar);
   });
-  numsEnEdicion.forEach(function(n){ usados[String(n)]=true; });
+  numsEnEdicion.forEach(_marcar);
 
-  var max = rifa.totalNums || 999;
+  var maxNum = (rifa.totalNums>0 ? rifa.totalNums : 100) - 1;   // 00..99
   var disponibles = [];
-  for(var n=1; n<=max; n++){ if(!usados[String(n)]) disponibles.push(String(n)); }
+  for(var n=0; n<=maxNum; n++){
+    if(!usados['#'+n] && !usados[String(n)]) disponibles.push(_fmt2(n));
+  }
   if(disponibles.length < cant){ toast('Solo quedan '+disponibles.length+' números libres','err'); return; }
 
   var copia = disponibles.slice();
@@ -221,7 +236,7 @@ function _duenoDeNumero(rifaId, num, exceptId){
   Object.entries(rifa.nums||{}).forEach(function(entry){
     if(entry[0]===exceptId) return;
     (entry[1].numeros||[]).forEach(function(n){
-      if(String(n)===String(num)){
+      if(parseInt(n,10)===parseInt(num,10)){   // comparar por valor: "05"==="5"
         var a = DB.alumnos.find(function(x){return String(x.id)===entry[0];});
         res = a ? a.nombre : (entry[1].nombreExt||'otra persona');
       }
@@ -455,10 +470,15 @@ function copiarNumerosLibres(rifaId){
 
   var asignados = {};
   Object.values(rifa.nums||{}).forEach(function(a){
-    (a.numeros||[]).forEach(function(n){ asignados[String(n)]=true; });
+    (a.numeros||[]).forEach(function(n){
+      asignados[String(n)]=true;
+      var num=parseInt(n,10);
+      if(!isNaN(num)) asignados['#'+num]=true;   // normalizar "05"→5
+    });
   });
+  var maxNum = (totalNums>0 ? totalNums : 100) - 1;   // 00..99
   var libres = [];
-  for(var n=1;n<=totalNums;n++){ if(!asignados[String(n)]) libres.push(String(n)); }
+  for(var n=0;n<=maxNum;n++){ if(!asignados['#'+n] && !asignados[String(n)]) libres.push(_fmt2(n)); }
 
   var texto;
   if(!libres.length){
@@ -531,11 +551,22 @@ function renderRifas(){
         else numsPendientes.push(n);
       });
     });
-    var numsLibres = totalNums>0 ? totalNums-numsAsignados.length : null;
-    // Lista de números NO vendidos (como strings, respeta el 00)
-    var asignadosSet = {}; numsAsignados.forEach(function(n){ asignadosSet[String(n)]=true; });
+    // Set de asignados normalizado POR VALOR NUMÉRICO (así "05", "5" y 5 son el mismo)
+    // Se guardan las dos claves: el valor numérico y el texto original, para cubrir 00 y no-numéricos.
+    var asignadosSet = {};
+    numsAsignados.forEach(function(n){
+      asignadosSet[String(n)] = true;                    // texto tal cual ("00", "5", "05")
+      var num = parseInt(n,10);
+      if(!isNaN(num)) asignadosSet['#'+num] = true;      // valor numérico normalizado (#5)
+    });
+    // Rifa de 00 a 99 → 100 números. El rango arranca en 0 (no en 1).
+    var maxNum = (totalNums>0 ? totalNums : 100) - 1;   // totalNums=100 → 00..99
     var listaLibres = [];
-    if(totalNums>0){ for(var _n=1; _n<=totalNums; _n++){ if(!asignadosSet[String(_n)]) listaLibres.push(String(_n)); } }
+    for(var _n=0; _n<=maxNum; _n++){
+      // libre solo si NO está por valor numérico ni por texto (cubre "05" y "5")
+      if(!asignadosSet['#'+_n] && !asignadosSet[String(_n)]) listaLibres.push(_fmt2(_n));
+    }
+    var numsLibres = listaLibres.length;
     var totalRecaudado = numsPagados.length * (rifa.valorNum||0);
     var meta = rifa.meta || (totalNums*(rifa.valorNum||0));
     var pct = meta>0 ? Math.min(100,Math.round(totalRecaudado/meta*100)) : 0;
@@ -574,7 +605,7 @@ function renderRifas(){
       var nombreDueno = a?a.nombre.split(' ')[0]:(duenoInfo.nombreExt||'?');
       var tooltip = nombreDueno+' · Nº'+n+(info.pagado?' ✅ pagado':' ⏳ pendiente — clic para marcar pagado')+(esGanador?' 🏆':'');
       return '<span class="num-chip '+cls+' rifa-chip-toggle" data-rid="'+rifa.id+'" data-aid="'+info.alumnaId+'" data-num="'+n+'" title="'+tooltip+'">'
-        +n
+        +_fmt2(n)
         +(esGanador?'<span style="position:absolute;top:-4px;right:-4px;font-size:8px">🏆</span>':'')
         +'</span>';
     }).join('');
@@ -598,7 +629,7 @@ function renderRifas(){
                 var pagN=pmF[String(n)]!==undefined;
                 var clsF=esG?'ganador':(pagN?'pagado':(urgente?'urgente':'pendiente'));
                 var tt='Nº'+n+(pagN?' ✅ pagado':' ⏳ pendiente — clic para pagar')+(esG?' ¡GANADOR!':'');
-                return '<span class="num-chip '+clsF+' rifa-chip-toggle" data-rid="'+rifa.id+'" data-aid="'+ak+'" data-num="'+n+'" style="width:34px;height:34px;font-size:11px" title="'+tt+'">'+(n)+(esG?'🏆':'')+'</span>';
+                return '<span class="num-chip '+clsF+' rifa-chip-toggle" data-rid="'+rifa.id+'" data-aid="'+ak+'" data-num="'+n+'" style="width:34px;height:34px;font-size:11px" title="'+tt+'">'+_fmt2(n)+(esG?'🏆':'')+'</span>';
               }).join('')
             : '<span style="font-size:12px;color:var(--text2)">Sin números</span>')
         +'</div>'
@@ -627,7 +658,7 @@ function renderRifas(){
                 var pagN=pmE[String(n)]!==undefined;
                 var clsF=esG?'ganador':(pagN?'pagado':(urgente?'urgente':'pendiente'));
                 var tt='Nº'+n+(pagN?' ✅ pagado':' ⏳ pendiente — clic para pagar')+(esG?' ¡GANADOR!':'');
-                return '<span class="num-chip '+clsF+' rifa-chip-toggle" data-rid="'+rifa.id+'" data-aid="'+entry[0]+'" data-num="'+n+'" style="width:34px;height:34px;font-size:11px" title="'+tt+'">'+(n)+(esG?'🏆':'')+'</span>';
+                return '<span class="num-chip '+clsF+' rifa-chip-toggle" data-rid="'+rifa.id+'" data-aid="'+entry[0]+'" data-num="'+n+'" style="width:34px;height:34px;font-size:11px" title="'+tt+'">'+_fmt2(n)+(esG?'🏆':'')+'</span>';
               }).join('')
             : '<span style="font-size:12px;color:var(--text2)">Sin números</span>')
         +'</div>'
