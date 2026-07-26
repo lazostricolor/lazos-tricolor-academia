@@ -16,11 +16,15 @@ function getDiasClaseMes(alumna,mk){
       return !e.cats||e.cats.includes(alumna.categoria||''); // nuevo: filtrar por cat
     })
     .map(e=>typeof e==='string'?e:e.fecha);
+  // No contar clases anteriores a la fecha de ingreso de la alumna:
+  // una alumna que entró a mitad de mes no debe salir castigada por las clases previas.
+  const ingreso = alumna.fechaIngreso || '';
   const dias=[];
   const ultimo=new Date(y,m,0).getDate();
   for(let d=1;d<=ultimo;d++){
     const fecha=new Date(y,m-1,d);
     const ds=dateStr(fecha);
+    if(ingreso && ds < ingreso) continue;   // saltar días previos al ingreso
     if(diasSemana.includes(fecha.getDay())||extrasFiltrados.includes(ds)) dias.push(ds);
   }
   return dias;
@@ -246,24 +250,35 @@ function generarRanking(mk){
       pct:dias.length?Math.round(pres/dias.length*100):0};
   }).filter(function(a){return a.total>0;});
 
-  var rankingPorCat={};
+  // TODAS por categoría, ordenadas de mayor a menor % (para el mensaje completo)
+  var todasPorCat={};
   CATS.forEach(function(cat){
-    rankingPorCat[cat]=stats.filter(function(a){return a.categoria===cat;})
-      .sort(function(a,b){return b.pct-a.pct||b.pres-a.pres;}).slice(0,3);
+    todasPorCat[cat]=stats.filter(function(a){return a.categoria===cat;})
+      .sort(function(a,b){return b.pct-a.pct||b.pres-a.pres||a.nombre.localeCompare(b.nombre);});
   });
+  // Top 3 por categoría (solo para las tarjetas visuales)
+  var rankingPorCat={};
+  CATS.forEach(function(cat){ rankingPorCat[cat]=todasPorCat[cat].slice(0,3); });
 
   var catColores={Infantil:'#d6006a',Juvenil:'#1a9900',Adulto:'#c95000','Adulto Mayor':'#0077b6'};
   var catIconos={Infantil:'💃',Juvenil:'🎭',Adulto:'🌟','Adulto Mayor':'⭐'};
   var medallas=['🥇','🥈','🥉'];
   var mesNom=mesLabel(mk);
 
-  // Texto para el mensaje
+  // Emoji según el % para la lista completa
+  function _emojiPct(p){ return p>=90?'🌟':p>=75?'✅':p>=50?'🟡':'🔴'; }
+
+  // Texto del mensaje: LISTA COMPLETA por categoría, de mayor a menor %
   var topTexto='';
   CATS.forEach(function(cat){
-    var top=rankingPorCat[cat];
-    if(!top.length) return;
-    topTexto+='*'+cat+':*\n';
-    top.forEach(function(a,i){ topTexto+='  '+medallas[i]+' '+a.nombre+' — '+a.pct+'% ('+a.pres+'/'+a.total+' clases)\n'; });
+    var lista=todasPorCat[cat];
+    if(!lista.length) return;
+    var promCat=Math.round(lista.reduce(function(s,a){return s+a.pct;},0)/lista.length);
+    topTexto+=catIconos[cat]+' *'+cat+'* (promedio '+promCat+'%)\n';
+    lista.forEach(function(a,i){
+      var pos = i<3 ? medallas[i] : '   ';
+      topTexto+=pos+' '+_emojiPct(a.pct)+' '+a.nombre+' — *'+a.pct+'%* ('+a.pres+'/'+a.total+')\n';
+    });
     topTexto+='\n';
   });
 
@@ -298,7 +313,7 @@ function generarRanking(mk){
       +'<button class="ranking-copy-btn" onclick="copiarMensajeRanking()">📋 Copiar mensaje</button>'
     +'</div>'
     +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin-bottom:16px">'+tarjetas+'</div>'
-    +'<div class="ranking-msg-box" id="ranking-mensaje">'+mensaje+'</div>'
+    +'<div class="ranking-msg-box" id="ranking-mensaje" style="white-space:pre-wrap" data-raw="'+mensaje.replace(/"/g,'&quot;').replace(/</g,'&lt;')+'">'+mensaje.replace(/</g,'&lt;')+'</div>'
     +'</div>';
 
   var ar=document.getElementById('asist-ranking');
@@ -308,7 +323,9 @@ function generarRanking(mk){
 function copiarMensajeRanking(){
   var box=document.getElementById('ranking-mensaje');
   if(!box) return;
-  var texto=box.textContent||box.innerText;
+  // data-raw conserva el texto exacto (saltos de línea y *negritas* de WhatsApp)
+  var texto=box.getAttribute('data-raw') || box.textContent || box.innerText;
+  texto=texto.replace(/&quot;/g,'"').replace(/&lt;/g,'<');
   if(navigator.clipboard){
     navigator.clipboard.writeText(texto).then(function(){ toast('📋 Mensaje copiado ✓'); })
     .catch(function(){ _copiarFallback(texto); });
