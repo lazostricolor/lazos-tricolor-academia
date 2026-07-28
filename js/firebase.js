@@ -47,6 +47,41 @@ window.addEventListener('storage', (e) => {
 function tsSeccion(campo){ DB['_ts_'+campo] = Date.now(); }
 
 // ── Merge por timestamp — el más reciente gana sección a sección ──
+// Fusiona dos arrays de objetos por su campo `id`, sin perder items ni revivir borrados.
+// - Cada id que exista en cualquiera de los dos queda en el resultado.
+// - Si un id está en ambos, se combinan sus campos; si los items llevan _editTs,
+//   gana el más reciente (para ediciones); si no, prioriza el array `prioritario`.
+// - Items SIN id (raros) se conservan del array prioritario, o del más largo si no se indica.
+// Nota sobre borrados: dos dispositivos que sincronizan seguido comparten el mismo
+// conjunto de ids; un borrado real se propaga porque el item desaparece de ambos antes
+// de que diverjan. Esta fusión evita el bug opuesto y más común: perder altas/ediciones.
+function _fusionarArrayPorId(prioritario, secundario, priorEsBase){
+  prioritario = Array.isArray(prioritario) ? prioritario : [];
+  secundario  = Array.isArray(secundario)  ? secundario  : [];
+  // Si los items no tienen id, no podemos fusionar con seguridad → el más largo
+  const tienenId = a => a.length===0 || a[0] && a[0].id!==undefined;
+  if(!tienenId(prioritario) || !tienenId(secundario)){
+    return prioritario.length >= secundario.length ? prioritario : secundario;
+  }
+  const porId = {};
+  const orden = [];
+  // Primero el secundario (base), luego el prioritario lo sobrescribe/combina
+  secundario.forEach(it=>{ if(it && it.id!==undefined){ porId[it.id]=it; orden.push(it.id); } });
+  prioritario.forEach(it=>{
+    if(!it || it.id===undefined) return;
+    const prev = porId[it.id];
+    if(!prev){ porId[it.id]=it; orden.push(it.id); return; }
+    // Ambos tienen este id: combinar por recencia si hay _editTs, si no priorizar
+    const pt = it._editTs||0, st = prev._editTs||0;
+    if(pt||st){
+      porId[it.id] = pt>=st ? it : prev;
+    } else {
+      porId[it.id] = priorEsBase ? it : Object.assign({}, prev, it);
+    }
+  });
+  return orden.map(id=>porId[id]);
+}
+
 function mergeDB(local, remoto){
   // Defaults seguros — garantiza que ninguna clave queda undefined
   const defaults = {
@@ -91,8 +126,13 @@ function mergeDB(local, remoto){
     }
 
     if(tsL > tsR){
-      // Local más reciente — siempre ganar
-      base[s] = localVal;
+      // Local más reciente — gana, PERO si son arrays fusionamos por id para no
+      // perder items que el otro dispositivo agregó y este local no alcanzó a ver.
+      if(Array.isArray(localVal) && Array.isArray(remotoVal)){
+        base[s] = _fusionarArrayPorId(localVal, remotoVal, true); // local prioritario
+      } else {
+        base[s] = localVal;
+      }
       base['_ts_'+s] = tsL;
       console.log('📌 '+s+': local gana ts='+new Date(tsL).toLocaleTimeString());
     } else if(tsR > tsL){
@@ -103,6 +143,10 @@ function mergeDB(local, remoto){
         base[s] = localVal;
         base['_ts_'+s] = Date.now(); // marcar local como más nuevo para resubir
         console.warn('🛡️ '+s+': remoto vacío intentó borrar '+localVal.length+' items locales — BLOQUEADO, conservando local');
+      } else if(Array.isArray(localVal) && Array.isArray(remotoVal)){
+        // Remoto gana, pero fusionamos por id para no perder items que solo tiene local
+        base[s] = _fusionarArrayPorId(remotoVal, localVal, true); // remoto prioritario
+        console.log('☁️ '+s+': remoto gana ts (fusionado por id)');
       } else {
         console.log('☁️ '+s+': remoto gana ts='+new Date(tsR).toLocaleTimeString());
       }
@@ -131,8 +175,10 @@ function mergeDB(local, remoto){
         });
         base[s]=pg;
       } else if(Array.isArray(localVal)&&Array.isArray(remotoVal)){
-        // Para arrays: el más largo O el local si tiene datos que el remoto no tiene
-        base[s] = localVal.length >= remotoVal.length ? localVal : remotoVal;
+        // Arrays de objetos con id → fusionar por id (no "el más largo", que revive borrados
+        // o pierde ediciones). Cada id conserva la versión de quien lo tenga; si ambos, se
+        // combinan sus campos. Los items sin id caen al respaldo "más largo".
+        base[s] = _fusionarArrayPorId(localVal, remotoVal);
       } else if(Array.isArray(localVal) && !Array.isArray(remotoVal)){
         base[s] = localVal;
         console.log('🛡️ '+s+': remoto no tiene este campo, conservando local ('+localVal.length+' items)');
@@ -328,6 +374,26 @@ function programarReintento(){
       else { programarReintento(); }
     }
   }, 15000); // 15s — sincronización más rápida entre dispositivos
+}
+
+// Fuerza un reintento INMEDIATO del guardado pendiente (sin esperar los 15s).
+// Se dispara al recuperar conexión o al volver a la app.
+async function reintentarPendienteAhora(motivo){
+  if(!hayGuardadoPendiente() || _guardandoAhora) return;
+  console.log('🔄 Reintento inmediato ('+motivo+')...');
+  const ok = await _fbSave(DB);
+  if(ok){ desencolarGuardado(); actualizarIndicadorGuardado(true); toast('✅ Datos sincronizados con Firebase','ok'); }
+  else { programarReintento(); }
+}
+
+// Disparadores de resincronización: al volver internet y al reabrir la app.
+// Sin esto, un guardado hecho sin señal quedaba esperando el temporizador (que muere
+// si se cierra la página) y no se subía hasta el siguiente cambio manual.
+if(typeof window !== 'undefined'){
+  window.addEventListener('online', function(){ reintentarPendienteAhora('volvió internet'); });
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState==='visible') reintentarPendienteAhora('app visible');
+  });
 }
 
 function actualizarIndicadorGuardado(ok){
