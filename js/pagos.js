@@ -90,18 +90,34 @@ function renderPagos(){
     },80);
   }
 }
-function togglePago(id,mk,pagado){
+async function togglePago(id,mk,pagado){
   const p=getPago(id,mk);
-  setPago(id,mk,{...p,pagado,fechaPago:pagado?dateStr(getHoyReal()):null});
+  // Object.assign sobre el pago existente: preserva beca, notas y demás campos
+  setPago(id,mk,{...p,pagado,fechaPago:pagado?dateStr(getHoyReal()):null,_editTs:Date.now()});
   tsSeccion('pagos');
-  saveBackground(); renderPagos();
+  DB._ts_pagos=Date.now();
+  renderPagos();
   if(activeSection==='dashboard') renderDashboard();
-  toast(pagado?'Pago registrado ✓':'Pago revertido');
+  toast('⏳ Guardando...');
+  // Esperar la confirmación REAL de Firebase antes de decir "guardado"
+  const ok=await saveAll();
+  if(ok){
+    toast(pagado?'✅ Pago registrado y guardado':'✅ Pago revertido y guardado','ok');
+  } else {
+    toast('⚠️ Guardado local — reintentando sincronizar...','info');
+  }
 }
-function toggleBeca(id,mk,beca){
+async function toggleBeca(id,mk,beca){
   const p=getPago(id,mk);
-  setPago(id,mk,{...p,beca});
-  saveAll(); renderPagos();
+  setPago(id,mk,{...p,beca,_editTs:Date.now()});
+  tsSeccion('pagos');           // FALTABA: sin esto, otro dispositivo pisaba la beca
+  DB._ts_pagos=Date.now();
+  renderPagos();
+  if(activeSection==='dashboard') renderDashboard();
+  toast('⏳ Guardando...');
+  const ok=await saveAll();
+  if(ok){ toast(beca?'✅ Beca aplicada y guardada':'✅ Beca retirada y guardada','ok'); }
+  else  { toast('⚠️ Guardado local — reintentando sincronizar...','info'); }
 }
 function enviarRecordatoriosWA(){
   const banner=document.getElementById('wa-banner-pagos');

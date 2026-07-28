@@ -118,8 +118,15 @@ function mergeDB(local, remoto){
         Object.keys(localVal||{}).forEach(id=>{
           if(!pg[id]) pg[id]={};
           Object.keys(localVal[id]||{}).forEach(mk=>{
-            if(!pg[id][mk]) pg[id][mk]=localVal[id][mk];
-            else if(localVal[id][mk]?.pagado&&!pg[id][mk]?.pagado) pg[id][mk]=localVal[id][mk];
+            const L=localVal[id][mk], R=pg[id][mk];
+            if(!R){ pg[id][mk]=L; return; }              // remoto no lo tiene → tomar local
+            // Ambos existen: gana el editado más recientemente (_editTs)
+            const lt=L&&L._editTs||0, rt=R&&R._editTs||0;
+            if(lt||rt){
+              pg[id][mk] = lt>=rt ? L : R;               // el más nuevo por sello de tiempo
+            } else if(L&&L.pagado&&!(R&&R.pagado)){
+              pg[id][mk]=L;                               // respaldo (pagos viejos sin sello)
+            }
           });
         });
         base[s]=pg;
