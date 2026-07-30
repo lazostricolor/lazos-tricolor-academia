@@ -130,12 +130,17 @@ function renderAsistencias(){
               return`<td><button class="asist-cell ${cls}" data-aid="${a.id}" data-fecha="${d}" onclick="toggleAsistencia(${a.id},'${d}')">${emoji}</button></td>`;
             }).join('');
             const total=diasCat.length, pct=total?Math.round(pres/total*100):0;
+            // % del progreso real hasta hoy (clases que YA pasaron), para no confundir a mitad de mes
+            const hoyStr=dateStr(getHoyReal());
+            const diasHasta=diasCat.filter(d=>d<=hoyStr).length;
+            const pctHasta=diasHasta?Math.round(pres/diasHasta*100):0;
+            const enCurso=diasHasta<total; // el mes aún no termina para esta alumna
             return`<tr>
               <td style="font-size:12px;font-weight:500">${a.nombre.split(' ').slice(0,2).join(' ')}</td>
               ${celdas}
               <td style="color:var(--paid);font-weight:700;font-size:12px">${pres}</td>
               <td style="color:var(--unpaid);font-size:12px">${aus}</td>
-              <td style="font-size:12px;font-weight:600;color:${pct>=80?'var(--paid)':pct>=50?'var(--col)':'var(--unpaid)'}">${pct}%</td>
+              <td style="font-size:12px;font-weight:600;color:${pct>=80?'var(--paid)':pct>=50?'var(--col)':'var(--unpaid)'}" title="Mes completo: ${pres}/${total} clases${enCurso?' · Hasta hoy: '+pres+'/'+diasHasta+' ('+pctHasta+'%)':''}">${pct}%${enCurso?`<br><span style="font-size:9px;font-weight:400;color:var(--muted)">hoy ${pctHasta}%</span>`:''}</td>
             </tr>`;
           }).join('')}
           </tbody>
