@@ -157,13 +157,13 @@ const Sudaderas = {
   /* Crea el registro de una alumna. El ID es una clave aleatoria imposible de
      adivinar: es lo que va en el enlace/QR personalizado.
      'talla' puede ir null: el registro queda "pendiente de talla" y el papá
-     la elige después desde su enlace. */
+     la elige después desde su enlace. Los pagos se guardan como "abonos". */
   async crearRegistro(alumnaId, nombre, talla = null) {
     const db  = firebase.firestore();
     const ref = db.collection('sudaderas').doc();   // <- ID aleatorio automático
     const doc = {
       alumnaId: alumnaId ?? null, nombre,
-      talla: null, total: 0, cuotas: {},
+      talla: null, total: 0, abonos: {},
       entregada: false,
       creadoEn: Date.now(),
       actualizadoEn: Date.now()
@@ -172,27 +172,19 @@ const Sudaderas = {
       const precio = this.TALLAS[talla];
       if (!precio) throw new Error('Talla no válida');
       doc.talla = talla; doc.total = precio.total;
-      ['1', '2', '3'].forEach((n, i) => {
-        doc.cuotas[n] = { valor: precio.cuota, fecha: this.FECHAS_CUOTAS[i], estado: 'pendiente' };
-      });
     }
     await ref.set(doc);
     return ref.id;   // guárdalo: es la clave del enlace ...?id=<ref.id>
   },
 
-  /* Asigna la talla a un registro pendiente y genera sus 3 cuotas.
-     Lo usa el papá desde su enlace. No se debe cambiar la talla si ya hay
-     cuotas pagadas (para no borrar avances). */
+  /* Asigna la talla a un registro pendiente y fija su total.
+     No toca los abonos ya hechos. */
   async asignarTalla(registroId, talla) {
     const precio = this.TALLAS[talla];
     if (!precio) throw new Error('Talla no válida');
-    const cuotas = {};
-    ['1', '2', '3'].forEach((n, i) => {
-      cuotas[n] = { valor: precio.cuota, fecha: this.FECHAS_CUOTAS[i], estado: 'pendiente' };
-    });
     const db = firebase.firestore();
     await db.collection('sudaderas').doc(registroId).update({
-      talla, total: precio.total, cuotas, actualizadoEn: Date.now()
+      talla, total: precio.total, actualizadoEn: Date.now()
     });
   },
 
@@ -205,18 +197,19 @@ const Sudaderas = {
     return doc.exists ? { id: doc.id, ...doc.data() } : null;
   },
 
-  /* El papá sube el soporte de una cuota. Queda en 'por_verificar':
-     NO cuenta como pagada hasta que tú la apruebes (regla 4: la nube confirma).
-     Actualiza solo esa cuota (regla 2) y marca sello de tiempo (regla 3). */
-  async subirSoporteCuota(registroId, numeroCuota, soporte) {
+  /* El papá hace un ABONO del monto que quiera (soporte incluido).
+     Queda 'por_verificar': no cuenta hasta que tú lo apruebes.
+     Se guarda como un ítem dentro del mapa 'abonos' (solo agrega, no reescribe). */
+  async agregarAbono(registroId, monto, soporte) {
+    const m = Math.round(Number(monto) || 0);
+    if (m <= 0) throw new Error('El monto debe ser mayor a cero');
+    const abonoId = 'ab' + Date.now() + Math.floor(Math.random() * 1000);
     const db  = firebase.firestore();
-    const ref = db.collection('sudaderas').doc(registroId);
-    await ref.update({
-      [`cuotas.${numeroCuota}.estado`]:   'por_verificar',
-      [`cuotas.${numeroCuota}.soporte`]:  soporte,
-      [`cuotas.${numeroCuota}.subidoEn`]: Date.now(),
+    await db.collection('sudaderas').doc(registroId).update({
+      ['abonos.' + abonoId]: { monto: m, soporte, estado: 'por_verificar', fecha: Date.now() },
       actualizadoEn: Date.now()
     });
+    return abonoId;
   },
 
   /* --- LADO TUYO (panel, con sesión) --- */
@@ -243,22 +236,21 @@ const Sudaderas = {
       .sort((x, y) => x.nombre.localeCompare(y.nombre, 'es'));
   },
 
-  /* Apruebas una cuota tras ver el soporte -> 'pagado'. */
-  async aprobarCuota(registroId, numeroCuota) {
+  /* Apruebas un abono tras ver el soporte -> cuenta al saldo pagado. */
+  async aprobarAbono(registroId, abonoId) {
     const db = firebase.firestore();
     await db.collection('sudaderas').doc(registroId).update({
-      [`cuotas.${numeroCuota}.estado`]:     'pagado',
-      [`cuotas.${numeroCuota}.aprobadoEn`]: Date.now(),
+      ['abonos.' + abonoId + '.estado']:     'aprobado',
+      ['abonos.' + abonoId + '.aprobadoEn']: Date.now(),
       actualizadoEn: Date.now()
     });
   },
 
-  /* Si el soporte no sirve, la devuelves a 'pendiente' para que vuelva a subir. */
-  async rechazarCuota(registroId, numeroCuota) {
+  /* Rechazas un abono (soporte que no sirve): se elimina y el papá puede subir otro. */
+  async rechazarAbono(registroId, abonoId) {
     const db = firebase.firestore();
     await db.collection('sudaderas').doc(registroId).update({
-      [`cuotas.${numeroCuota}.estado`]:  'pendiente',
-      [`cuotas.${numeroCuota}.soporte`]: firebase.firestore.FieldValue.delete(),
+      ['abonos.' + abonoId]: firebase.firestore.FieldValue.delete(),
       actualizadoEn: Date.now()
     });
   },
@@ -290,22 +282,32 @@ const Sudaderas = {
     return '$' + Number(n || 0).toLocaleString('es-CO');
   },
 
-  /* Estado "vivo" de una cuota: calcula 'vencida' según la fecha (no se guarda). */
-  estadoCuota(cuota) {
-    if (!cuota) return 'pendiente';
-    if (cuota.estado === 'pagado' || cuota.estado === 'por_verificar') return cuota.estado;
-    const hoy = new Date().toISOString().slice(0, 10);
-    if (cuota.fecha && cuota.fecha < hoy) return 'vencida';
-    return 'pendiente';
+  /* Suma de abonos en un estado dado ('aprobado' | 'por_verificar'). */
+  sumaAbonos(registro, estado) {
+    return Object.values(registro.abonos || {})
+      .filter(a => a && a.estado === estado)
+      .reduce((s, a) => s + (Number(a.monto) || 0), 0);
   },
 
-  /* Primera cuota que el papá puede pagar ahora (pendiente o vencida). */
-  siguienteAccionable(registro) {
-    for (const n of ['1', '2', '3']) {
-      const e = this.estadoCuota(registro.cuotas?.[n]);
-      if (e === 'pendiente' || e === 'vencida') return Number(n);
-    }
-    return null; // nada por hacer (todo pagado o en verificación)
+  pagado(registro)     { return this.sumaAbonos(registro, 'aprobado'); },
+  enRevision(registro) { return this.sumaAbonos(registro, 'por_verificar'); },
+  saldo(registro)      { return Math.max(0, (Number(registro.total) || 0) - this.pagado(registro)); },
+
+  /* Abonos como lista ordenada por fecha, cada uno con su id. */
+  listaAbonos(registro) {
+    return Object.entries(registro.abonos || {})
+      .map(([id, a]) => ({ id, ...a }))
+      .sort((x, y) => (x.fecha || 0) - (y.fecha || 0));
+  },
+
+  /* Estado general del registro para mostrar de un vistazo. */
+  estadoGeneral(registro) {
+    if (!registro.talla) return 'sin_talla';
+    const saldo = this.saldo(registro);
+    if (saldo <= 0)                    return 'pagado';
+    if (this.enRevision(registro) > 0) return 'en_revision';
+    if (this.pagado(registro) > 0)     return 'parcial';
+    return 'pendiente';
   }
 
 };
