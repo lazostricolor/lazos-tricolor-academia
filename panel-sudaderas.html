@@ -68,10 +68,8 @@
 <!-- LOGIN -->
 <div id="login">
   <h1>Panel — Sudaderas</h1>
-  <p>Inicia sesión con tu cuenta de la academia.</p>
-  <input id="email" type="email" placeholder="Correo">
-  <input id="pass" type="password" placeholder="Contraseña">
-  <button class="btn" id="btnLogin" style="width:100%">Entrar</button>
+  <p>Inicia sesión con la cuenta de Google de la academia.</p>
+  <button class="btn" id="btnGoogle" style="width:100%">Entrar con Google</button>
   <div id="loginErr" style="color:var(--red);font-size:12.5px;margin-top:10px"></div>
 </div>
 
@@ -148,12 +146,13 @@
    PEGA AQUÍ TU CONFIG DE FIREBASE (la misma de tu firebase.js).
    ============================================================ */
 const firebaseConfig = {
-  apiKey: "PEGA_TU_API_KEY",
-  authDomain: "TU_PROYECTO.firebaseapp.com",
-  projectId: "TU_PROYECTO",
-  storageBucket: "TU_PROYECTO.appspot.com",
-  messagingSenderId: "PEGA_SENDER_ID",
-  appId: "PEGA_APP_ID"
+  apiKey: "AIzaSyCIj32zyCreKyCGJSMo6T5yTDhMeqctpG4",
+  authDomain: "lazos-tricolor-academia.firebaseapp.com",
+  projectId: "lazos-tricolor-academia",
+  storageBucket: "lazos-tricolor-academia.firebasestorage.app",
+  messagingSenderId: "284048193120",
+  appId: "1:284048193120:web:96cacf134a537c9ad57505",
+  measurementId: "G-17YZN5KNLZ"
 };
 firebase.initializeApp(firebaseConfig);
 
@@ -163,10 +162,16 @@ const BADGE = { pagado:['Pagado ✓','b-paid'], por_verificar:['Por verificar','
 let datos = [];
 
 /* ---------- Login ---------- */
-$('#btnLogin').onclick = async ()=>{
+$('#btnGoogle').onclick = async ()=>{
   $('#loginErr').textContent='';
-  try{ await firebase.auth().signInWithEmailAndPassword($('#email').value.trim(), $('#pass').value); }
-  catch(e){ $('#loginErr').textContent = 'No se pudo entrar. Revisa correo y contraseña.'; }
+  try{
+    const prov = new firebase.auth.GoogleAuthProvider();
+    await firebase.auth().signInWithPopup(prov);
+  }catch(e){
+    $('#loginErr').textContent = (e.code === 'auth/unauthorized-domain')
+      ? 'Dominio no autorizado. Agrégalo en Firebase → Authentication → Configuración → Dominios autorizados.'
+      : 'No se pudo entrar con Google. Intenta de nuevo.';
+  }
 };
 $('#btnSalir').onclick = ()=> firebase.auth().signOut();
 firebase.auth().onAuthStateChanged(u=>{
