@@ -31,6 +31,10 @@ const Sudaderas = {
 
   FECHAS_CUOTAS: ['2026-08-15', '2026-09-15', '2026-10-15'],
 
+  // Documento donde vive la base principal de la academia (SOLO LECTURA para sudaderas).
+  // La base entera está en el campo "data" como un JSON de texto.
+  DOC_ACADEMIA: 'academias/lazos-tricolor/datos/principal',
+
   /* Comprime la foto EN EL NAVEGADOR antes de subirla.
      Hace tres cosas para bajar el peso de forma significativa:
        1) reduce las dimensiones (lado máximo),
@@ -203,6 +207,21 @@ const Sudaderas = {
     const db   = firebase.firestore();
     const snap = await db.collection('sudaderas').orderBy('nombre').get();
     return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  },
+
+  /* Lee las alumnas ACTIVAS desde la base principal (solo lectura).
+     No trae fotos ni datos pesados: solo id, nombre y categoría.
+     Ignora a las retiradas (esas viven en alumnosRetirados). */
+  async listarAlumnasActivas() {
+    const db   = firebase.firestore();
+    const snap = await db.doc(this.DOC_ACADEMIA).get();
+    if (!snap.exists) return [];
+    let base = {};
+    try { base = JSON.parse(snap.data().data || '{}'); } catch (_) { return []; }
+    return (base.alumnos || [])
+      .filter(a => a && a.id != null && a.nombre)
+      .map(a => ({ id: a.id, nombre: a.nombre, categoria: a.categoria || '' }))
+      .sort((x, y) => x.nombre.localeCompare(y.nombre, 'es'));
   },
 
   /* Apruebas una cuota tras ver el soporte -> 'pagado'. */

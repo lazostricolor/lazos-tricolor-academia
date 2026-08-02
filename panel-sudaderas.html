@@ -123,10 +123,11 @@
 </div></div>
 
 <div class="ov" id="ovNueva"><div class="modal" style="text-align:left">
-  <h3>Asignar talla (crear registro)</h3>
-  <input id="nvNombre" placeholder="Nombre de la alumna (ej. Alumna de Prueba)">
-  <input id="nvId" placeholder="ID de alumna (opcional)">
-  <select id="nvTalla" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:14px;margin-bottom:10px"></select>
+  <h3>Asignar talla</h3>
+  <label style="font-size:12px;color:var(--muted)">Alumna</label>
+  <select id="nvAlumna" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:14px;margin:6px 0 10px"></select>
+  <label style="font-size:12px;color:var(--muted)">Talla</label>
+  <select id="nvTalla" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:14px;margin:6px 0 10px"></select>
   <div class="actions" style="justify-content:flex-end">
     <button class="btn ghost sm" data-close>Cancelar</button>
     <button class="btn sm" id="nvCrear">Crear y generar QR</button>
@@ -159,7 +160,7 @@ firebase.initializeApp(firebaseConfig);
 const $ = s => document.querySelector(s);
 const BADGE = { pagado:['Pagado ✓','b-paid'], por_verificar:['Por verificar','b-check'],
                 vencida:['Vencida','b-late'], pendiente:['Pendiente','b-pend'] };
-let datos = [];
+let datos = [], alumnas = [];
 
 /* ---------- Login ---------- */
 $('#btnGoogle').onclick = async ()=>{
@@ -181,8 +182,17 @@ firebase.auth().onAuthStateChanged(u=>{
 
 /* ---------- Cargar y pintar ---------- */
 async function cargar(){
-  try{ datos = await Sudaderas.listarRegistros(); }
-  catch(e){ $('#filas').innerHTML = `<tr><td colspan="7" style="padding:20px;color:var(--red)">No se pudo cargar la lista.</td></tr>`; return; }
+  $('#filas').innerHTML = `<tr><td colspan="7" style="padding:20px;color:var(--muted)">Cargando…</td></tr>`;
+  try{
+    const [regs, alu] = await Promise.all([
+      Sudaderas.listarRegistros(),
+      Sudaderas.listarAlumnasActivas()
+    ]);
+    datos = regs; alumnas = alu;
+  }catch(e){
+    $('#filas').innerHTML = `<tr><td colspan="7" style="padding:20px;color:var(--red)">No se pudo cargar la lista. ${e.message||''}</td></tr>`;
+    return;
+  }
   pintar();
 }
 
@@ -197,39 +207,72 @@ function celdaCuota(reg, n){
   return `<td><div class="cuota"><span class="badge ${cls}">${txt}</span>${extra}</div></td>`;
 }
 
+function filaConRegistro(alumna, r){
+  const cat = alumna ? (alumna.categoria || '—') : 'sin alumna activa';
+  return `<tr>
+    <td class="alumna">${alumna ? alumna.nombre : r.nombre}<small>${cat}</small></td>
+    <td><span class="talla">${r.talla}</span></td>
+    <td class="money">${Sudaderas.formatoDinero(r.total)}</td>
+    ${celdaCuota(r,'1')}${celdaCuota(r,'2')}${celdaCuota(r,'3')}
+    <td><div class="rowact">
+      <button class="btn ghost sm" data-qr="${r.id}">QR</button>
+      <button class="btn ghost sm" data-del="${r.id}" title="Eliminar registro" style="color:var(--red)">🗑</button>
+    </div></td>
+  </tr>`;
+}
+
+function filaSinTalla(alumna){
+  return `<tr style="opacity:.72">
+    <td class="alumna">${alumna.nombre}<small>${alumna.categoria||'—'}</small></td>
+    <td><span class="badge b-pend">Sin talla</span></td>
+    <td class="money" style="color:#9aa1ad">—</td>
+    <td colspan="3" style="color:#9aa1ad;font-size:12.5px">Aún no ha elegido talla</td>
+    <td></td>
+  </tr>`;
+}
+
 function pintar(){
+  // Índice de registros por alumna (comparando como texto para no fallar por tipo)
+  const porAlumna = {};
+  datos.forEach(r=>{ if(r.alumnaId!=null && r.alumnaId!=='') porAlumna[String(r.alumnaId)] = r; });
+
   // Resumen
-  let recaudado=0, porVerificar=0, pendientes=0;
+  let recaudado=0, porVerificar=0, sinRegistrar=0;
   datos.forEach(r=>['1','2','3'].forEach(n=>{
     const c=r.cuotas?.[n]; if(!c) return;
     const e=Sudaderas.estadoCuota(c);
     if(e==='pagado') recaudado+=c.valor||0;
     if(e==='por_verificar') porVerificar++;
-    if(e==='pendiente'||e==='vencida') pendientes++;
   }));
+
+  // Una fila por alumna activa
+  const usados = new Set();
+  let filas = '';
+  alumnas.forEach(a=>{
+    const r = porAlumna[String(a.id)];
+    if(r){ usados.add(r.id); filas += filaConRegistro(a, r); }
+    else { sinRegistrar++; filas += filaSinTalla(a); }
+  });
+
+  // Registros que no corresponden a ninguna alumna activa (pruebas, retiradas…)
+  const sueltos = datos.filter(r=>!usados.has(r.id));
+  if(sueltos.length){
+    filas += `<tr><td colspan="7" style="background:#fafbfc;color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;padding:8px 13px">Otros registros (sin alumna activa)</td></tr>`;
+    filas += sueltos.map(r=>filaConRegistro(null, r)).join('');
+  }
+
   $('#cards').innerHTML = `
     <div class="card"><div class="lbl">Recaudado</div><div class="val">${Sudaderas.formatoDinero(recaudado)}</div></div>
     <div class="card ${porVerificar?'flag':''}"><div class="lbl">Por verificar</div><div class="val">${porVerificar} <small style="font-size:12px;color:var(--muted)">soportes</small></div></div>
-    <div class="card"><div class="lbl">Cuotas pendientes</div><div class="val">${pendientes}</div></div>
-    <div class="card"><div class="lbl">Niñas registradas</div><div class="val">${datos.length}</div></div>`;
+    <div class="card"><div class="lbl">Sin registrar</div><div class="val">${sinRegistrar}</div></div>
+    <div class="card"><div class="lbl">Alumnas activas</div><div class="val">${alumnas.length}</div></div>`;
 
-  if(!datos.length){
-    $('#filas').innerHTML = `<tr><td colspan="7" style="padding:22px;color:var(--muted)">
-      Aún no hay registros. Usa <b>+ Asignar talla</b> para crear tu alumna de prueba.</td></tr>`;
+  if(!alumnas.length && !datos.length){
+    $('#filas').innerHTML = `<tr><td colspan="7" style="padding:22px;color:var(--muted)">No se encontraron alumnas activas. Revisa que la base haya cargado.</td></tr>`;
     $('#conteo').textContent=''; return;
   }
-  $('#filas').innerHTML = datos.map(r=>`
-    <tr>
-      <td class="alumna">${r.nombre}<small>Talla asignada</small></td>
-      <td><span class="talla">${r.talla}</span></td>
-      <td class="money">${Sudaderas.formatoDinero(r.total)}</td>
-      ${celdaCuota(r,'1')}${celdaCuota(r,'2')}${celdaCuota(r,'3')}
-      <td><div class="rowact">
-        <button class="btn ghost sm" data-qr="${r.id}">QR</button>
-        <button class="btn ghost sm" data-del="${r.id}" title="Eliminar registro" style="color:var(--red)">🗑</button>
-      </div></td>
-    </tr>`).join('');
-  $('#conteo').textContent = `${datos.length} niña(s)`;
+  $('#filas').innerHTML = filas || `<tr><td colspan="7" style="padding:22px;color:var(--muted)">Sin datos.</td></tr>`;
+  $('#conteo').textContent = `${alumnas.length} activas · ${datos.length} con talla`;
 }
 
 /* ---------- Acciones de tabla (delegación) ---------- */
@@ -290,16 +333,26 @@ function abrirQr(rid){
   $('#ovQr').style.display='flex';
 }
 
-/* ---------- Crear registro (alumna ficticia) ---------- */
+/* ---------- Crear registro (elige alumna activa) ---------- */
 $('#nvTalla').innerHTML = Object.keys(Sudaderas.TALLAS)
   .map(t=>`<option value="${t}">Talla ${t} — ${Sudaderas.formatoDinero(Sudaderas.TALLAS[t].total)}</option>`).join('');
-$('#btnNueva').onclick = ()=>{ $('#nvErr').textContent=''; $('#ovNueva').style.display='flex'; };
+$('#btnNueva').onclick = ()=>{
+  $('#nvErr').textContent='';
+  // Solo alumnas activas que aún NO tienen registro de sudadera
+  const conRegistro = new Set(datos.filter(r=>r.alumnaId!=null).map(r=>String(r.alumnaId)));
+  const disponibles = alumnas.filter(a=>!conRegistro.has(String(a.id)));
+  $('#nvAlumna').innerHTML = disponibles.length
+    ? disponibles.map(a=>`<option value="${a.id}">${a.nombre}${a.categoria?' — '+a.categoria:''}</option>`).join('')
+    : `<option value="">(Todas las alumnas activas ya tienen talla)</option>`;
+  $('#ovNueva').style.display='flex';
+};
 $('#nvCrear').onclick = async ()=>{
-  const nombre = $('#nvNombre').value.trim();
-  if(!nombre){ $('#nvErr').textContent='Escribe un nombre.'; return; }
+  const aid = $('#nvAlumna').value;
+  const a = alumnas.find(x=>String(x.id)===String(aid));
+  if(!a){ $('#nvErr').textContent='Elige una alumna.'; return; }
   try{
-    const rid = await Sudaderas.crearRegistro($('#nvId').value.trim(), nombre, $('#nvTalla').value);
-    $('#ovNueva').style.display='none'; $('#nvNombre').value=''; $('#nvId').value='';
+    const rid = await Sudaderas.crearRegistro(a.id, a.nombre, $('#nvTalla').value);
+    $('#ovNueva').style.display='none';
     await cargar(); abrirQr(rid);
   }catch(e){ $('#nvErr').textContent = e.message || 'No se pudo crear.'; }
 };
