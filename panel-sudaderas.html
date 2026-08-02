@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel — Sudaderas</title>
+<style>
+  :root{ --indigo:#4f46e5; --indigo-700:#4338ca; --indigo-50:#eef2ff; --ink:#1e2233;
+         --muted:#6b7280; --line:#e5e7eb; --bg:#f6f7fb; --green:#16a34a; --green-bg:#dcfce7;
+         --amber:#b45309; --amber-bg:#fef3c7; --gray-bg:#f1f3f6; --red:#dc2626; --red-bg:#fee2e2; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+  /* Login */
+  #login{max-width:360px;margin:12vh auto;background:#fff;border:1px solid var(--line);
+         border-radius:16px;padding:26px}
+  #login h1{font-size:18px;margin-bottom:4px}
+  #login p{color:var(--muted);font-size:13px;margin-bottom:18px}
+  input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:14px;margin-bottom:10px}
+  .btn{background:var(--indigo);color:#fff;border:none;padding:11px 14px;border-radius:10px;
+       font-size:14px;font-weight:600;cursor:pointer}
+  .btn.sm{padding:6px 11px;font-size:12.5px}
+  .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .btn.wa{background:#25D366}
+  .btn.ok{background:var(--green)} .btn.no{background:var(--red)}
+  .btn:disabled{opacity:.5}
+  /* Layout */
+  #panel{display:none;padding:24px 28px;max-width:1200px;margin:0 auto}
+  .top{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:18px}
+  h1{font-size:20px}.sub{color:var(--muted);font-size:13px;margin-top:3px}
+  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 15px}
+  .card .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .card .val{font-size:21px;font-weight:700;margin-top:6px}
+  .card.flag{background:var(--amber-bg);border-color:#fde68a}.card.flag .val{color:var(--amber)}
+  .panelbox{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .ph{display:flex;justify-content:space-between;align-items:center;padding:13px 15px;border-bottom:1px solid var(--line)}
+  .ph h2{font-size:14px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;padding:10px 13px;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;
+     color:var(--muted);background:#fafbfc;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:11px 13px;border-bottom:1px solid #f1f2f5;vertical-align:middle}
+  .alumna{font-weight:600}.alumna small{display:block;color:var(--muted);font-weight:400;font-size:11px}
+  .talla{background:var(--indigo-50);color:var(--indigo-700);font-weight:600;padding:2px 8px;border-radius:6px}
+  .money{font-variant-numeric:tabular-nums;white-space:nowrap}
+  .cuota{display:flex;flex-direction:column;gap:4px}
+  .badge{font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;width:fit-content}
+  .b-paid{background:var(--green-bg);color:var(--green)}
+  .b-check{background:var(--amber-bg);color:var(--amber)}
+  .b-pend{background:var(--gray-bg);color:var(--muted)}
+  .b-late{background:var(--red-bg);color:var(--red)}
+  .rowact{display:flex;gap:6px;flex-wrap:wrap}
+  .link{font-size:11px;color:var(--indigo);cursor:pointer;text-decoration:underline;background:none;border:none;padding:0}
+  /* Modal */
+  .ov{position:fixed;inset:0;background:rgba(20,22,35,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
+  .modal{background:#fff;border-radius:14px;padding:20px;max-width:420px;width:100%;text-align:center}
+  .modal h3{font-size:16px;margin-bottom:12px}
+  .modal img{max-width:100%;border-radius:10px}
+  .modal .actions{display:flex;gap:8px;justify-content:center;margin-top:14px}
+  #qrbox{display:flex;justify-content:center;margin:8px 0}
+  .enlace{font-size:11px;color:var(--muted);word-break:break-all;background:var(--gray-bg);padding:8px;border-radius:8px;margin-top:10px}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;
+         padding:10px 16px;border-radius:10px;font-size:13px;display:none;z-index:60}
+  @media(max-width:820px){.cards{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+  <h1>Panel — Sudaderas</h1>
+  <p>Inicia sesión con tu cuenta de la academia.</p>
+  <input id="email" type="email" placeholder="Correo">
+  <input id="pass" type="password" placeholder="Contraseña">
+  <button class="btn" id="btnLogin" style="width:100%">Entrar</button>
+  <div id="loginErr" style="color:var(--red);font-size:12.5px;margin-top:10px"></div>
+</div>
+
+<!-- PANEL -->
+<div id="panel">
+  <div class="top">
+    <div><h1>Sudaderas 2026</h1>
+      <div class="sub">Pago en 3 cuotas · 15 ago / 15 sep / 15 oct · Entrega: 1ª quincena de noviembre</div></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn ghost sm" id="btnNueva">+ Asignar talla</button>
+      <button class="btn ghost sm" id="btnSalir">Salir</button>
+    </div>
+  </div>
+
+  <div class="cards" id="cards"></div>
+
+  <div class="panelbox">
+    <div class="ph"><h2>Control de pagos</h2><span class="sub" id="conteo"></span></div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr>
+          <th>Alumna</th><th>Talla</th><th>Total</th>
+          <th>Cuota 1 · 15 ago</th><th>Cuota 2 · 15 sep</th><th>Cuota 3 · 15 oct</th><th>Enlace / QR</th>
+        </tr></thead>
+        <tbody id="filas"><tr><td colspan="7" style="padding:20px;color:var(--muted)">Cargando…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modales -->
+<div class="ov" id="ovVer"><div class="modal">
+  <h3 id="verTit">Soporte</h3><img id="verImg" alt="soporte">
+  <div class="actions">
+    <button class="btn no sm" id="verNo">Rechazar</button>
+    <button class="btn ok sm" id="verOk">Aprobar pago</button>
+    <button class="btn ghost sm" data-close>Cerrar</button>
+  </div>
+</div></div>
+
+<div class="ov" id="ovQr"><div class="modal">
+  <h3>QR para el representante</h3>
+  <div id="qrbox"></div>
+  <div class="enlace" id="qrEnlace"></div>
+  <div class="actions">
+    <button class="btn sm" id="qrCopiar">Copiar enlace</button>
+    <button class="btn wa sm" id="qrWa">Enviar por WhatsApp</button>
+    <button class="btn ghost sm" id="qrDescargar">Descargar QR</button>
+    <button class="btn ghost sm" data-close>Cerrar</button>
+  </div>
+</div></div>
+
+<div class="ov" id="ovNueva"><div class="modal" style="text-align:left">
+  <h3>Asignar talla (crear registro)</h3>
+  <input id="nvNombre" placeholder="Nombre de la alumna (ej. Alumna de Prueba)">
+  <input id="nvId" placeholder="ID de alumna (opcional)">
+  <select id="nvTalla" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:14px;margin-bottom:10px"></select>
+  <div class="actions" style="justify-content:flex-end">
+    <button class="btn ghost sm" data-close>Cancelar</button>
+    <button class="btn sm" id="nvCrear">Crear y generar QR</button>
+  </div>
+  <div id="nvErr" style="color:var(--red);font-size:12.5px;margin-top:8px"></div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="sudaderas.js"></script>
+<script>
+/* ============================================================
+   PEGA AQUÍ TU CONFIG DE FIREBASE (la misma de tu firebase.js).
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "PEGA_TU_API_KEY",
+  authDomain: "TU_PROYECTO.firebaseapp.com",
+  projectId: "TU_PROYECTO",
+  storageBucket: "TU_PROYECTO.appspot.com",
+  messagingSenderId: "PEGA_SENDER_ID",
+  appId: "PEGA_APP_ID"
+};
+firebase.initializeApp(firebaseConfig);
+
+const $ = s => document.querySelector(s);
+const BADGE = { pagado:['Pagado ✓','b-paid'], por_verificar:['Por verificar','b-check'],
+                vencida:['Vencida','b-late'], pendiente:['Pendiente','b-pend'] };
+let datos = [];
+
+/* ---------- Login ---------- */
+$('#btnLogin').onclick = async ()=>{
+  $('#loginErr').textContent='';
+  try{ await firebase.auth().signInWithEmailAndPassword($('#email').value.trim(), $('#pass').value); }
+  catch(e){ $('#loginErr').textContent = 'No se pudo entrar. Revisa correo y contraseña.'; }
+};
+$('#btnSalir').onclick = ()=> firebase.auth().signOut();
+firebase.auth().onAuthStateChanged(u=>{
+  $('#login').style.display = u ? 'none':'block';
+  $('#panel').style.display = u ? 'block':'none';
+  if(u) cargar();
+});
+
+/* ---------- Cargar y pintar ---------- */
+async function cargar(){
+  try{ datos = await Sudaderas.listarRegistros(); }
+  catch(e){ $('#filas').innerHTML = `<tr><td colspan="7" style="padding:20px;color:var(--red)">No se pudo cargar la lista.</td></tr>`; return; }
+  pintar();
+}
+
+function celdaCuota(reg, n){
+  const c = reg.cuotas?.[n]; if(!c) return '<td>—</td>';
+  const est = Sudaderas.estadoCuota(c);
+  const [txt,cls] = BADGE[est];
+  let extra = '';
+  if(est==='por_verificar') extra = `<button class="link" data-ver="${reg.id}:${n}">ver y aprobar</button>`;
+  else if(est==='pagado' && c.soporte) extra = `<button class="link" data-ver="${reg.id}:${n}">ver soporte</button>`;
+  else if(c.fecha) extra = `<span style="font-size:10.5px;color:#9aa1ad">vence ${c.fecha}</span>`;
+  return `<td><div class="cuota"><span class="badge ${cls}">${txt}</span>${extra}</div></td>`;
+}
+
+function pintar(){
+  // Resumen
+  let recaudado=0, porVerificar=0, pendientes=0;
+  datos.forEach(r=>['1','2','3'].forEach(n=>{
+    const c=r.cuotas?.[n]; if(!c) return;
+    const e=Sudaderas.estadoCuota(c);
+    if(e==='pagado') recaudado+=c.valor||0;
+    if(e==='por_verificar') porVerificar++;
+    if(e==='pendiente'||e==='vencida') pendientes++;
+  }));
+  $('#cards').innerHTML = `
+    <div class="card"><div class="lbl">Recaudado</div><div class="val">${Sudaderas.formatoDinero(recaudado)}</div></div>
+    <div class="card ${porVerificar?'flag':''}"><div class="lbl">Por verificar</div><div class="val">${porVerificar} <small style="font-size:12px;color:var(--muted)">soportes</small></div></div>
+    <div class="card"><div class="lbl">Cuotas pendientes</div><div class="val">${pendientes}</div></div>
+    <div class="card"><div class="lbl">Niñas registradas</div><div class="val">${datos.length}</div></div>`;
+
+  if(!datos.length){
+    $('#filas').innerHTML = `<tr><td colspan="7" style="padding:22px;color:var(--muted)">
+      Aún no hay registros. Usa <b>+ Asignar talla</b> para crear tu alumna de prueba.</td></tr>`;
+    $('#conteo').textContent=''; return;
+  }
+  $('#filas').innerHTML = datos.map(r=>`
+    <tr>
+      <td class="alumna">${r.nombre}<small>Talla asignada</small></td>
+      <td><span class="talla">${r.talla}</span></td>
+      <td class="money">${Sudaderas.formatoDinero(r.total)}</td>
+      ${celdaCuota(r,'1')}${celdaCuota(r,'2')}${celdaCuota(r,'3')}
+      <td><div class="rowact">
+        <button class="btn ghost sm" data-qr="${r.id}">QR</button>
+      </div></td>
+    </tr>`).join('');
+  $('#conteo').textContent = `${datos.length} niña(s)`;
+}
+
+/* ---------- Acciones de tabla (delegación) ---------- */
+let verActual = null;
+document.addEventListener('click', e=>{
+  const ver = e.target.closest('[data-ver]');
+  const qr  = e.target.closest('[data-qr]');
+  const cl  = e.target.closest('[data-close]');
+  if(cl){ cl.closest('.ov').style.display='none'; }
+  if(ver){
+    const [rid,n] = ver.dataset.ver.split(':');
+    const reg = datos.find(x=>x.id===rid); const c = reg.cuotas[n];
+    verActual = {rid, n, aprobable: Sudaderas.estadoCuota(c)==='por_verificar'};
+    $('#verTit').textContent = `${reg.nombre} — Cuota ${n} (${Sudaderas.formatoDinero(c.valor)})`;
+    $('#verImg').src = c.soporte || '';
+    $('#verOk').style.display = verActual.aprobable?'inline-block':'none';
+    $('#verNo').style.display = verActual.aprobable?'inline-block':'none';
+    $('#ovVer').style.display='flex';
+  }
+  if(qr){ abrirQr(qr.dataset.qr); }
+});
+
+$('#verOk').onclick = async ()=>{
+  await Sudaderas.aprobarCuota(verActual.rid, verActual.n);
+  $('#ovVer').style.display='none'; toast('Pago aprobado ✓'); cargar();
+};
+$('#verNo').onclick = async ()=>{
+  await Sudaderas.rechazarCuota(verActual.rid, verActual.n);
+  $('#ovVer').style.display='none'; toast('Soporte rechazado'); cargar();
+};
+
+/* ---------- QR ---------- */
+function abrirQr(rid){
+  const reg = datos.find(x=>x.id===rid);
+  const enlace = Sudaderas.enlacePapa(rid);
+  $('#qrbox').innerHTML='';
+  new QRCode($('#qrbox'), { text: enlace, width:220, height:220, correctLevel: QRCode.CorrectLevel.M });
+  $('#qrEnlace').textContent = enlace;
+  $('#qrCopiar').onclick = ()=>{ navigator.clipboard.writeText(enlace); toast('Enlace copiado'); };
+  $('#qrWa').onclick = ()=>{
+    const msg = `Hola, este es el enlace para la sudadera de ${reg.nombre}. Ahí puedes ver las cuotas y subir tu soporte de pago: ${enlace}`;
+    window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+  };
+  $('#qrDescargar').onclick = ()=>{
+    const cv = $('#qrbox').querySelector('canvas');
+    if(!cv) return;
+    const a=document.createElement('a'); a.href=cv.toDataURL('image/png');
+    a.download=`QR-${reg.nombre.replace(/\s+/g,'-')}.png`; a.click();
+  };
+  $('#ovQr').style.display='flex';
+}
+
+/* ---------- Crear registro (alumna ficticia) ---------- */
+$('#nvTalla').innerHTML = Object.keys(Sudaderas.TALLAS)
+  .map(t=>`<option value="${t}">Talla ${t} — ${Sudaderas.formatoDinero(Sudaderas.TALLAS[t].total)}</option>`).join('');
+$('#btnNueva').onclick = ()=>{ $('#nvErr').textContent=''; $('#ovNueva').style.display='flex'; };
+$('#nvCrear').onclick = async ()=>{
+  const nombre = $('#nvNombre').value.trim();
+  if(!nombre){ $('#nvErr').textContent='Escribe un nombre.'; return; }
+  try{
+    const rid = await Sudaderas.crearRegistro($('#nvId').value.trim(), nombre, $('#nvTalla').value);
+    $('#ovNueva').style.display='none'; $('#nvNombre').value=''; $('#nvId').value='';
+    await cargar(); abrirQr(rid);
+  }catch(e){ $('#nvErr').textContent = e.message || 'No se pudo crear.'; }
+};
+
+/* ---------- Toast ---------- */
+let tt; function toast(m){ const t=$('#toast'); t.textContent=m; t.style.display='block';
+  clearTimeout(tt); tt=setTimeout(()=>t.style.display='none',2200); }
+</script>
+</body>
+</html>
