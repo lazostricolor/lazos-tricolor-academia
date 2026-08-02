@@ -154,27 +154,46 @@ const Sudaderas = {
     });
   },
 
-  /* Crea el registro de una niña (esto lo haces TÚ desde el panel, con sesión).
-     El ID es una clave aleatoria imposible de adivinar: es lo que va en el
-     enlace personalizado que le mandas al representante por WhatsApp. */
-  async crearRegistro(alumnaId, nombre, talla) {
-    const precio = this.TALLAS[talla];
-    if (!precio) throw new Error('Talla no válida');
+  /* Crea el registro de una alumna. El ID es una clave aleatoria imposible de
+     adivinar: es lo que va en el enlace/QR personalizado.
+     'talla' puede ir null: el registro queda "pendiente de talla" y el papá
+     la elige después desde su enlace. */
+  async crearRegistro(alumnaId, nombre, talla = null) {
     const db  = firebase.firestore();
     const ref = db.collection('sudaderas').doc();   // <- ID aleatorio automático
+    const doc = {
+      alumnaId: alumnaId ?? null, nombre,
+      talla: null, total: 0, cuotas: {},
+      entregada: false,
+      creadoEn: Date.now(),
+      actualizadoEn: Date.now()
+    };
+    if (talla) {
+      const precio = this.TALLAS[talla];
+      if (!precio) throw new Error('Talla no válida');
+      doc.talla = talla; doc.total = precio.total;
+      ['1', '2', '3'].forEach((n, i) => {
+        doc.cuotas[n] = { valor: precio.cuota, fecha: this.FECHAS_CUOTAS[i], estado: 'pendiente' };
+      });
+    }
+    await ref.set(doc);
+    return ref.id;   // guárdalo: es la clave del enlace ...?id=<ref.id>
+  },
+
+  /* Asigna la talla a un registro pendiente y genera sus 3 cuotas.
+     Lo usa el papá desde su enlace. No se debe cambiar la talla si ya hay
+     cuotas pagadas (para no borrar avances). */
+  async asignarTalla(registroId, talla) {
+    const precio = this.TALLAS[talla];
+    if (!precio) throw new Error('Talla no válida');
     const cuotas = {};
     ['1', '2', '3'].forEach((n, i) => {
       cuotas[n] = { valor: precio.cuota, fecha: this.FECHAS_CUOTAS[i], estado: 'pendiente' };
     });
-    await ref.set({
-      alumnaId: alumnaId || null, nombre, talla,
-      total: precio.total,
-      cuotas,
-      entregada: false,
-      creadoEn: Date.now(),
-      actualizadoEn: Date.now()
+    const db = firebase.firestore();
+    await db.collection('sudaderas').doc(registroId).update({
+      talla, total: precio.total, cuotas, actualizadoEn: Date.now()
     });
-    return ref.id;   // guárdalo: es la clave del enlace ...?id=<ref.id>
   },
 
   /* --- LADO DEL PAPÁ (página del QR) --- */

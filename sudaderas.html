@@ -38,6 +38,14 @@
         color:var(--muted);font-size:13px;cursor:pointer;background:#fafbfc}
   .drop.has{border-color:var(--indigo);color:var(--indigo-700);background:var(--indigo-700);color:#fff}
   #preview{max-width:100%;border-radius:10px;margin-top:12px;display:none}
+  .tlist{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+  .topt{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:11px;
+        padding:12px 13px;cursor:pointer}
+  .topt.sel{border-color:var(--indigo);background:var(--indigo-50,#eef2ff)}
+  .topt input{width:18px;height:18px;accent-color:var(--indigo)}
+  .topt .tname{font-weight:600;font-size:14px}
+  .topt .tprice{margin-left:auto;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+  .topt .tprice small{display:block;font-weight:400;font-size:11px;color:var(--muted)}
   .btn{width:100%;margin-top:14px;background:var(--indigo);color:#fff;border:none;
        padding:13px;border-radius:11px;font-size:15px;font-weight:600;cursor:pointer}
   .btn:disabled{opacity:.5;cursor:not-allowed}
@@ -110,6 +118,7 @@ async function cargar(){
 function tarjeta(t, p){ return `<div class="card"><div class="niña">${t}</div><div class="meta">${p}</div></div>`; }
 
 function render(){
+  if(!registro.talla){ renderTalla(); return; }
   cuotaN = Sudaderas.siguienteAccionable(registro);
   let filas = '';
   ['1','2','3'].forEach(n=>{
@@ -153,6 +162,49 @@ function render(){
     ${bloquePago}`;
 
   if(cuotaN) conectarPago();
+}
+
+/* Pantalla para que el papá elija la talla (registro sin talla aún). */
+function renderTalla(){
+  const opts = Object.keys(Sudaderas.TALLAS).map(t=>{
+    const p = Sudaderas.TALLAS[t];
+    return `<label class="topt">
+      <input type="radio" name="talla" value="${t}">
+      <span class="tname">Talla ${t}</span>
+      <span class="tprice">${Sudaderas.formatoDinero(p.total)}<small>3 × ${Sudaderas.formatoDinero(p.cuota)}</small></span>
+    </label>`;
+  }).join('');
+  app.innerHTML = `
+    <div class="card">
+      <div class="niña">${registro.nombre}</div>
+      <div class="meta">Elige la talla de la sudadera</div>
+    </div>
+    <div class="card">
+      <div class="tlist">${opts}</div>
+      <button class="btn" id="confTalla" disabled>Confirmar talla</button>
+      <div class="status" id="stTalla"></div>
+      <div class="hint" style="margin-top:8px">Después de confirmar podrás subir el soporte de la primera cuota.</div>
+    </div>`;
+  app.querySelectorAll('input[name=talla]').forEach(r=>{
+    r.addEventListener('change', ()=>{
+      document.getElementById('confTalla').disabled = false;
+      app.querySelectorAll('.topt').forEach(l=>l.classList.remove('sel'));
+      r.closest('.topt').classList.add('sel');
+    });
+  });
+  document.getElementById('confTalla').addEventListener('click', async ()=>{
+    const sel = app.querySelector('input[name=talla]:checked'); if(!sel) return;
+    const btn = document.getElementById('confTalla'); const st = document.getElementById('stTalla');
+    btn.disabled = true; st.className='status'; st.textContent = 'Guardando…';
+    try{
+      await Sudaderas.asignarTalla(id, sel.value);      // la nube confirma
+      registro = await Sudaderas.obtenerRegistro(id);   // recargar con cuotas ya creadas
+      render();
+    }catch(e){
+      st.className='status err'; st.textContent = 'No se pudo guardar. Intenta de nuevo.';
+      btn.disabled = false;
+    }
+  });
 }
 
 function conectarPago(){
