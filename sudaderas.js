@@ -233,6 +233,12 @@ const Sudaderas = {
     });
   },
 
+  /* Elimina por completo un registro (útil para las alumnas de prueba). */
+  async eliminarRegistro(registroId) {
+    const db = firebase.firestore();
+    await db.collection('sudaderas').doc(registroId).delete();
+  },
+
   /* --- HELPERS --- */
 
   /* Enlace personalizado del papá, relativo a donde estén alojadas las páginas.

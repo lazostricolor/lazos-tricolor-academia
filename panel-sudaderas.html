@@ -80,7 +80,7 @@
       <div class="sub">Pago en 3 cuotas · 15 ago / 15 sep / 15 oct · Entrega: 1ª quincena de noviembre</div></div>
     <div style="display:flex;gap:8px">
       <button class="btn ghost sm" id="btnNueva">+ Asignar talla</button>
-      <button class="btn ghost sm" id="btnSalir">Salir</button>
+      <a class="btn ghost sm" href="index.html" style="text-decoration:none;display:inline-flex;align-items:center">← Dashboard</a>
     </div>
   </div>
 
@@ -173,7 +173,6 @@ $('#btnGoogle').onclick = async ()=>{
       : 'No se pudo entrar con Google. Intenta de nuevo.';
   }
 };
-$('#btnSalir').onclick = ()=> firebase.auth().signOut();
 firebase.auth().onAuthStateChanged(u=>{
   $('#login').style.display = u ? 'none':'block';
   $('#panel').style.display = u ? 'block':'none';
@@ -227,6 +226,7 @@ function pintar(){
       ${celdaCuota(r,'1')}${celdaCuota(r,'2')}${celdaCuota(r,'3')}
       <td><div class="rowact">
         <button class="btn ghost sm" data-qr="${r.id}">QR</button>
+        <button class="btn ghost sm" data-del="${r.id}" title="Eliminar registro" style="color:var(--red)">🗑</button>
       </div></td>
     </tr>`).join('');
   $('#conteo').textContent = `${datos.length} niña(s)`;
@@ -234,9 +234,10 @@ function pintar(){
 
 /* ---------- Acciones de tabla (delegación) ---------- */
 let verActual = null;
-document.addEventListener('click', e=>{
+document.addEventListener('click', async e=>{
   const ver = e.target.closest('[data-ver]');
   const qr  = e.target.closest('[data-qr]');
+  const del = e.target.closest('[data-del]');
   const cl  = e.target.closest('[data-close]');
   if(cl){ cl.closest('.ov').style.display='none'; }
   if(ver){
@@ -250,6 +251,13 @@ document.addEventListener('click', e=>{
     $('#ovVer').style.display='flex';
   }
   if(qr){ abrirQr(qr.dataset.qr); }
+  if(del){
+    const reg = datos.find(x=>x.id===del.dataset.del);
+    if(confirm(`¿Eliminar el registro de ${reg.nombre}? Esta acción no se puede deshacer.`)){
+      try{ await Sudaderas.eliminarRegistro(del.dataset.del); toast('Registro eliminado'); cargar(); }
+      catch(_){ toast('No se pudo eliminar'); }
+    }
+  }
 });
 
 $('#verOk').onclick = async ()=>{
