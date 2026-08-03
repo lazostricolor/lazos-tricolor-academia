@@ -154,15 +154,16 @@ const Sudaderas = {
     });
   },
 
-  /* Crea el registro de una alumna. El ID es una clave aleatoria imposible de
-     adivinar: es lo que va en el enlace/QR personalizado.
-     'talla' puede ir null: el registro queda "pendiente de talla" y el papá
-     la elige después desde su enlace. Los pagos se guardan como "abonos". */
-  async crearRegistro(alumnaId, nombre, talla = null) {
+  /* Crea el registro de una alumna (o de un PARTICULAR: colaborador/amigo).
+     El ID es una clave aleatoria imposible de adivinar: es lo que va en el
+     enlace/QR personalizado. 'talla' puede ir null (queda pendiente y la elige
+     por su enlace). Si 'particular' es true, no está enlazado a ninguna alumna. */
+  async crearRegistro(alumnaId, nombre, talla = null, particular = false) {
     const db  = firebase.firestore();
     const ref = db.collection('sudaderas').doc();   // <- ID aleatorio automático
     const doc = {
       alumnaId: alumnaId ?? null, nombre,
+      particular: !!particular,
       talla: null, total: 0, abonos: {},
       entregada: false,
       creadoEn: Date.now(),

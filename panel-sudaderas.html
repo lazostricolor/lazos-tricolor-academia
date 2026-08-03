@@ -82,6 +82,7 @@
       <div class="sub">Pago en 3 cuotas · 15 ago / 15 sep / 15 oct · Entrega: 1ª quincena de noviembre</div></div>
     <div style="display:flex;gap:8px">
       <button class="btn ghost sm" id="btnNueva">+ Asignar talla</button>
+      <button class="btn ghost sm" id="btnParticular">+ Particular</button>
       <a class="btn ghost sm" href="index.html" style="text-decoration:none;display:inline-flex;align-items:center">← Dashboard</a>
     </div>
   </div>
@@ -139,6 +140,20 @@
     <button class="btn sm" id="nvCrear">Crear y generar QR</button>
   </div>
   <div id="nvErr" style="color:var(--red);font-size:12.5px;margin-top:8px"></div>
+</div></div>
+
+<div class="ov" id="ovPart"><div class="modal" style="text-align:left">
+  <h3>Agregar particular</h3>
+  <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px">Colaborador, parte técnica o amigo de la academia que también quiere su sudadera.</div>
+  <label style="font-size:12px;color:var(--muted)">Nombre</label>
+  <input id="ptNombre" placeholder="Nombre completo" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:14px;margin:6px 0 10px">
+  <label style="font-size:12px;color:var(--muted)">Talla</label>
+  <select id="ptTalla" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:14px;margin:6px 0 10px"></select>
+  <div class="actions" style="justify-content:flex-end">
+    <button class="btn ghost sm" data-close>Cancelar</button>
+    <button class="btn sm" id="ptCrear">Crear y generar QR</button>
+  </div>
+  <div id="ptErr" style="color:var(--red);font-size:12.5px;margin-top:8px"></div>
 </div></div>
 
 <div class="toast" id="toast"></div>
@@ -212,7 +227,7 @@ const ESTADO_BADGE = {
 
 function fila(alumna, r){
   const nombre = alumna ? alumna.nombre : (r ? r.nombre : '');
-  const cat    = alumna ? (alumna.categoria || '—') : 'sin alumna activa';
+  const cat    = alumna ? (alumna.categoria || '—') : (r && r.particular ? 'Particular' : 'sin alumna activa');
   const qrBtn  = r
     ? `<button class="btn ghost sm" data-qr="${r.id}">QR</button>`
     : `<button class="btn ghost sm" data-qr-alu="${alumna.id}">QR</button>`;
@@ -289,11 +304,17 @@ function pintar(){
     });
   });
 
-  // Registros sin alumna activa (pruebas, retiradas…)
+  // Particulares (colaboradores/amigos) en su propia sección
   const sueltos = datos.filter(r=>!usados.has(r.id));
-  if(sueltos.length){
+  const particulares = sueltos.filter(r=>r.particular);
+  const otros = sueltos.filter(r=>!r.particular);
+  if(particulares.length){
+    filas += `<tr class="catrow"><td colspan="7">Particulares · ${particulares.length}</td></tr>`;
+    filas += particulares.map(r=>fila(null, r)).join('');
+  }
+  if(otros.length){
     filas += `<tr class="catrow"><td colspan="7" style="background:#fafbfc;color:var(--muted)">Otros registros (sin alumna activa)</td></tr>`;
-    filas += sueltos.map(r=>fila(null, r)).join('');
+    filas += otros.map(r=>fila(null, r)).join('');
   }
 
   $('#cards').innerHTML = `
@@ -438,6 +459,25 @@ $('#nvCrear').onclick = async ()=>{
     $('#ovNueva').style.display='none';
     await cargar(); abrirQr(rid);
   }catch(e){ $('#nvErr').textContent = e.message || 'No se pudo crear.'; }
+};
+
+/* ---------- Crear particular (colaborador / amigo) ---------- */
+$('#ptTalla').innerHTML =
+  `<option value="">— Que elija la talla en su enlace —</option>` +
+  Object.keys(Sudaderas.TALLAS)
+    .map(t=>`<option value="${t}">Talla ${t} — ${Sudaderas.formatoDinero(Sudaderas.TALLAS[t].total)}</option>`).join('');
+$('#btnParticular').onclick = ()=>{
+  $('#ptErr').textContent=''; $('#ptNombre').value=''; $('#ptTalla').value='';
+  $('#ovPart').style.display='flex';
+};
+$('#ptCrear').onclick = async ()=>{
+  const nombre = $('#ptNombre').value.trim();
+  if(!nombre){ $('#ptErr').textContent='Escribe un nombre.'; return; }
+  try{
+    const rid = await Sudaderas.crearRegistro(null, nombre, $('#ptTalla').value || null, true);
+    $('#ovPart').style.display='none';
+    await cargar(); abrirQr(rid);
+  }catch(e){ $('#ptErr').textContent = e.message || 'No se pudo crear.'; }
 };
 
 /* ---------- Toast ---------- */
