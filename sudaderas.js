@@ -212,6 +212,21 @@ const Sudaderas = {
     return abonoId;
   },
 
+  /* El papá anula SU propio abono, siempre que aún no lo hayas aprobado.
+     (Si ya está aprobado, no se puede: debe hablar con la academia.) */
+  async anularAbono(registroId, abonoId) {
+    const db  = firebase.firestore();
+    const ref = db.collection('sudaderas').doc(registroId);
+    const snap = await ref.get();
+    const ab = snap.exists ? (snap.data().abonos || {})[abonoId] : null;
+    if (!ab) return;
+    if (ab.estado === 'aprobado') throw new Error('Ese pago ya fue aprobado. Contacta a la academia.');
+    await ref.update({
+      ['abonos.' + abonoId]: firebase.firestore.FieldValue.delete(),
+      actualizadoEn: Date.now()
+    });
+  },
+
   /* --- LADO TUYO (panel, con sesión) --- */
 
   /* Trae TODOS los registros para el panel. */

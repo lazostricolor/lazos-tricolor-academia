@@ -60,6 +60,18 @@
   .mbtn small{display:block;font-weight:400;font-size:10.5px;color:var(--muted);margin-top:3px}
   .mbtn.sel{border-color:var(--indigo);background:var(--indigo-50,#eef2ff);color:var(--indigo-700)}
   #montoInput{width:100%;padding:12px;border:1px solid var(--line);border-radius:11px;font-size:16px;margin-bottom:12px;text-align:center;font-weight:600}
+  .step{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13.5px;margin-bottom:8px}
+  .stnum{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;
+         background:var(--indigo);color:#fff;font-size:12px}
+  .foto-card{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:6px}
+  .foto-card img{max-width:100%;border-radius:8px;display:block}
+  .foto-acts{display:flex;gap:8px;margin-top:8px}
+  .mini{flex:1;border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px;font-size:13px;
+        font-weight:600;cursor:pointer;color:var(--ink)}
+  .mini.danger{color:#dc2626;border-color:#fecaca}
+  .resumen{background:#eef2ff;border:1px solid #c7d2fe;color:var(--indigo-700,#4338ca);border-radius:11px;
+           padding:11px 13px;font-size:13px;margin-bottom:12px}
+  .anular{background:none;border:none;color:#dc2626;font-size:12px;font-weight:600;cursor:pointer;padding:0}
   .btn{width:100%;margin-top:14px;background:var(--indigo);color:#fff;border:none;
        padding:13px;border-radius:11px;font-size:15px;font-weight:600;cursor:pointer}
   .btn:disabled{opacity:.5;cursor:not-allowed}
@@ -142,11 +154,15 @@ function render(){
   const abonos   = Sudaderas.listaAbonos(registro);
 
   const hist = abonos.length ? abonos.map(a=>{
-    const [txt,cls] = a.estado==='aprobado' ? ['Aprobado ✓','b-paid'] : ['En revisión','b-check'];
+    const aprobado = a.estado==='aprobado';
+    const [txt,cls] = aprobado ? ['Aprobado ✓','b-paid'] : ['En revisión','b-check'];
     const fs = new Date(a.fecha||Date.now()).toLocaleDateString('es-CO',{day:'2-digit',month:'short'});
+    const anular = aprobado ? '' : `<button class="anular" data-anular="${a.id}">✕ Anular</button>`;
     return `<div class="cuota">
       <div><div class="n">${Sudaderas.formatoDinero(a.monto)}</div><div class="f">${fs}</div></div>
-      <span class="badge ${cls}">${txt}</span></div>`;
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="badge ${cls}">${txt}</span>${anular}
+      </div></div>`;
   }).join('') : `<div class="hint">Aún no has registrado ningún pago.</div>`;
 
   let bloquePago;
@@ -155,17 +171,28 @@ function render(){
     bloquePago = `
       <div class="pay">
         <h3>Hacer un pago</h3>
-        <div class="hint">Puedes pagar todo el saldo, una parte, o el monto que quieras. Sube el soporte de este pago.</div>
+
+        <div class="step"><span class="stnum">1</span> ¿Cuánto vas a pagar?</div>
         <div class="montos">
           <button class="mbtn" data-monto="${saldo}">Todo el saldo<small>${Sudaderas.formatoDinero(saldo)}</small></button>
           ${tercio<saldo?`<button class="mbtn" data-monto="${tercio}">Un tercio<small>${Sudaderas.formatoDinero(tercio)}</small></button>`:''}
           <button class="mbtn" data-monto="otro">Otro monto<small>tú eliges</small></button>
         </div>
-        <input id="montoInput" type="tel" inputmode="numeric" placeholder="Monto a pagar" style="display:none">
-        <label class="drop" id="drop">Toca para elegir la foto del comprobante
+        <input id="montoInput" type="tel" inputmode="numeric" placeholder="Escribe el monto" style="display:none">
+
+        <div class="step" style="margin-top:14px"><span class="stnum">2</span> Foto del comprobante</div>
+        <label class="drop" id="drop">📷 Toca para elegir la foto
           <input type="file" accept="image/*" id="file" hidden>
         </label>
-        <img id="preview">
+        <div id="fotoCard" class="foto-card" style="display:none">
+          <img id="preview">
+          <div class="foto-acts">
+            <button class="mini" id="cambiarFoto">Cambiar</button>
+            <button class="mini danger" id="quitarFoto">✕ Quitar</button>
+          </div>
+        </div>
+
+        <div id="resumen" class="resumen" style="display:none"></div>
         <button class="btn" id="enviar" disabled>Enviar pago</button>
         <div class="status" id="status"></div>
       </div>`;
@@ -244,15 +271,22 @@ function renderTalla(){
 }
 
 function conectarPago(saldoMax){
-  const file = document.getElementById('file');
-  const drop = document.getElementById('drop');
-  const prev = document.getElementById('preview');
-  const btn  = document.getElementById('enviar');
-  const st   = document.getElementById('status');
-  const montoInput = document.getElementById('montoInput');
+  const g = id => document.getElementById(id);
+  const file=g('file'), drop=g('drop'), prev=g('preview'), btn=g('enviar'), st=g('status');
+  const montoInput=g('montoInput'), fotoCard=g('fotoCard'), resumen=g('resumen');
   let montoSel = null;
 
-  const refrescar = ()=>{ btn.disabled = !(archivo && montoSel>0); };
+  function refrescar(){
+    const ok = montoSel>0 && archivo;
+    btn.disabled = !ok;
+    btn.textContent = montoSel>0 ? `Enviar pago de ${Sudaderas.formatoDinero(montoSel)}` : 'Enviar pago';
+    if(ok){
+      resumen.style.display='block';
+      resumen.innerHTML = `Vas a enviar un pago de <b>${Sudaderas.formatoDinero(montoSel)}</b>. Revisa el monto y la foto antes de enviar.`;
+    } else {
+      resumen.style.display='none';
+    }
+  }
 
   app.querySelectorAll('.mbtn').forEach(b=>{
     b.addEventListener('click', ()=>{
@@ -277,13 +311,18 @@ function conectarPago(saldoMax){
     refrescar();
   });
 
-  file.addEventListener('change', ()=>{
-    archivo = file.files[0] || null;
-    if(archivo){
-      drop.classList.add('has');
-      drop.firstChild.textContent = '✓ Foto seleccionada';
-      prev.src = URL.createObjectURL(archivo); prev.style.display='block';
-    }
+  function ponerFoto(f){
+    archivo = f;
+    prev.src = URL.createObjectURL(f);
+    fotoCard.style.display='block';
+    drop.style.display='none';
+    refrescar();
+  }
+  file.addEventListener('change', ()=>{ if(file.files[0]) ponerFoto(file.files[0]); });
+  g('cambiarFoto').addEventListener('click', ()=> file.click());
+  g('quitarFoto').addEventListener('click', ()=>{
+    archivo=null; file.value='';
+    fotoCard.style.display='none'; drop.style.display='block';
     refrescar();
   });
 
@@ -297,7 +336,7 @@ function conectarPago(saldoMax){
         : await Sudaderas.soporteComoBase64(archivo);
       await Sudaderas.agregarAbono(id, montoSel, soporte);   // la nube confirma
       archivo = null;
-      flashMsg = '✅ Pago enviado. Quedó en revisión.';
+      flashMsg = '✅ Pago enviado. Quedó en revisión. Si te equivocaste, puedes anularlo abajo mientras no lo aprueben.';
       registro = await Sudaderas.obtenerRegistro(id);
       render();
       window.scrollTo({top:0, behavior:'smooth'});
@@ -307,6 +346,20 @@ function conectarPago(saldoMax){
     }
   });
 }
+
+/* Anular un pago propio en revisión (un solo listener para toda la página). */
+document.addEventListener('click', async e=>{
+  const an = e.target.closest('[data-anular]');
+  if(!an) return;
+  if(!confirm('¿Anular este pago? Podrás registrarlo de nuevo.')) return;
+  try{
+    await Sudaderas.anularAbono(id, an.dataset.anular);
+    flashMsg = 'Pago anulado. Puedes registrarlo de nuevo cuando quieras.';
+    registro = await Sudaderas.obtenerRegistro(id);
+    render();
+    window.scrollTo({top:0, behavior:'smooth'});
+  }catch(err){ alert(err.message || 'No se pudo anular.'); }
+});
 
 cargar();
 </script>
