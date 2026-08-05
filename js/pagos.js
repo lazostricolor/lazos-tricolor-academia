@@ -2,6 +2,11 @@
    pagos.js
    Mensualidades, becas y recordatorios WhatsApp
    Academia de Danzas Lazos Tricolor — Soacha, Cundinamarca
+
+   CAMBIO EN ESTA VERSIÓN
+   Se agregó UNA sola línea: el botón 📄 "Estado de cuenta" en la
+   columna Acción de cada fila. Todo lo demás queda idéntico.
+   La lógica del estado de cuenta vive en js/estado-cuenta.js.
 ═══════════════════════════════════════════════════════════ */
 
 // ===================== PAGOS =====================
@@ -37,6 +42,7 @@ function renderPagos(){
           ?`<button class="btn btn-ghost btn-sm" onclick="togglePago(${a.id},'${mk}',false)">↩ Revertir</button>`
           :`<button class="btn btn-primary btn-sm" onclick="togglePago(${a.id},'${mk}',true)">✓ Marcar Pagado</button>`
         }
+        <button class="btn btn-ghost btn-sm btn-icon" title="Estado de cuenta anual" onclick="abrirEstadoCuenta(${a.id})">📄</button>
         ${!p.pagado&&a.telefono?`<a href="https://wa.me/57${a.telefono.replace(/\D/g,'')}?text=${encodeURIComponent(`Hola ${a.nombre.split(' ')[0]}! 👋 Te recordamos que tu mensualidad de *${mesLabel(mk)}* por *${formatCOP(real)}* está pendiente. Academia de Danzas Lazos Tricolor 💃🎭`)}" target="_blank" class="btn btn-wa btn-sm btn-icon" title="WhatsApp">📲</a>`:''}
       </td>
     </tr>`;
