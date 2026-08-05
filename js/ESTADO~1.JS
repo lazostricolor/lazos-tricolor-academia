@@ -37,6 +37,19 @@ function ecFechaLarga(f){
   const [y,m,d]=f.split('-');
   return parseInt(d,10)+' de '+EC_MESES_NOM[parseInt(m,10)-1].toLowerCase()+' de '+y;
 }
+// Nombre de archivo seguro: quita tildes y caracteres raros sin usar
+// rangos Unicode en la expresión regular (más portable entre navegadores)
+function ecNombreArchivo(nombre){
+  const con = 'áàäâãÁÀÄÂÃéèëêÉÈËÊíìïîÍÌÏÎóòöôõÓÒÖÔÕúùüûÚÙÜÛñÑçÇ';
+  const sin = 'aaaaaAAAAAeeeeEEEEiiiiIIIIoooooOOOOOuuuuUUUUnNcC';
+  let r = '';
+  for(const ch of String(nombre||'')){
+    const i = con.indexOf(ch);
+    r += i >= 0 ? sin[i] : ch;
+  }
+  r = r.replace(/[^A-Za-z0-9 _-]/g,'').trim().replace(/\s+/g,'-');
+  return r || 'alumna';
+}
 function ecEscapar(s){
   return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
@@ -509,9 +522,7 @@ async function ecDescargarPDF(){
   cont.innerHTML = ecHtmlPDF(est);
   document.body.appendChild(cont);
 
-  const limpio = est.alumna.nombre
-    .normalize('NFD').replace(/[̀-ͯ]/g,'')
-    .replace(/[^\w\s-]/g,'').trim().replace(/\s+/g,'-');
+  const limpio = ecNombreArchivo(est.alumna.nombre);
   try{
     await window.html2pdf().set({
       margin:      [8,8,8,8],
