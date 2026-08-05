@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Test — motor estado de cuenta</title>
+<style>
+  body{font-family:"Segoe UI",Arial,sans-serif;max-width:900px;margin:0 auto;padding:24px;color:#1f2937;font-size:14px}
+  h1{font-size:20px;color:#3a57e8;border-bottom:3px solid #3a57e8;padding-bottom:10px}
+  h2{font-size:15px;margin-top:26px;border-bottom:1px solid #d1d5db;padding-bottom:5px}
+  .caso{background:#f9fafb;border-left:3px solid #9ca3af;padding:10px 14px;margin:10px 0;border-radius:0 6px 6px 0}
+  .ok{border-left-color:#15803d}
+  .fail{border-left-color:#b91c1c;background:#fef2f2}
+  .badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px}
+  .b-ok{background:#dcfce7;color:#15803d}
+  .b-fail{background:#fee2e2;color:#b91c1c}
+  table{width:100%;border-collapse:collapse;margin-top:8px;font-size:12.5px}
+  th{background:#eef2ff;text-align:left;padding:6px 9px}
+  td{padding:5px 9px;border-bottom:1px solid #e5e7eb}
+  .num{text-align:right}
+  #resumen{font-size:17px;font-weight:800;padding:14px;border-radius:8px;margin:18px 0}
+  .todo-ok{background:#dcfce7;color:#15803d}
+  .algo-mal{background:#fee2e2;color:#b91c1c}
+  code{background:#f3f4f6;padding:1px 5px;border-radius:3px;font-size:12px}
+</style>
+</head>
+<body>
+
+<h1>Test del motor de estado de cuenta</h1>
+<p>Coloca este archivo en la <strong>raíz del proyecto</strong> (al lado de <code>index.html</code>) y ábrelo en el navegador.
+Carga los archivos reales de <code>js/</code> — no una copia — así que si el test pasa, el motor de producción está bien.</p>
+
+<div id="resumen">Ejecutando…</div>
+<div id="salida"></div>
+
+<script src="js/state.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/estado-cuenta.js"></script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   Arnés de pruebas — no toca Firebase ni el DOM de la app.
+   Fija el reloj en agosto de 2026 para que los resultados sean
+   reproducibles sin importar cuándo se ejecute el test.
+═══════════════════════════════════════════════════════════ */
+fechaActual = new Date('2026-08-05T12:00:00');
+_clockBase  = Date.now();
+
+let pass = 0, fail = 0;
+const out = document.getElementById('salida');
+
+function fixture(alumna, pagos, abonos){
+  DB.alumnos = [alumna];
+  DB.alumnosRetirados = [];
+  DB.pagos = {}; DB.pagos[alumna.id] = pagos || {};
+  alumna.abonos = {};
+  (abonos||[]).forEach((ab,i)=>{ alumna.abonos['ab'+String(i).padStart(3,'0')] = ab; });
+}
+
+function caso(titulo, esperado, est, detalle){
+  const filas = est.meses.map(m=>`<tr>
+      <td>${ecMesNombre(m.mk)}</td>
+      <td class="num">${formatCOP(m.valor)}</td>
+      <td class="num">${formatCOP(m.abonado)}</td>
+      <td class="num">${formatCOP(m.saldo)}</td>
+      <td>${m.estado}</td></tr>`).join('');
+
+  const checks = Object.keys(esperado).map(k=>{
+    const real = typeof esperado[k].real === 'function' ? esperado[k].real(est) : est[k];
+    const esp  = esperado[k].valor !== undefined ? esperado[k].valor : esperado[k];
+    const bien = real === esp;
+    bien ? pass++ : fail++;
+    return {k, esp, real, bien};
+  });
+
+  const todoBien = checks.every(c=>c.bien);
+  out.insertAdjacentHTML('beforeend', `
+    <div class="caso ${todoBien?'ok':'fail'}">
+      <div><span class="badge ${todoBien?'b-ok':'b-fail'}">${todoBien?'PASA':'FALLA'}</span>
+        <strong> ${titulo}</strong></div>
+      ${detalle?`<div style="font-size:12px;color:#6b7280;margin-top:4px">${detalle}</div>`:''}
+      <ul style="font-size:12.5px;margin:8px 0">
+        ${checks.map(c=>`<li>${c.bien?'✅':'❌'} <code>${c.k}</code>:
+          esperado <strong>${typeof c.esp==='number'?formatCOP(c.esp):c.esp}</strong>,
+          obtenido <strong>${typeof c.real==='number'?formatCOP(c.real):c.real}</strong></li>`).join('')}
+      </ul>
+      <table><thead><tr><th>Mes</th><th class="num">Valor</th><th class="num">Abonado</th>
+        <th class="num">Saldo</th><th>Estado</th></tr></thead><tbody>${filas}</tbody></table>
+    </div>`);
+}
+
+// ═══════ CASO 1 — Cataleya González (el caso real) ═══════
+out.insertAdjacentHTML('beforeend','<h2>1. Caso real: Cataleya González</h2>');
+fixture(
+  {id:1, nombre:'Cataleya González', categoria:'Infantil', fechaIngreso:'2026-02-01', familiar:false},
+  {},
+  [{fecha:'2026-07-03', monto:100000}, {fecha:'2026-07-20', monto:100000}]
+);
+let e1 = ecCalcularEstado(1, 2026);
+caso('Ingreso en febrero, dos abonos de $100.000 en julio', {
+  totalCausado: 490000,
+  totalAbonado: 200000,
+  saldo:        290000,
+  mesesCausados: {valor:7, real:est=>est.meses.length},
+  saldoAbril:    {valor:10000, real:est=>est.meses.find(m=>m.mk==='2026-04').saldo},
+  estadoFebrero: {valor:'Pagado', real:est=>est.meses.find(m=>m.mk==='2026-02').estado},
+  estadoAbril:   {valor:'Abono parcial', real:est=>est.meses.find(m=>m.mk==='2026-04').estado},
+  estadoMayo:    {valor:'Pendiente', real:est=>est.meses.find(m=>m.mk==='2026-05').estado}
+}, e1, 'Enero no aparece porque la fecha de ingreso es febrero. Los abonos caen en cascada sobre feb, mar y parte de abril.');
+
+// ═══════ CASO 2 — Tarifa plena desde enero ═══════
+out.insertAdjacentHTML('beforeend','<h2>2. Tarifa plena, ingreso en enero, sin pagos</h2>');
+fixture({id:2, nombre:'Alumna Plena', categoria:'Juvenil', fechaIngreso:'2026-01-10', familiar:false}, {}, []);
+let e2 = ecCalcularEstado(2, 2026);
+caso('Enero a media tarifa ($35.000) + 7 meses a $70.000', {
+  totalCausado: 525000,
+  totalAbonado: 0,
+  saldo:        525000,
+  mesesCausados: {valor:8, real:est=>est.meses.length},
+  valorEnero:    {valor:35000, real:est=>est.meses.find(m=>m.mk==='2026-01').valor},
+  valorFebrero:  {valor:70000, real:est=>est.meses.find(m=>m.mk==='2026-02').valor}
+}, e2, 'Verifica que <code>calcMensualidad()</code> aplica media tarifa en enero.');
+
+// ═══════ CASO 3 — Descuento familiar ═══════
+out.insertAdjacentHTML('beforeend','<h2>3. Descuento familiar (hermanas)</h2>');
+fixture({id:3, nombre:'Alumna Familiar', categoria:'Infantil', fechaIngreso:'2026-01-10', familiar:true}, {}, []);
+let e3 = ecCalcularEstado(3, 2026);
+caso('Enero $25.000 + 7 meses a $50.000', {
+  totalCausado: 375000,
+  valorEnero:   {valor:25000, real:est=>est.meses.find(m=>m.mk==='2026-01').valor},
+  valorMarzo:   {valor:50000, real:est=>est.meses.find(m=>m.mk==='2026-03').valor}
+}, e3);
+
+// ═══════ CASO 4 — Media beca en meses puntuales ═══════
+out.insertAdjacentHTML('beforeend','<h2>4. Media beca aplicada en marzo y abril</h2>');
+fixture(
+  {id:4, nombre:'Alumna Becada', categoria:'Adulto', fechaIngreso:'2026-02-01', familiar:false},
+  {'2026-03':{pagado:false, beca:true}, '2026-04':{pagado:false, beca:true}},
+  []
+);
+let e4 = ecCalcularEstado(4, 2026);
+caso('Marzo y abril bajan a $35.000; el resto sigue en $70.000', {
+  valorMarzo: {valor:35000, real:est=>est.meses.find(m=>m.mk==='2026-03').valor},
+  valorAbril: {valor:35000, real:est=>est.meses.find(m=>m.mk==='2026-04').valor},
+  valorMayo:  {valor:70000, real:est=>est.meses.find(m=>m.mk==='2026-05').valor},
+  totalCausado: 420000
+}, e4, '7 meses: 5 × $70.000 + 2 × $35.000 = $420.000');
+
+// ═══════ CASO 5 — Mes ya marcado "pagado" + abonos ═══════
+out.insertAdjacentHTML('beforeend','<h2>5. Mes saldado a mano + abono posterior (sin doble conteo)</h2>');
+fixture(
+  {id:5, nombre:'Alumna Mixta', categoria:'Infantil', fechaIngreso:'2026-02-01', familiar:false},
+  {'2026-02':{pagado:true, beca:false, fechaPago:'2026-02-10'}},
+  [{fecha:'2026-07-03', monto:100000}]
+);
+let e5 = ecCalcularEstado(5, 2026);
+caso('Febrero saldado queda fuera del reparto; el abono va a marzo y abril', {
+  totalCausado:  490000,
+  totalAbonado:  170000,
+  saldo:         320000,
+  estadoFebrero: {valor:'Pagado', real:est=>est.meses.find(m=>m.mk==='2026-02').estado},
+  abonadoMarzo:  {valor:70000, real:est=>est.meses.find(m=>m.mk==='2026-03').abonado},
+  abonadoAbril:  {valor:30000, real:est=>est.meses.find(m=>m.mk==='2026-04').abonado}
+}, e5, 'Abonado total = $70.000 de febrero (saldado) + $100.000 del abono = $170.000. Si diera $270.000 habría doble conteo.');
+
+// ═══════ CASO 6 — Saldo a favor ═══════
+out.insertAdjacentHTML('beforeend','<h2>6. Sobrepago: saldo a favor</h2>');
+fixture(
+  {id:6, nombre:'Alumna Adelantada', categoria:'Infantil', fechaIngreso:'2026-06-01', familiar:false},
+  {},
+  [{fecha:'2026-06-05', monto:300000}]
+);
+let e6 = ecCalcularEstado(6, 2026);
+caso('Junio a agosto = $210.000; paga $300.000', {
+  totalCausado: 210000,
+  totalAbonado: 210000,
+  saldo:        0,
+  aFavor:       90000
+}, e6, 'El excedente no se pierde: queda registrado como saldo a favor.');
+
+// ═══════ CASO 7 — No muestra meses futuros ═══════
+out.insertAdjacentHTML('beforeend','<h2>7. Corte al mes actual</h2>');
+fixture({id:7, nombre:'Alumna Corte', categoria:'Infantil', fechaIngreso:'2026-01-05', familiar:false}, {}, []);
+let e7 = ecCalcularEstado(7, 2026);
+caso('Con reloj en agosto, no aparecen septiembre a diciembre', {
+  mesesCausados: {valor:8, real:est=>est.meses.length},
+  ultimoMes:     {valor:'2026-08', real:est=>est.meses[est.meses.length-1].mk}
+}, e7);
+
+// ═══════ RESUMEN ═══════
+const r = document.getElementById('resumen');
+r.className = fail===0 ? 'todo-ok' : 'algo-mal';
+r.textContent = fail===0
+  ? `✅ ${pass} verificaciones pasaron. El motor calcula correctamente.`
+  : `❌ ${fail} verificación(es) fallaron de ${pass+fail}. Revisa los casos en rojo.`;
+</script>
+
+</body>
+</html>
