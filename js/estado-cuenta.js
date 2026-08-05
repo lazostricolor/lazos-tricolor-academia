@@ -20,10 +20,10 @@
 
 // ===================== CONSTANTES =====================
 /* Logo del encabezado del PDF.
-   Puede ser una ruta del repositorio ('logo.png') o una imagen incrustada
-   en base64 ('data:image/png;base64,...'). Si queda vacío, el PDF sale
-   igual pero sin logo. La base64 es más confiable: no depende de la red
-   ni de permisos CORS al momento de renderizar.                          */
+   Ruta relativa a la raíz del sitio. El archivo debe estar junto a
+   index.html en el repositorio. Si se deja vacío o el archivo no existe,
+   el PDF se genera igual, solo que sin logo (no se rompe nada).
+   Pensado para un logo horizontal: se ajusta a 160px de ancho.           */
 const EC_LOGO = 'logo.png';
 const EC_MESES_NOM = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
@@ -409,12 +409,13 @@ function ecHtmlPDF(est, logoSrc){
 
     <table style="width:100%;border-collapse:collapse;border-bottom:3px solid #3a57e8;margin-bottom:16px">
       <tr>
-        ${logo?`<td style="width:78px;padding:0 12px 12px 0;vertical-align:middle">
-          <img src="${logo}" style="width:70px;height:70px;object-fit:contain;display:block">
+        ${logo?`<td style="width:170px;padding:0 16px 12px 0;vertical-align:middle">
+          <img src="${logo}" style="width:160px;height:auto;max-height:66px;object-fit:contain;display:block">
         </td>`:''}
-        <td style="padding-bottom:12px;vertical-align:middle">
+        <td style="padding-bottom:12px;vertical-align:middle;text-align:${logo?'right':'left'}">
           <div style="font-size:20px;font-weight:800;color:#3a57e8;letter-spacing:.5px">ESTADO DE CUENTA</div>
-          <div style="font-size:12px;color:#6b7280">Academia de Danzas Lazos Tricolor · Soacha, Cundinamarca</div>
+          ${logo?'':'<div style="font-size:12px;color:#6b7280">Academia de Danzas Lazos Tricolor</div>'}
+          <div style="font-size:12px;color:#6b7280">Soacha, Cundinamarca</div>
           <div style="font-size:12px;color:#6b7280">Mensualidades ${est.anio} · Corte a ${mesLabel(est.mesCorte)}</div>
         </td>
       </tr>
