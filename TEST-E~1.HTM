@@ -21,32 +21,91 @@
   .todo-ok{background:#dcfce7;color:#15803d}
   .algo-mal{background:#fee2e2;color:#b91c1c}
   code{background:#f3f4f6;padding:1px 5px;border-radius:3px;font-size:12px}
+  #errores{margin:14px 0}
+  .err{background:#fef2f2;border:1px solid #fecaca;border-left:4px solid #b91c1c;border-radius:6px;padding:12px 14px;margin-bottom:10px}
+  .err pre{margin:6px 0 0;font-size:11.5px;white-space:pre-wrap;word-break:break-word;color:#7f1d1d}
+  .pre-chk{font-size:13px;margin:4px 0}
 </style>
 </head>
 <body>
 
 <h1>Test del motor de estado de cuenta</h1>
-<p>Coloca este archivo en la <strong>raíz del proyecto</strong> (al lado de <code>index.html</code>) y ábrelo en el navegador.
-Carga los archivos reales de <code>js/</code> — no una copia — así que si el test pasa, el motor de producción está bien.</p>
+<p>Carga los archivos reales de <code>js/</code> — no una copia — así que si el test pasa,
+el motor de producción está bien. No toca Firebase ni modifica datos.</p>
 
 <div id="resumen">Ejecutando…</div>
+<div id="errores"></div>
 <div id="salida"></div>
+
+<script>
+/* Captura cualquier error de carga o de sintaxis de los archivos js/ */
+window.__errores = [];
+window.addEventListener('error', function(ev){
+  const msg = ev.message || (ev.error && ev.error.message) || 'Error desconocido';
+  const src = ev.filename ? ev.filename.split('/').slice(-1)[0] : '';
+  window.__errores.push({msg, src, linea: ev.lineno, stack: ev.error && ev.error.stack});
+  const cont = document.getElementById('errores');
+  if(cont) cont.insertAdjacentHTML('beforeend',
+    '<div class="err"><strong>❌ Error de JavaScript</strong>'+
+    '<div style="font-size:12px;color:#6b7280">'+(src?src+' línea '+ev.lineno:'')+'</div>'+
+    '<pre>'+String(msg)+'</pre></div>');
+  const r = document.getElementById('resumen');
+  if(r){ r.className='algo-mal'; r.textContent='❌ Hubo un error de JavaScript — ver detalle abajo.'; }
+}, true);
+</script>
 
 <script src="js/state.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/estado-cuenta.js"></script>
 
 <script>
-/* ═══════════════════════════════════════════════════════════
-   Arnés de pruebas — no toca Firebase ni el DOM de la app.
-   Fija el reloj en agosto de 2026 para que los resultados sean
-   reproducibles sin importar cuándo se ejecute el test.
-═══════════════════════════════════════════════════════════ */
+(function(){
+const out = document.getElementById('salida');
+const errBox = document.getElementById('errores');
+const r = document.getElementById('resumen');
+
+function mostrarError(titulo, e){
+  errBox.insertAdjacentHTML('beforeend',
+    '<div class="err"><strong>❌ '+titulo+'</strong><pre>'+
+    (e && e.stack ? e.stack : String(e))+'</pre></div>');
+  r.className='algo-mal';
+  r.textContent='❌ El test se detuvo por un error — ver detalle arriba.';
+}
+
+/* ── Chequeo previo: ¿cargaron los tres archivos? ── */
+const requeridos = {
+  'state.js  → DB':                typeof DB,
+  'state.js  → PRECIO_BASE':       typeof PRECIO_BASE,
+  'utils.js  → calcMensualidad':   typeof calcMensualidad,
+  'utils.js  → alumnaActivaEnMes': typeof alumnaActivaEnMes,
+  'utils.js  → getPago':           typeof getPago,
+  'utils.js  → formatCOP':         typeof formatCOP,
+  'estado-cuenta.js → ecCalcularEstado': typeof ecCalcularEstado,
+  'estado-cuenta.js → ecMesNombre':      typeof ecMesNombre
+};
+let faltantes = [];
+let htmlChk = '<h2>0. Archivos cargados</h2>';
+for(const k in requeridos){
+  const bien = requeridos[k] !== 'undefined';
+  if(!bien) faltantes.push(k);
+  htmlChk += '<div class="pre-chk">'+(bien?'✅':'❌')+' <code>'+k+'</code></div>';
+}
+out.insertAdjacentHTML('beforeend', htmlChk);
+
+if(faltantes.length){
+  mostrarError('Faltan archivos o no cargaron',
+    'No se encontró:\n  '+faltantes.join('\n  ')+
+    '\n\nRevisa que estos archivos existan en la carpeta js/ del repositorio:\n'+
+    '  js/state.js\n  js/utils.js\n  js/estado-cuenta.js\n\n'+
+    'Si estado-cuenta.js sí está subido pero aparece como no cargado, tiene un error de sintaxis.');
+  return;
+}
+
+/* ── Reloj fijo en agosto 2026 para resultados reproducibles ── */
 fechaActual = new Date('2026-08-05T12:00:00');
 _clockBase  = Date.now();
 
 let pass = 0, fail = 0;
-const out = document.getElementById('salida');
 
 function fixture(alumna, pagos, abonos){
   DB.alumnos = [alumna];
@@ -65,9 +124,11 @@ function caso(titulo, esperado, est, detalle){
       <td>${m.estado}</td></tr>`).join('');
 
   const checks = Object.keys(esperado).map(k=>{
-    const real = typeof esperado[k].real === 'function' ? esperado[k].real(est) : est[k];
-    const esp  = esperado[k].valor !== undefined ? esperado[k].valor : esperado[k];
-    const bien = real === esp;
+    const spec = esperado[k];
+    const esObj = spec !== null && typeof spec === 'object';
+    const real  = esObj && typeof spec.real === 'function' ? spec.real(est) : est[k];
+    const esp   = esObj ? spec.valor : spec;
+    const bien  = real === esp;
     bien ? pass++ : fail++;
     return {k, esp, real, bien};
   });
@@ -88,110 +149,137 @@ function caso(titulo, esperado, est, detalle){
     </div>`);
 }
 
-// ═══════ CASO 1 — Cataleya González (el caso real) ═══════
-out.insertAdjacentHTML('beforeend','<h2>1. Caso real: Cataleya González</h2>');
-fixture(
-  {id:1, nombre:'Cataleya González', categoria:'Infantil', fechaIngreso:'2026-02-01', familiar:false},
-  {},
-  [{fecha:'2026-07-03', monto:100000}, {fecha:'2026-07-20', monto:100000}]
-);
-let e1 = ecCalcularEstado(1, 2026);
-caso('Ingreso en febrero, dos abonos de $100.000 en julio', {
-  totalCausado: 490000,
-  totalAbonado: 200000,
-  saldo:        290000,
-  mesesCausados: {valor:7, real:est=>est.meses.length},
-  saldoAbril:    {valor:10000, real:est=>est.meses.find(m=>m.mk==='2026-04').saldo},
-  estadoFebrero: {valor:'Pagado', real:est=>est.meses.find(m=>m.mk==='2026-02').estado},
-  estadoAbril:   {valor:'Abono parcial', real:est=>est.meses.find(m=>m.mk==='2026-04').estado},
-  estadoMayo:    {valor:'Pendiente', real:est=>est.meses.find(m=>m.mk==='2026-05').estado}
-}, e1, 'Enero no aparece porque la fecha de ingreso es febrero. Los abonos caen en cascada sobre feb, mar y parte de abril.');
+/* Cada caso va aislado: si uno revienta, los demás siguen corriendo */
+function correr(titulo, fn){
+  out.insertAdjacentHTML('beforeend', '<h2>'+titulo+'</h2>');
+  try{ fn(); }
+  catch(e){ fail++; mostrarError('Falló el caso: '+titulo, e); }
+}
 
-// ═══════ CASO 2 — Tarifa plena desde enero ═══════
-out.insertAdjacentHTML('beforeend','<h2>2. Tarifa plena, ingreso en enero, sin pagos</h2>');
-fixture({id:2, nombre:'Alumna Plena', categoria:'Juvenil', fechaIngreso:'2026-01-10', familiar:false}, {}, []);
-let e2 = ecCalcularEstado(2, 2026);
-caso('Enero a media tarifa ($35.000) + 7 meses a $70.000', {
-  totalCausado: 525000,
-  totalAbonado: 0,
-  saldo:        525000,
-  mesesCausados: {valor:8, real:est=>est.meses.length},
-  valorEnero:    {valor:35000, real:est=>est.meses.find(m=>m.mk==='2026-01').valor},
-  valorFebrero:  {valor:70000, real:est=>est.meses.find(m=>m.mk==='2026-02').valor}
-}, e2, 'Verifica que <code>calcMensualidad()</code> aplica media tarifa en enero.');
+// ═══════ 1 — Cataleya González (el caso real) ═══════
+correr('1. Caso real: Cataleya González', function(){
+  fixture(
+    {id:1, nombre:'Cataleya González', categoria:'Infantil', fechaIngreso:'2026-02-01', familiar:false},
+    {},
+    [{fecha:'2026-07-03', monto:100000}, {fecha:'2026-07-20', monto:100000}]
+  );
+  const est = ecCalcularEstado(1, 2026);
+  caso('Ingreso en febrero, dos abonos de $100.000 en julio', {
+    totalCausado: 490000,
+    totalAbonado: 200000,
+    saldo:        290000,
+    mesesCausados: {valor:7, real:e=>e.meses.length},
+    saldoAbril:    {valor:10000, real:e=>e.meses.find(m=>m.mk==='2026-04').saldo},
+    estadoFebrero: {valor:'Pagado', real:e=>e.meses.find(m=>m.mk==='2026-02').estado},
+    estadoAbril:   {valor:'Abono parcial', real:e=>e.meses.find(m=>m.mk==='2026-04').estado},
+    estadoMayo:    {valor:'Pendiente', real:e=>e.meses.find(m=>m.mk==='2026-05').estado}
+  }, est, 'Enero no aparece porque la fecha de ingreso es febrero. Los abonos caen en cascada sobre feb, mar y parte de abril.');
+});
 
-// ═══════ CASO 3 — Descuento familiar ═══════
-out.insertAdjacentHTML('beforeend','<h2>3. Descuento familiar (hermanas)</h2>');
-fixture({id:3, nombre:'Alumna Familiar', categoria:'Infantil', fechaIngreso:'2026-01-10', familiar:true}, {}, []);
-let e3 = ecCalcularEstado(3, 2026);
-caso('Enero $25.000 + 7 meses a $50.000', {
-  totalCausado: 375000,
-  valorEnero:   {valor:25000, real:est=>est.meses.find(m=>m.mk==='2026-01').valor},
-  valorMarzo:   {valor:50000, real:est=>est.meses.find(m=>m.mk==='2026-03').valor}
-}, e3);
+// ═══════ 2 — Tarifa plena desde enero ═══════
+correr('2. Tarifa plena, ingreso en enero, sin pagos', function(){
+  fixture({id:2, nombre:'Alumna Plena', categoria:'Juvenil', fechaIngreso:'2026-01-10', familiar:false}, {}, []);
+  const est = ecCalcularEstado(2, 2026);
+  caso('Enero a media tarifa ($35.000) + 7 meses a $70.000', {
+    totalCausado: 525000,
+    totalAbonado: 0,
+    saldo:        525000,
+    mesesCausados: {valor:8, real:e=>e.meses.length},
+    valorEnero:    {valor:35000, real:e=>e.meses.find(m=>m.mk==='2026-01').valor},
+    valorFebrero:  {valor:70000, real:e=>e.meses.find(m=>m.mk==='2026-02').valor}
+  }, est, 'Verifica que <code>calcMensualidad()</code> aplica media tarifa en enero.');
+});
 
-// ═══════ CASO 4 — Media beca en meses puntuales ═══════
-out.insertAdjacentHTML('beforeend','<h2>4. Media beca aplicada en marzo y abril</h2>');
-fixture(
-  {id:4, nombre:'Alumna Becada', categoria:'Adulto', fechaIngreso:'2026-02-01', familiar:false},
-  {'2026-03':{pagado:false, beca:true}, '2026-04':{pagado:false, beca:true}},
-  []
-);
-let e4 = ecCalcularEstado(4, 2026);
-caso('Marzo y abril bajan a $35.000; el resto sigue en $70.000', {
-  valorMarzo: {valor:35000, real:est=>est.meses.find(m=>m.mk==='2026-03').valor},
-  valorAbril: {valor:35000, real:est=>est.meses.find(m=>m.mk==='2026-04').valor},
-  valorMayo:  {valor:70000, real:est=>est.meses.find(m=>m.mk==='2026-05').valor},
-  totalCausado: 420000
-}, e4, '7 meses: 5 × $70.000 + 2 × $35.000 = $420.000');
+// ═══════ 3 — Descuento familiar ═══════
+correr('3. Descuento familiar (hermanas)', function(){
+  fixture({id:3, nombre:'Alumna Familiar', categoria:'Infantil', fechaIngreso:'2026-01-10', familiar:true}, {}, []);
+  const est = ecCalcularEstado(3, 2026);
+  caso('Enero $25.000 + 7 meses a $50.000', {
+    totalCausado: 375000,
+    valorEnero:   {valor:25000, real:e=>e.meses.find(m=>m.mk==='2026-01').valor},
+    valorMarzo:   {valor:50000, real:e=>e.meses.find(m=>m.mk==='2026-03').valor}
+  }, est);
+});
 
-// ═══════ CASO 5 — Mes ya marcado "pagado" + abonos ═══════
-out.insertAdjacentHTML('beforeend','<h2>5. Mes saldado a mano + abono posterior (sin doble conteo)</h2>');
-fixture(
-  {id:5, nombre:'Alumna Mixta', categoria:'Infantil', fechaIngreso:'2026-02-01', familiar:false},
-  {'2026-02':{pagado:true, beca:false, fechaPago:'2026-02-10'}},
-  [{fecha:'2026-07-03', monto:100000}]
-);
-let e5 = ecCalcularEstado(5, 2026);
-caso('Febrero saldado queda fuera del reparto; el abono va a marzo y abril', {
-  totalCausado:  490000,
-  totalAbonado:  170000,
-  saldo:         320000,
-  estadoFebrero: {valor:'Pagado', real:est=>est.meses.find(m=>m.mk==='2026-02').estado},
-  abonadoMarzo:  {valor:70000, real:est=>est.meses.find(m=>m.mk==='2026-03').abonado},
-  abonadoAbril:  {valor:30000, real:est=>est.meses.find(m=>m.mk==='2026-04').abonado}
-}, e5, 'Abonado total = $70.000 de febrero (saldado) + $100.000 del abono = $170.000. Si diera $270.000 habría doble conteo.');
+// ═══════ 4 — Media beca ═══════
+correr('4. Media beca aplicada en marzo y abril', function(){
+  fixture(
+    {id:4, nombre:'Alumna Becada', categoria:'Adulto', fechaIngreso:'2026-02-01', familiar:false},
+    {'2026-03':{pagado:false, beca:true}, '2026-04':{pagado:false, beca:true}},
+    []
+  );
+  const est = ecCalcularEstado(4, 2026);
+  caso('Marzo y abril bajan a $35.000; el resto sigue en $70.000', {
+    valorMarzo: {valor:35000, real:e=>e.meses.find(m=>m.mk==='2026-03').valor},
+    valorAbril: {valor:35000, real:e=>e.meses.find(m=>m.mk==='2026-04').valor},
+    valorMayo:  {valor:70000, real:e=>e.meses.find(m=>m.mk==='2026-05').valor},
+    totalCausado: 420000
+  }, est, '7 meses: 5 × $70.000 + 2 × $35.000 = $420.000');
+});
 
-// ═══════ CASO 6 — Saldo a favor ═══════
-out.insertAdjacentHTML('beforeend','<h2>6. Sobrepago: saldo a favor</h2>');
-fixture(
-  {id:6, nombre:'Alumna Adelantada', categoria:'Infantil', fechaIngreso:'2026-06-01', familiar:false},
-  {},
-  [{fecha:'2026-06-05', monto:300000}]
-);
-let e6 = ecCalcularEstado(6, 2026);
-caso('Junio a agosto = $210.000; paga $300.000', {
-  totalCausado: 210000,
-  totalAbonado: 210000,
-  saldo:        0,
-  aFavor:       90000
-}, e6, 'El excedente no se pierde: queda registrado como saldo a favor.');
+// ═══════ 5 — Mes saldado + abono (sin doble conteo) ═══════
+correr('5. Mes saldado a mano + abono posterior (sin doble conteo)', function(){
+  fixture(
+    {id:5, nombre:'Alumna Mixta', categoria:'Infantil', fechaIngreso:'2026-02-01', familiar:false},
+    {'2026-02':{pagado:true, beca:false, fechaPago:'2026-02-10'}},
+    [{fecha:'2026-07-03', monto:100000}]
+  );
+  const est = ecCalcularEstado(5, 2026);
+  caso('Febrero saldado queda fuera del reparto; el abono va a marzo y abril', {
+    totalCausado:  490000,
+    totalAbonado:  170000,
+    saldo:         320000,
+    estadoFebrero: {valor:'Pagado', real:e=>e.meses.find(m=>m.mk==='2026-02').estado},
+    abonadoMarzo:  {valor:70000, real:e=>e.meses.find(m=>m.mk==='2026-03').abonado},
+    abonadoAbril:  {valor:30000, real:e=>e.meses.find(m=>m.mk==='2026-04').abonado}
+  }, est, 'Abonado total = $70.000 de febrero (saldado) + $100.000 del abono = $170.000. Si diera $270.000 habría doble conteo.');
+});
 
-// ═══════ CASO 7 — No muestra meses futuros ═══════
-out.insertAdjacentHTML('beforeend','<h2>7. Corte al mes actual</h2>');
-fixture({id:7, nombre:'Alumna Corte', categoria:'Infantil', fechaIngreso:'2026-01-05', familiar:false}, {}, []);
-let e7 = ecCalcularEstado(7, 2026);
-caso('Con reloj en agosto, no aparecen septiembre a diciembre', {
-  mesesCausados: {valor:8, real:est=>est.meses.length},
-  ultimoMes:     {valor:'2026-08', real:est=>est.meses[est.meses.length-1].mk}
-}, e7);
+// ═══════ 6 — Saldo a favor ═══════
+correr('6. Sobrepago: saldo a favor', function(){
+  fixture(
+    {id:6, nombre:'Alumna Adelantada', categoria:'Infantil', fechaIngreso:'2026-06-01', familiar:false},
+    {},
+    [{fecha:'2026-06-05', monto:300000}]
+  );
+  const est = ecCalcularEstado(6, 2026);
+  caso('Junio a agosto = $210.000; paga $300.000', {
+    totalCausado: 210000,
+    totalAbonado: 210000,
+    saldo:        0,
+    aFavor:       90000
+  }, est, 'El excedente no se pierde: queda registrado como saldo a favor.');
+});
+
+// ═══════ 7 — Corte al mes actual ═══════
+correr('7. Corte al mes actual', function(){
+  fixture({id:7, nombre:'Alumna Corte', categoria:'Infantil', fechaIngreso:'2026-01-05', familiar:false}, {}, []);
+  const est = ecCalcularEstado(7, 2026);
+  caso('Con reloj en agosto, no aparecen septiembre a diciembre', {
+    mesesCausados: {valor:8, real:e=>e.meses.length},
+    ultimoMes:     {valor:'2026-08', real:e=>e.meses[e.meses.length-1].mk}
+  }, est);
+});
+
+// ═══════ 8 — Generador de nombre de archivo ═══════
+correr('8. Nombre de archivo del PDF', function(){
+  const n = ecNombreArchivo('Cataleya González Muñoz');
+  const bien = n === 'Cataleya-Gonzalez-Munoz';
+  bien ? pass++ : fail++;
+  out.insertAdjacentHTML('beforeend',
+    '<div class="caso '+(bien?'ok':'fail')+'"><span class="badge '+(bien?'b-ok':'b-fail')+'">'+
+    (bien?'PASA':'FALLA')+'</span> <strong> Tildes y ñ se convierten correctamente</strong>'+
+    '<div style="font-size:12.5px;margin-top:6px">esperado <code>Cataleya-Gonzalez-Munoz</code>, obtenido <code>'+n+'</code></div></div>');
+});
 
 // ═══════ RESUMEN ═══════
-const r = document.getElementById('resumen');
-r.className = fail===0 ? 'todo-ok' : 'algo-mal';
-r.textContent = fail===0
-  ? `✅ ${pass} verificaciones pasaron. El motor calcula correctamente.`
-  : `❌ ${fail} verificación(es) fallaron de ${pass+fail}. Revisa los casos en rojo.`;
+if(!window.__errores.length){
+  r.className = fail===0 ? 'todo-ok' : 'algo-mal';
+  r.textContent = fail===0
+    ? `✅ ${pass} verificaciones pasaron. El motor calcula correctamente.`
+    : `❌ ${fail} verificación(es) fallaron de ${pass+fail}. Revisa los casos en rojo.`;
+}
+})();
 </script>
 
 </body>
