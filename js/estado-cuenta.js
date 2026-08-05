@@ -20,6 +20,13 @@
 
 // ===================== CONSTANTES =====================
 const EC_CDN_HTML2PDF = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+
+/* Logo del encabezado del PDF.
+   Puede ser una ruta del repositorio ('logo.png') o una imagen incrustada
+   en base64 ('data:image/png;base64,...'). Si queda vacío, el PDF sale
+   igual pero sin logo. La base64 es más confiable: no depende de la red
+   ni de permisos CORS al momento de renderizar.                          */
+const EC_LOGO = 'logo.png';
 const EC_MESES_NOM = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
 let ecAlumnaId = null;
@@ -412,11 +419,18 @@ function ecHtmlPDF(est){
   return `
   <div style="font-family:Arial,Helvetica,sans-serif;color:#1f2937;font-size:12.5px;line-height:1.45;padding:4px">
 
-    <div style="border-bottom:3px solid #3a57e8;padding-bottom:12px;margin-bottom:16px">
-      <div style="font-size:20px;font-weight:800;color:#3a57e8;letter-spacing:.5px">ESTADO DE CUENTA</div>
-      <div style="font-size:12px;color:#6b7280">Academia de Danzas Lazos Tricolor · Soacha, Cundinamarca</div>
-      <div style="font-size:12px;color:#6b7280">Mensualidades ${est.anio} · Corte a ${mesLabel(est.mesCorte)}</div>
-    </div>
+    <table style="width:100%;border-collapse:collapse;border-bottom:3px solid #3a57e8;margin-bottom:16px">
+      <tr>
+        ${EC_LOGO?`<td style="width:78px;padding:0 12px 12px 0;vertical-align:middle">
+          <img src="${EC_LOGO}" style="width:70px;height:70px;object-fit:contain;display:block">
+        </td>`:''}
+        <td style="padding-bottom:12px;vertical-align:middle">
+          <div style="font-size:20px;font-weight:800;color:#3a57e8;letter-spacing:.5px">ESTADO DE CUENTA</div>
+          <div style="font-size:12px;color:#6b7280">Academia de Danzas Lazos Tricolor · Soacha, Cundinamarca</div>
+          <div style="font-size:12px;color:#6b7280">Mensualidades ${est.anio} · Corte a ${mesLabel(est.mesCorte)}</div>
+        </td>
+      </tr>
+    </table>
 
     <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
       <tr>
@@ -507,6 +521,21 @@ function ecHtmlPDF(est){
   </div>`;
 }
 
+/* Espera a que carguen las imágenes (el logo) antes de rasterizar.
+   Sin esto html2canvas fotografía la hoja con el logo todavía vacío.
+   Nunca bloquea más de 3 segundos: si el logo falla, el PDF igual sale. */
+function ecEsperarImagenes(nodo){
+  const imgs = Array.from(nodo.querySelectorAll('img'));
+  if(!imgs.length) return Promise.resolve();
+  return Promise.race([
+    Promise.all(imgs.map(img=> img.complete
+      ? Promise.resolve()
+      : new Promise(res=>{ img.onload=res; img.onerror=()=>{ img.style.display='none'; res(); }; })
+    )),
+    new Promise(res=>setTimeout(res, 3000))
+  ]);
+}
+
 async function ecDescargarPDF(){
   const est = ecCalcularEstado(ecAlumnaId, ecAnio);
   if(!est) return;
@@ -517,10 +546,29 @@ async function ecDescargarPDF(){
     toast('❌ Sin conexión para cargar el generador de PDF','err');
     return;
   }
-  const cont = document.createElement('div');
-  cont.style.cssText = 'position:fixed;left:-10000px;top:0;width:190mm;background:#fff;padding:6mm';
-  cont.innerHTML = ecHtmlPDF(est);
-  document.body.appendChild(cont);
+
+  /* IMPORTANTE: la hoja se renderiza VISIBLE en pantalla.
+     html2canvas no rasteriza correctamente elementos colocados fuera del
+     viewport (left:-10000px devuelve una hoja en blanco). Se muestra sobre
+     una capa oscura durante un instante y se retira al terminar.          */
+  const capa = document.createElement('div');
+  capa.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,.8);'+
+    'display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:24px 12px';
+
+  const hoja = document.createElement('div');
+  hoja.style.cssText = 'width:190mm;flex:0 0 auto;background:#fff;padding:6mm;box-shadow:0 12px 40px rgba(0,0,0,.45)';
+  hoja.innerHTML = ecHtmlPDF(est);
+
+  const aviso = document.createElement('div');
+  aviso.textContent = 'Generando PDF…';
+  aviso.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);'+
+    'background:#111827;color:#fff;padding:10px 20px;border-radius:22px;font-size:14px;font-weight:600';
+
+  capa.appendChild(hoja);
+  capa.appendChild(aviso);
+  document.body.appendChild(capa);
+
+  await ecEsperarImagenes(hoja);
 
   const limpio = ecNombreArchivo(est.alumna.nombre);
   try{
@@ -528,15 +576,16 @@ async function ecDescargarPDF(){
       margin:      [8,8,8,8],
       filename:    `Estado-cuenta-${limpio}-${est.anio}.pdf`,
       image:       {type:'jpeg', quality:0.98},
-      html2canvas: {scale:2, useCORS:true, backgroundColor:'#ffffff'},
+      html2canvas: {scale:2, useCORS:true, allowTaint:false, logging:false,
+                    backgroundColor:'#ffffff', windowWidth: hoja.scrollWidth},
       jsPDF:       {unit:'mm', format:'letter', orientation:'portrait'},
-      pagebreak:   {mode:['avoid-all','css','legacy']}
-    }).from(cont).save();
+      pagebreak:   {mode:['css','legacy']}
+    }).from(hoja).save();
     toast('✅ PDF generado','ok');
   }catch(e){
     console.error('Error generando PDF:', e);
-    toast('❌ Error al generar el PDF','err');
+    toast('❌ Error al generar el PDF — revisa la consola (F12)','err');
   }finally{
-    cont.remove();
+    capa.remove();
   }
 }
