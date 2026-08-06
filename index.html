@@ -548,11 +548,54 @@
           <label>Especialidad</label>
           <input type="text" id="p-especialidad" placeholder="Folclor colombiano, Contemporáneo...">
         </div>
+        <div class="form-group full">
+          <label>Valor por clase (COP)</label>
+          <input type="number" id="p-valorClase" min="0" step="1000" placeholder="Ej: 50000">
+          <small style="font-size:11px;color:var(--muted)">Lo que se le paga por cada clase dictada.</small>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="cerrarModal('modal-profesor')">Cancelar</button>
       <button class="btn btn-primary" onclick="guardarProfesor()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL PAGO PROFESOR -->
+<div class="modal-overlay" id="modal-pago-prof">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <h3 id="modal-pago-prof-title">Registrar pago</h3>
+      <button class="modal-close" onclick="cerrarModal('modal-pago-prof')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div id="pago-prof-info" style="background:var(--card2);border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px"></div>
+      <div class="form-grid" style="grid-template-columns:1fr 1fr">
+        <div class="form-group">
+          <label>Fecha *</label>
+          <input type="date" id="pp-fecha">
+        </div>
+        <div class="form-group">
+          <label>N.º de clases</label>
+          <input type="number" id="pp-clases" min="0" step="1" placeholder="Ej: 8" oninput="calcMontoPagoProf()">
+        </div>
+        <div class="form-group full">
+          <label>Monto a pagar (COP) *</label>
+          <input type="number" id="pp-monto" min="0" step="1000" placeholder="Ej: 400000">
+          <small id="pp-sugerencia" style="font-size:11px;color:var(--muted)"></small>
+        </div>
+        <div class="form-group full">
+          <label>Nota / concepto</label>
+          <input type="text" id="pp-nota" placeholder="Ej: Pago quincena, clases de agosto...">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" id="btn-borrar-pago-prof" style="display:none;margin-right:auto" onclick="eliminarPagoProf()">&#128465; Eliminar</button>
+      <button class="btn btn-ghost" onclick="cerrarModal('modal-pago-prof')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarPagoProf()">&#128190; Guardar pago</button>
     </div>
   </div>
 </div>
