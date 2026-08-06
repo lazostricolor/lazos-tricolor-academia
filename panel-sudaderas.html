@@ -3,170 +3,295 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Panel — Sudaderas</title>
+<title>Sudaderas 2026 — Lazos Tricolor</title>
+
+<!-- Mismo CSS del panel principal: menú, encabezado, botones y colores -->
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
 <style>
-  :root{ --indigo:#4f46e5; --indigo-700:#4338ca; --indigo-50:#eef2ff; --ink:#1e2233;
-         --muted:#6b7280; --line:#e5e7eb; --bg:#f6f7fb; --green:#16a34a; --green-bg:#dcfce7;
-         --amber:#b45309; --amber-bg:#fef3c7; --gray-bg:#f1f3f6; --red:#dc2626; --red-bg:#fee2e2; }
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
-  /* Login */
-  #login{max-width:360px;margin:12vh auto;background:#fff;border:1px solid var(--line);
-         border-radius:16px;padding:26px}
-  #login h1{font-size:18px;margin-bottom:4px}
-  #login p{color:var(--muted);font-size:13px;margin-bottom:18px}
-  input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:14px;margin-bottom:10px}
-  .btn{background:var(--indigo);color:#fff;border:none;padding:11px 14px;border-radius:10px;
-       font-size:14px;font-weight:600;cursor:pointer}
-  .btn.sm{padding:6px 11px;font-size:12.5px}
-  .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
-  .btn.wa{background:#25D366}
-  .btn.ok{background:var(--green)} .btn.no{background:var(--red)}
-  .btn:disabled{opacity:.5}
-  /* Layout */
-  #panel{display:none;padding:24px 28px;max-width:1200px;margin:0 auto}
-  .top{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:18px}
-  h1{font-size:20px}.sub{color:var(--muted);font-size:13px;margin-top:3px}
-  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
-  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 15px}
-  .card .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
-  .card .val{font-size:21px;font-weight:700;margin-top:6px}
-  .card.flag{background:var(--amber-bg);border-color:#fde68a}.card.flag .val{color:var(--amber)}
-  .panelbox{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
-  .ph{display:flex;justify-content:space-between;align-items:center;padding:13px 15px;border-bottom:1px solid var(--line)}
-  .ph h2{font-size:14px}
-  table{width:100%;border-collapse:collapse;font-size:13px}
-  th{text-align:left;padding:10px 13px;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;
-     color:var(--muted);background:#fafbfc;border-bottom:1px solid var(--line);white-space:nowrap}
-  td{padding:11px 13px;border-bottom:1px solid #f1f2f5;vertical-align:middle}
-  .alumna{font-weight:600}.alumna small{display:block;color:var(--muted);font-weight:400;font-size:11px}
-  .talla{background:var(--indigo-50);color:var(--indigo-700);font-weight:600;padding:2px 8px;border-radius:6px}
-  .money{font-variant-numeric:tabular-nums;white-space:nowrap}
-  .cuota{display:flex;flex-direction:column;gap:4px}
-  .badge{font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;width:fit-content}
-  .b-paid{background:var(--green-bg);color:var(--green)}
-  .b-check{background:var(--amber-bg);color:var(--amber)}
-  .b-pend{background:var(--gray-bg);color:var(--muted)}
-  .b-late{background:var(--red-bg);color:var(--red)}
-  .rowact{display:flex;gap:6px;flex-wrap:wrap}
-  .catrow td{background:var(--indigo-50);color:var(--indigo-700);font-weight:700;font-size:11px;
-             text-transform:uppercase;letter-spacing:.6px;padding:8px 13px}
-  .link{font-size:11px;color:var(--indigo);cursor:pointer;text-decoration:underline;background:none;border:none;padding:0}
-  /* Modal */
-  .ov{position:fixed;inset:0;background:rgba(20,22,35,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
-  .modal{background:#fff;border-radius:14px;padding:20px;max-width:420px;width:100%;text-align:center}
-  .modal h3{font-size:16px;margin-bottom:12px}
-  .modal img{max-width:100%;border-radius:10px}
-  .modal .actions{display:flex;gap:8px;justify-content:center;margin-top:14px}
-  #qrbox{display:flex;justify-content:center;margin:8px 0}
-  .enlace{font-size:11px;color:var(--muted);word-break:break-all;background:var(--gray-bg);padding:8px;border-radius:8px;margin-top:10px}
-  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;
-         padding:10px 16px;border-radius:10px;font-size:13px;display:none;z-index:60}
-  @media(max-width:820px){.cards{grid-template-columns:repeat(2,1fr)}}
+/* ═══════════════════════════════════════════════════════════
+   Estilos propios de esta página.
+   TODAS las clases van prefijadas con sud- para no chocar con
+   styles.css. No se redefine body, *, .btn, .card ni .badge.
+═══════════════════════════════════════════════════════════ */
+  .sud-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+  .sud-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 15px}
+  .sud-card .sud-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .sud-card .sud-val{font-size:21px;font-weight:700;margin-top:6px}
+  .sud-card.sud-flag{background:#fef3c7;border-color:#fde68a}
+  .sud-card.sud-flag .sud-val{color:#b45309}
+
+  .sud-charts{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .sud-chartbox{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+  .sud-chartbox h4{font-size:13px;margin:0 0 12px;color:var(--text2,var(--muted))}
+  .sud-progress{flex:2;min-width:300px}
+  .sud-dona{flex:1;min-width:230px}
+
+  .sud-bar-wrap{height:26px;background:#eef2ff;border-radius:14px;overflow:hidden;position:relative}
+  .sud-bar{height:100%;background:linear-gradient(90deg,#3a57e8,#5a76f5);border-radius:14px;
+           transition:width .5s ease;min-width:2px}
+  .sud-bar-txt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+               font-size:12.5px;font-weight:800;color:#1e2233}
+  .sud-bar-legend{display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--muted)}
+  .sud-mini{display:flex;gap:18px;margin-top:14px;flex-wrap:wrap}
+  .sud-mini div{font-size:12px;color:var(--muted)}
+  .sud-mini b{display:block;font-size:16px;color:var(--text,#1e2233);margin-top:2px}
+
+  .sud-box{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .sud-boxhead{display:flex;justify-content:space-between;align-items:center;padding:13px 15px;
+               border-bottom:1px solid var(--border)}
+  .sud-boxhead h3{font-size:14px;margin:0}
+  .sud-table{width:100%;border-collapse:collapse;font-size:13px}
+  .sud-table th{text-align:left;padding:10px 13px;font-size:10.5px;text-transform:uppercase;
+                letter-spacing:.5px;color:var(--muted);background:#fafbfc;
+                border-bottom:1px solid var(--border);white-space:nowrap}
+  .sud-table td{padding:11px 13px;border-bottom:1px solid #f1f2f5;vertical-align:middle}
+  .sud-alumna{font-weight:600}
+  .sud-alumna small{display:block;color:var(--muted);font-weight:400;font-size:11px}
+  .sud-talla{background:#eef2ff;color:#4338ca;font-weight:600;padding:2px 8px;border-radius:6px}
+  .sud-money{font-variant-numeric:tabular-nums;white-space:nowrap}
+  .sud-badge{font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;
+             width:fit-content;display:inline-block}
+  .sud-b-paid{background:#dcfce7;color:#16a34a}
+  .sud-b-check{background:#fef3c7;color:#b45309}
+  .sud-b-pend{background:#f1f3f6;color:#6b7280}
+  .sud-rowact{display:flex;gap:6px;flex-wrap:wrap}
+  .sud-catrow td{background:#eef2ff;color:#4338ca;font-weight:700;font-size:11px;
+                 text-transform:uppercase;letter-spacing:.6px;padding:8px 13px}
+  .sud-link{font-size:11px;color:#3a57e8;cursor:pointer;text-decoration:underline;
+            background:none;border:none;padding:0}
+
+  /* Botones propios — no usan .btn de styles.css para evitar choques */
+  .sud-btn{background:#3a57e8;color:#fff;border:none;padding:8px 13px;border-radius:9px;
+           font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+  .sud-btn.sud-sm{padding:6px 11px;font-size:12.5px}
+  .sud-btn.sud-ghost{background:var(--card);color:var(--text,#1e2233);border:1px solid var(--border)}
+  .sud-btn.sud-wa{background:#25D366}
+  .sud-btn.sud-ok{background:#16a34a}
+  .sud-btn.sud-no{background:#dc2626}
+  .sud-btn:disabled{opacity:.5;cursor:default}
+
+  /* Modales propios */
+  .sud-ov{position:fixed;inset:0;background:rgba(20,22,35,.55);display:none;
+          align-items:center;justify-content:center;padding:16px;z-index:1200}
+  .sud-modal{background:#fff;border-radius:14px;padding:20px;max-width:420px;width:100%;text-align:center}
+  .sud-modal h3{font-size:16px;margin-bottom:12px}
+  .sud-modal img{max-width:100%;border-radius:10px}
+  .sud-actions{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+  .sud-input{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:10px;
+             font-size:14px;margin:6px 0 10px;font-family:inherit}
+  #sud-qrbox{display:flex;justify-content:center;margin:8px 0}
+  .sud-enlace{font-size:11px;color:var(--muted);word-break:break-all;background:#f1f3f6;
+              padding:8px;border-radius:8px;margin-top:10px}
+  .sud-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e2233;
+             color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;display:none;z-index:1300}
+
+  /* Login — capa completa por encima del panel.
+     Se usa una capa fija en vez de alternar el display de #app, porque
+     styles.css puede definir #app como flex/grid y sobrescribirlo
+     desarmaría el layout de menú + contenido. */
+  #sud-login{position:fixed;inset:0;z-index:2000;background:var(--bg,#f6f7fb);
+             display:flex;align-items:center;justify-content:center;padding:20px}
+  #sud-login .sud-login-card{max-width:380px;width:100%;background:#fff;
+             border:1px solid var(--border);border-radius:16px;padding:28px;text-align:center}
+  #sud-login h1{font-size:19px;margin-bottom:6px}
+  #sud-login p{color:var(--muted);font-size:13px;margin-bottom:20px}
+
+  @media(max-width:900px){ .sud-cards{grid-template-columns:repeat(2,1fr)} }
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
-<div id="login">
-  <h1>Panel — Sudaderas</h1>
-  <p>Inicia sesión con la cuenta de Google de la academia.</p>
-  <button class="btn" id="btnGoogle" style="width:100%">Entrar con Google</button>
-  <div id="loginErr" style="color:var(--red);font-size:12.5px;margin-top:10px"></div>
-</div>
-
-<!-- PANEL -->
-<div id="panel">
-  <div class="top">
-    <div><h1>Sudaderas 2026</h1>
-      <div class="sub">Pago en 3 cuotas · 15 ago / 15 sep / 15 oct · Entrega: 1ª quincena de noviembre</div></div>
-    <div style="display:flex;gap:8px">
-      <button class="btn ghost sm" id="btnNueva">+ Asignar talla</button>
-      <button class="btn ghost sm" id="btnParticular">+ Particular</button>
-      <a class="btn ghost sm" href="index.html" style="text-decoration:none;display:inline-flex;align-items:center">← Dashboard</a>
-    </div>
-  </div>
-
-  <div class="cards" id="cards"></div>
-
-  <div class="panelbox">
-    <div class="ph"><h2>Control de pagos</h2><span class="sub" id="conteo"></span></div>
-    <div style="overflow-x:auto">
-      <table>
-        <thead><tr>
-          <th>Alumna</th><th>Talla</th><th>Total</th>
-          <th>Pagado</th><th>Saldo</th><th>Estado</th><th>Acciones</th>
-        </tr></thead>
-        <tbody id="filas"><tr><td colspan="7" style="padding:20px;color:var(--muted)">Cargando…</td></tr></tbody>
-      </table>
+<!-- ══════════════ LOGIN ══════════════ -->
+<div id="sud-login">
+  <div class="sud-login-card">
+    <h1>👕 Sudaderas 2026</h1>
+    <p>Inicia sesión con la cuenta de Google de la academia.</p>
+    <button class="sud-btn" id="sud-btnGoogle" style="width:100%;padding:12px">Entrar con Google</button>
+    <div id="sud-loginErr" style="color:#dc2626;font-size:12.5px;margin-top:12px"></div>
+    <div style="margin-top:16px">
+      <a href="index.html" style="font-size:12.5px;color:var(--muted)">← Volver al panel</a>
     </div>
   </div>
 </div>
 
-<!-- Modales -->
-<div class="ov" id="ovVer"><div class="modal" style="max-width:460px">
-  <h3 id="verTit">Abonos</h3>
-  <div id="verResumen" style="font-size:13px;color:var(--muted);margin-bottom:10px"></div>
-  <div id="verLista" style="max-height:60vh;overflow:auto;text-align:left"></div>
-  <div class="actions"><button class="btn ghost sm" data-close>Cerrar</button></div>
+<!-- ══════════════ PANEL ══════════════ -->
+<div id="overlay" onclick="sudCerrarMenu()"></div>
+
+<!-- Se oculta con visibility, igual que index.html: así no se pisa
+     el display que styles.css le asigne al layout. -->
+<div id="app" style="visibility:hidden">
+
+  <!-- SIDEBAR — idéntico al del panel principal -->
+  <nav id="sidebar">
+    <div class="sidebar-header" style="padding:16px">
+      <h2 style="font-size:15px;margin:0">💃 Lazos Tricolor</h2>
+      <p style="font-size:10px;color:#94a3b8;margin-top:4px">Soacha, Cundinamarca 🇨🇴🇻🇪</p>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-section">Principal</div>
+      <button class="nav-item" onclick="sudIr('dashboard')"><span class="nav-icon">📊</span>Dashboard</button>
+      <button class="nav-item" onclick="sudIr('alumnos')"><span class="nav-icon">🎓</span>Alumnas</button>
+      <button class="nav-item" onclick="sudIr('pagos')"><span class="nav-icon">💳</span>Mensualidades</button>
+      <button class="nav-item" onclick="sudIr('asistencias')"><span class="nav-icon">📋</span>Asistencias</button>
+      <div class="nav-section">Gestión</div>
+      <button class="nav-item" onclick="sudIr('profesores')"><span class="nav-icon">👨‍🏫</span>Profesores</button>
+      <button class="nav-item" onclick="sudIr('recaudos')"><span class="nav-icon">🎯</span>Recaudos</button>
+      <button class="nav-item" onclick="sudIr('rifas')"><span class="nav-icon">🎟️</span>Rifas</button>
+      <button class="nav-item active"><span class="nav-icon">👕</span>Sudaderas</button>
+      <button class="nav-item" onclick="sudIr('ingresos')"><span class="nav-icon">💰</span>Otros Ingresos</button>
+      <button class="nav-item" onclick="sudIr('gastos')"><span class="nav-icon">🧾</span>Gastos Varios</button>
+      <button class="nav-item" onclick="sudIr('finanzas')"><span class="nav-icon">📈</span>Finanzas</button>
+      <button class="nav-item" onclick="sudIr('presentaciones')"><span class="nav-icon">🎭</span>Presentaciones</button>
+      <div class="nav-section">Inscripciones</div>
+      <button class="nav-item" onclick="sudIr('preinscripciones')"><span class="nav-icon">📥</span>Preinscripciones</button>
+      <div class="nav-section">Academia</div>
+      <button class="nav-item" onclick="sudIr('planificador')"><span class="nav-icon">📅</span>Planificador</button>
+      <div class="nav-section">Sistema</div>
+      <button class="nav-item" onclick="sudIr('archivo')"><span class="nav-icon">🗃️</span>Archivo</button>
+      <button class="nav-item" onclick="sudIr('config')"><span class="nav-icon">⚙️</span>Configuración</button>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn-salir" onclick="sudSalir()">🚪 Cerrar Sesión</button>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div id="main">
+    <header id="header">
+      <button id="menu-toggle" onclick="sudAbrirMenu()">☰</button>
+      <div class="header-title" id="header-title">👕 Sudaderas 2026</div>
+      <div style="margin-left:auto;font-size:11.5px;color:var(--muted);white-space:nowrap">
+        3 cuotas · 15 ago / 15 sep / 15 oct
+      </div>
+    </header>
+
+    <div id="content">
+      <div class="section active" style="display:block">
+
+        <div class="section-header">
+          <div class="section-title">👕 Sudaderas 2026</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="sud-btn sud-ghost sud-sm" id="sud-btnNueva">+ Asignar talla</button>
+            <button class="sud-btn sud-ghost sud-sm" id="sud-btnParticular">+ Particular</button>
+          </div>
+        </div>
+
+        <!-- Gráficos de progreso -->
+        <div class="sud-charts">
+          <div class="sud-chartbox sud-progress">
+            <h4>📊 Progreso del recaudo</h4>
+            <div class="sud-bar-wrap">
+              <div class="sud-bar" id="sud-bar" style="width:0%"></div>
+              <div class="sud-bar-txt" id="sud-bar-txt">0%</div>
+            </div>
+            <div class="sud-bar-legend">
+              <span id="sud-bar-izq">$0 recaudado</span>
+              <span id="sud-bar-der">meta $0</span>
+            </div>
+            <div class="sud-mini" id="sud-mini"></div>
+          </div>
+          <div class="sud-chartbox sud-dona">
+            <h4>Estado por alumna</h4>
+            <canvas id="sud-ch-estados" style="max-height:190px"></canvas>
+          </div>
+        </div>
+
+        <!-- Tarjetas resumen -->
+        <div class="sud-cards" id="sud-cards"></div>
+
+        <!-- Tabla -->
+        <div class="sud-box">
+          <div class="sud-boxhead">
+            <h3>Control de pagos</h3>
+            <span style="font-size:12px;color:var(--muted)" id="sud-conteo"></span>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="sud-table">
+              <thead><tr>
+                <th>Alumna</th><th>Talla</th><th>Total</th>
+                <th>Pagado</th><th>Saldo</th><th>Estado</th><th>Acciones</th>
+              </tr></thead>
+              <tbody id="sud-filas">
+                <tr><td colspan="7" style="padding:20px;color:var(--muted)">Cargando…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ MODALES ══════════════ -->
+<div class="sud-ov" id="sud-ovVer"><div class="sud-modal" style="max-width:460px">
+  <h3 id="sud-verTit">Abonos</h3>
+  <div id="sud-verResumen" style="font-size:13px;color:var(--muted);margin-bottom:10px"></div>
+  <div id="sud-verLista" style="max-height:60vh;overflow:auto;text-align:left"></div>
+  <div class="sud-actions"><button class="sud-btn sud-ghost sud-sm" data-sud-close>Cerrar</button></div>
 </div></div>
 
-<div class="ov" id="ovImg"><div class="modal" style="max-width:460px">
-  <h3>Soporte</h3><img id="imgFull" alt="soporte" style="max-width:100%;border-radius:10px">
-  <div class="actions"><button class="btn ghost sm" data-close>Cerrar</button></div>
+<div class="sud-ov" id="sud-ovImg"><div class="sud-modal" style="max-width:460px">
+  <h3>Soporte</h3><img id="sud-imgFull" alt="soporte">
+  <div class="sud-actions"><button class="sud-btn sud-ghost sud-sm" data-sud-close>Cerrar</button></div>
 </div></div>
 
-<div class="ov" id="ovQr"><div class="modal">
+<div class="sud-ov" id="sud-ovQr"><div class="sud-modal">
   <h3>QR para el representante</h3>
-  <div id="qrNombre" style="font-weight:700;font-size:15px;margin-bottom:6px"></div>
-  <div id="qrbox"></div>
-  <div class="enlace" id="qrEnlace"></div>
-  <div class="actions">
-    <button class="btn sm" id="qrCopiar">Copiar enlace</button>
-    <button class="btn wa sm" id="qrWa">Enviar por WhatsApp</button>
-    <button class="btn ghost sm" id="qrDescargar">Descargar QR</button>
-    <button class="btn ghost sm" data-close>Cerrar</button>
+  <div id="sud-qrNombre" style="font-weight:700;font-size:15px;margin-bottom:6px"></div>
+  <div id="sud-qrbox"></div>
+  <div class="sud-enlace" id="sud-qrEnlace"></div>
+  <div class="sud-actions">
+    <button class="sud-btn sud-sm" id="sud-qrCopiar">Copiar enlace</button>
+    <button class="sud-btn sud-wa sud-sm" id="sud-qrWa">Enviar por WhatsApp</button>
+    <button class="sud-btn sud-ghost sud-sm" id="sud-qrDescargar">Descargar QR</button>
+    <button class="sud-btn sud-ghost sud-sm" data-sud-close>Cerrar</button>
   </div>
 </div></div>
 
-<div class="ov" id="ovNueva"><div class="modal" style="text-align:left">
+<div class="sud-ov" id="sud-ovNueva"><div class="sud-modal" style="text-align:left">
   <h3>Asignar talla</h3>
   <label style="font-size:12px;color:var(--muted)">Alumna</label>
-  <select id="nvAlumna" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:14px;margin:6px 0 10px"></select>
+  <select id="sud-nvAlumna" class="sud-input"></select>
   <label style="font-size:12px;color:var(--muted)">Talla</label>
-  <select id="nvTalla" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:14px;margin:6px 0 10px"></select>
-  <div class="actions" style="justify-content:flex-end">
-    <button class="btn ghost sm" data-close>Cancelar</button>
-    <button class="btn sm" id="nvCrear">Crear y generar QR</button>
+  <select id="sud-nvTalla" class="sud-input"></select>
+  <div class="sud-actions" style="justify-content:flex-end">
+    <button class="sud-btn sud-ghost sud-sm" data-sud-close>Cancelar</button>
+    <button class="sud-btn sud-sm" id="sud-nvCrear">Crear y generar QR</button>
   </div>
-  <div id="nvErr" style="color:var(--red);font-size:12.5px;margin-top:8px"></div>
+  <div id="sud-nvErr" style="color:#dc2626;font-size:12.5px;margin-top:8px"></div>
 </div></div>
 
-<div class="ov" id="ovPart"><div class="modal" style="text-align:left">
+<div class="sud-ov" id="sud-ovPart"><div class="sud-modal" style="text-align:left">
   <h3>Agregar particular</h3>
-  <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px">Colaborador, parte técnica o amigo de la academia que también quiere su sudadera.</div>
-  <label style="font-size:12px;color:var(--muted)">Nombre</label>
-  <input id="ptNombre" placeholder="Nombre completo" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:14px;margin:6px 0 10px">
-  <label style="font-size:12px;color:var(--muted)">Talla</label>
-  <select id="ptTalla" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:14px;margin:6px 0 10px"></select>
-  <div class="actions" style="justify-content:flex-end">
-    <button class="btn ghost sm" data-close>Cancelar</button>
-    <button class="btn sm" id="ptCrear">Crear y generar QR</button>
+  <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px">
+    Colaborador, parte técnica o amigo de la academia que también quiere su sudadera.
   </div>
-  <div id="ptErr" style="color:var(--red);font-size:12.5px;margin-top:8px"></div>
+  <label style="font-size:12px;color:var(--muted)">Nombre</label>
+  <input id="sud-ptNombre" class="sud-input" placeholder="Nombre completo">
+  <label style="font-size:12px;color:var(--muted)">Talla</label>
+  <select id="sud-ptTalla" class="sud-input"></select>
+  <div class="sud-actions" style="justify-content:flex-end">
+    <button class="sud-btn sud-ghost sud-sm" data-sud-close>Cancelar</button>
+    <button class="sud-btn sud-sm" id="sud-ptCrear">Crear y generar QR</button>
+  </div>
+  <div id="sud-ptErr" style="color:#dc2626;font-size:12.5px;margin-top:8px"></div>
 </div></div>
 
-<div class="toast" id="toast"></div>
+<div class="sud-toast" id="sud-toast"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<!-- sudaderas.js vive en la RAÍZ del repositorio, no en js/ — igual que antes -->
 <script src="sudaderas.js"></script>
 <script>
-/* ============================================================
-   PEGA AQUÍ TU CONFIG DE FIREBASE (la misma de tu firebase.js).
-   ============================================================ */
+/* ═══════════════════════════════════════════════════════════
+   Config de Firebase — idéntica a la anterior, sin cambios.
+═══════════════════════════════════════════════════════════ */
 const firebaseConfig = {
   apiKey: "AIzaSyCIj32zyCreKyCGJSMo6T5yTDhMeqctpG4",
   authDomain: "lazos-tricolor-academia.firebaseapp.com",
@@ -179,31 +304,44 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 
 const $ = s => document.querySelector(s);
-const BADGE = { pagado:['Pagado ✓','b-paid'], por_verificar:['Por verificar','b-check'],
-                vencida:['Vencida','b-late'], pendiente:['Pendiente','b-pend'] };
-let datos = [], alumnas = [];
+let datos = [], alumnas = [], chEstados = null;
+
+/* ---------- Navegación del menú ---------- */
+function sudIr(seccion){ location.href = 'index.html#' + seccion; }
+function sudAbrirMenu(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+function sudCerrarMenu(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+async function sudSalir(){
+  try{ await firebase.auth().signOut(); }catch(_){}
+  location.href = 'index.html';
+}
 
 /* ---------- Login ---------- */
-$('#btnGoogle').onclick = async ()=>{
-  $('#loginErr').textContent='';
+$('#sud-btnGoogle').onclick = async ()=>{
+  $('#sud-loginErr').textContent='';
   try{
     const prov = new firebase.auth.GoogleAuthProvider();
     await firebase.auth().signInWithPopup(prov);
   }catch(e){
-    $('#loginErr').textContent = (e.code === 'auth/unauthorized-domain')
+    $('#sud-loginErr').textContent = (e.code === 'auth/unauthorized-domain')
       ? 'Dominio no autorizado. Agrégalo en Firebase → Authentication → Configuración → Dominios autorizados.'
       : 'No se pudo entrar con Google. Intenta de nuevo.';
   }
 };
 firebase.auth().onAuthStateChanged(u=>{
-  $('#login').style.display = u ? 'none':'block';
-  $('#panel').style.display = u ? 'block':'none';
+  $('#sud-login').style.display  = u ? 'none' : 'flex';
+  $('#app').style.visibility     = u ? 'visible' : 'hidden';
   if(u) cargar();
 });
 
 /* ---------- Cargar y pintar ---------- */
 async function cargar(){
-  $('#filas').innerHTML = `<tr><td colspan="7" style="padding:20px;color:var(--muted)">Cargando…</td></tr>`;
+  $('#sud-filas').innerHTML = `<tr><td colspan="7" style="padding:20px;color:var(--muted)">Cargando…</td></tr>`;
   try{
     const [regs, alu] = await Promise.all([
       Sudaderas.listarRegistros(),
@@ -211,80 +349,79 @@ async function cargar(){
     ]);
     datos = regs; alumnas = alu;
   }catch(e){
-    $('#filas').innerHTML = `<tr><td colspan="7" style="padding:20px;color:var(--red)">No se pudo cargar la lista. ${e.message||''}</td></tr>`;
+    $('#sud-filas').innerHTML = `<tr><td colspan="7" style="padding:20px;color:#dc2626">No se pudo cargar la lista. ${e.message||''}</td></tr>`;
     return;
   }
   pintar();
 }
 
 const ESTADO_BADGE = {
-  pagado:      ['Pagado ✓','b-paid'],
-  en_revision: ['Por verificar','b-check'],
-  parcial:     ['Parcial','b-check'],
-  pendiente:   ['Sin abonos','b-pend'],
-  sin_talla:   ['Sin talla','b-pend']
+  pagado:      ['Pagado ✓','sud-b-paid'],
+  en_revision: ['Por verificar','sud-b-check'],
+  parcial:     ['Parcial','sud-b-check'],
+  pendiente:   ['Sin abonos','sud-b-pend'],
+  sin_talla:   ['Sin talla','sud-b-pend']
 };
 
 function fila(alumna, r){
   const nombre = alumna ? alumna.nombre : (r ? r.nombre : '');
   const cat    = alumna ? (alumna.categoria || '—') : (r && r.particular ? 'Particular' : 'sin alumna activa');
   const qrBtn  = r
-    ? `<button class="btn ghost sm" data-qr="${r.id}">QR</button>`
-    : `<button class="btn ghost sm" data-qr-alu="${alumna.id}">QR</button>`;
-  const delBtn = r ? `<button class="btn ghost sm" data-del="${r.id}" title="Eliminar registro" style="color:var(--red)">🗑</button>` : '';
+    ? `<button class="sud-btn sud-ghost sud-sm" data-qr="${r.id}">QR</button>`
+    : `<button class="sud-btn sud-ghost sud-sm" data-qr-alu="${alumna.id}">QR</button>`;
+  const delBtn = r ? `<button class="sud-btn sud-ghost sud-sm" data-del="${r.id}" title="Eliminar registro" style="color:#dc2626">🗑</button>` : '';
 
-  if(r && r.talla){   // registro con talla → total/pagado/saldo
+  if(r && r.talla){
     const pagado = Sudaderas.pagado(r), saldo = Sudaderas.saldo(r);
     const est = Sudaderas.estadoGeneral(r);
     const [txt,cls] = ESTADO_BADGE[est] || ESTADO_BADGE.pendiente;
     const nAb = Object.keys(r.abonos||{}).length;
     const rev = Sudaderas.enRevision(r);
-    const abBtn = nAb ? `<button class="btn ghost sm" data-ab="${r.id}">Abonos (${nAb})${rev?' •':''}</button>` : '';
+    const abBtn = nAb ? `<button class="sud-btn sud-ghost sud-sm" data-ab="${r.id}">Abonos (${nAb})${rev?' •':''}</button>` : '';
     return `<tr>
-      <td class="alumna">${nombre}<small>${cat}</small></td>
-      <td><span class="talla">${r.talla}</span></td>
-      <td class="money">${Sudaderas.formatoDinero(r.total)}</td>
-      <td class="money" style="color:var(--green)">${Sudaderas.formatoDinero(pagado)}</td>
-      <td class="money">${Sudaderas.formatoDinero(saldo)}</td>
-      <td><span class="badge ${cls}">${txt}</span></td>
-      <td><div class="rowact">${abBtn}${qrBtn}${delBtn}</div></td>
+      <td class="sud-alumna">${nombre}<small>${cat}</small></td>
+      <td><span class="sud-talla">${r.talla}</span></td>
+      <td class="sud-money">${Sudaderas.formatoDinero(r.total)}</td>
+      <td class="sud-money" style="color:#16a34a">${Sudaderas.formatoDinero(pagado)}</td>
+      <td class="sud-money">${Sudaderas.formatoDinero(saldo)}</td>
+      <td><span class="sud-badge ${cls}">${txt}</span></td>
+      <td><div class="sud-rowact">${abBtn}${qrBtn}${delBtn}</div></td>
     </tr>`;
   }
-  if(r){   // registro sin talla → QR generado, esperando al papá
+  if(r){
     return `<tr>
-      <td class="alumna">${nombre}<small>${cat}</small></td>
-      <td><span class="badge b-check">QR listo</span></td>
+      <td class="sud-alumna">${nombre}<small>${cat}</small></td>
+      <td><span class="sud-badge sud-b-check">QR listo</span></td>
       <td colspan="3" style="color:#9aa1ad;font-size:12.5px">Esperando que el papá elija la talla</td>
-      <td><span class="badge b-pend">Sin talla</span></td>
-      <td><div class="rowact">${qrBtn}${delBtn}</div></td>
+      <td><span class="sud-badge sud-b-pend">Sin talla</span></td>
+      <td><div class="sud-rowact">${qrBtn}${delBtn}</div></td>
     </tr>`;
   }
-  // sin registro aún
   return `<tr style="opacity:.82">
-    <td class="alumna">${nombre}<small>${cat}</small></td>
-    <td><span class="badge b-pend">Sin talla</span></td>
+    <td class="sud-alumna">${nombre}<small>${cat}</small></td>
+    <td><span class="sud-badge sud-b-pend">Sin talla</span></td>
     <td colspan="3" style="color:#9aa1ad;font-size:12.5px">Sin registrar — genera su QR</td>
-    <td><span class="badge b-pend">—</span></td>
-    <td><div class="rowact">${qrBtn}</div></td>
+    <td><span class="sud-badge sud-b-pend">—</span></td>
+    <td><div class="sud-rowact">${qrBtn}</div></td>
   </tr>`;
 }
 
 const CATS_ORD = ['Infantil','Juvenil','Adulto','Adulto Mayor'];
 
 function pintar(){
-  // Índice de registros por alumna
   const porAlumna = {};
   datos.forEach(r=>{ if(r.alumnaId!=null && r.alumnaId!=='') porAlumna[String(r.alumnaId)] = r; });
 
-  // Resumen (modelo de abonos)
-  let recaudado=0, porVerificar=0, saldoPend=0, sinRegistrar=0;
+  let recaudado=0, porVerificar=0, saldoPend=0, metaTotal=0, sinRegistrar=0;
+  const conteo = {pagado:0, en_revision:0, parcial:0, pendiente:0, sin_talla:0};
   datos.forEach(r=>{
     recaudado += Sudaderas.pagado(r);
     if(Sudaderas.enRevision(r) > 0) porVerificar++;
-    if(r.talla) saldoPend += Sudaderas.saldo(r);
+    if(r.talla){ saldoPend += Sudaderas.saldo(r); metaTotal += (Number(r.total)||0); }
+    const e = Sudaderas.estadoGeneral(r);
+    if(conteo[e] !== undefined) conteo[e]++;
   });
 
-  // Agrupar alumnas por categoría
   const porCat = {};
   alumnas.forEach(a=>{
     const c = CATS_ORD.includes(a.categoria) ? a.categoria : 'Otras';
@@ -295,7 +432,7 @@ function pintar(){
   let filas = '';
   [...CATS_ORD, 'Otras'].forEach(cat=>{
     const lista = porCat[cat]; if(!lista || !lista.length) return;
-    filas += `<tr class="catrow"><td colspan="7">${cat} · ${lista.length}</td></tr>`;
+    filas += `<tr class="sud-catrow"><td colspan="7">${cat} · ${lista.length}</td></tr>`;
     lista.forEach(a=>{
       const r = porAlumna[String(a.id)];
       if(r) usados.add(r.id);
@@ -304,48 +441,85 @@ function pintar(){
     });
   });
 
-  // Particulares (colaboradores/amigos) en su propia sección
   const sueltos = datos.filter(r=>!usados.has(r.id));
   const particulares = sueltos.filter(r=>r.particular);
   const otros = sueltos.filter(r=>!r.particular);
   if(particulares.length){
-    filas += `<tr class="catrow"><td colspan="7">Particulares · ${particulares.length}</td></tr>`;
+    filas += `<tr class="sud-catrow"><td colspan="7">Particulares · ${particulares.length}</td></tr>`;
     filas += particulares.map(r=>fila(null, r)).join('');
   }
   if(otros.length){
-    filas += `<tr class="catrow"><td colspan="7" style="background:#fafbfc;color:var(--muted)">Otros registros (sin alumna activa)</td></tr>`;
+    filas += `<tr class="sud-catrow"><td colspan="7" style="background:#fafbfc;color:var(--muted)">Otros registros (sin alumna activa)</td></tr>`;
     filas += otros.map(r=>fila(null, r)).join('');
   }
 
-  $('#cards').innerHTML = `
-    <div class="card"><div class="lbl">Recaudado</div><div class="val">${Sudaderas.formatoDinero(recaudado)}</div></div>
-    <div class="card ${porVerificar?'flag':''}"><div class="lbl">Por verificar</div><div class="val">${porVerificar} <small style="font-size:12px;color:var(--muted)">alumnas</small></div></div>
-    <div class="card"><div class="lbl">Saldo pendiente</div><div class="val">${Sudaderas.formatoDinero(saldoPend)}</div></div>
-    <div class="card"><div class="lbl">Alumnas activas</div><div class="val">${alumnas.length}</div></div>`;
+  $('#sud-cards').innerHTML = `
+    <div class="sud-card"><div class="sud-lbl">Recaudado</div><div class="sud-val">${Sudaderas.formatoDinero(recaudado)}</div></div>
+    <div class="sud-card ${porVerificar?'sud-flag':''}"><div class="sud-lbl">Por verificar</div><div class="sud-val">${porVerificar} <small style="font-size:12px;color:var(--muted)">alumnas</small></div></div>
+    <div class="sud-card"><div class="sud-lbl">Saldo pendiente</div><div class="sud-val">${Sudaderas.formatoDinero(saldoPend)}</div></div>
+    <div class="sud-card"><div class="sud-lbl">Alumnas activas</div><div class="sud-val">${alumnas.length}</div></div>`;
+
+  pintarProgreso(recaudado, metaTotal, saldoPend, conteo, sinRegistrar);
 
   if(!alumnas.length && !datos.length){
-    $('#filas').innerHTML = `<tr><td colspan="7" style="padding:22px;color:var(--muted)">No se encontraron alumnas activas. Revisa que la base haya cargado.</td></tr>`;
-    $('#conteo').textContent=''; return;
+    $('#sud-filas').innerHTML = `<tr><td colspan="7" style="padding:22px;color:var(--muted)">No se encontraron alumnas activas. Revisa que la base haya cargado.</td></tr>`;
+    $('#sud-conteo').textContent=''; return;
   }
-  $('#filas').innerHTML = filas || `<tr><td colspan="7" style="padding:22px;color:var(--muted)">Sin datos.</td></tr>`;
-  $('#conteo').textContent = `${alumnas.length} activas`;
+  $('#sud-filas').innerHTML = filas || `<tr><td colspan="7" style="padding:22px;color:var(--muted)">Sin datos.</td></tr>`;
+  $('#sud-conteo').textContent = `${alumnas.length} activas`;
+}
+
+/* ---------- Gráfico de progreso ---------- */
+function pintarProgreso(recaudado, metaTotal, saldoPend, conteo, sinRegistrar){
+  const pct = metaTotal > 0 ? Math.min(100, Math.round(recaudado / metaTotal * 100)) : 0;
+  $('#sud-bar').style.width = pct + '%';
+  $('#sud-bar-txt').textContent = pct + '%';
+  $('#sud-bar-izq').textContent = Sudaderas.formatoDinero(recaudado) + ' recaudado';
+  $('#sud-bar-der').textContent = 'meta ' + Sudaderas.formatoDinero(metaTotal);
+
+  const conTalla = conteo.pagado + conteo.en_revision + conteo.parcial + conteo.pendiente;
+  $('#sud-mini').innerHTML = `
+    <div>Sudaderas con talla<b>${conTalla}</b></div>
+    <div>Totalmente pagadas<b style="color:#16a34a">${conteo.pagado}</b></div>
+    <div>Falta por recaudar<b>${Sudaderas.formatoDinero(saldoPend)}</b></div>
+    <div>Sin registrar<b>${sinRegistrar}</b></div>`;
+
+  const el = document.getElementById('sud-ch-estados');
+  if(!el || typeof Chart === 'undefined') return;
+  if(chEstados){ chEstados.destroy(); chEstados = null; }
+  chEstados = new Chart(el, {
+    type:'doughnut',
+    data:{
+      labels:['Pagadas','Por verificar','Abono parcial','Sin abonos','Sin talla'],
+      datasets:[{
+        data:[conteo.pagado, conteo.en_revision, conteo.parcial, conteo.pendiente, conteo.sin_talla],
+        backgroundColor:['rgba(22,163,74,.8)','rgba(180,83,9,.8)','rgba(58,87,232,.6)',
+                         'rgba(148,163,184,.7)','rgba(203,213,225,.7)'],
+        borderWidth:2, borderColor:'#fff'
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:11,padding:7}}}
+    }
+  });
 }
 
 /* ---------- Acciones de tabla (delegación) ---------- */
-let abActual = null;   // registro cuyos abonos se están viendo
+let abActual = null;
 document.addEventListener('click', async e=>{
-  const ab  = e.target.closest('[data-ab]');
-  const qr  = e.target.closest('[data-qr]');
-  const qrAlu = e.target.closest('[data-qr-alu]');
-  const del = e.target.closest('[data-del]');
-  const cl  = e.target.closest('[data-close]');
+  const ab     = e.target.closest('[data-ab]');
+  const qr     = e.target.closest('[data-qr]');
+  const qrAlu  = e.target.closest('[data-qr-alu]');
+  const del    = e.target.closest('[data-del]');
+  const cl     = e.target.closest('[data-sud-close]');
   const verImg = e.target.closest('[data-img]');
-  const apr = e.target.closest('[data-aprobar]');
-  const rec = e.target.closest('[data-rechazar]');
+  const apr    = e.target.closest('[data-aprobar]');
+  const rec    = e.target.closest('[data-rechazar]');
 
-  if(cl){ cl.closest('.ov').style.display='none'; }
+  if(cl){ cl.closest('.sud-ov').style.display='none'; }
   if(ab){ abrirAbonos(ab.dataset.ab); }
-  if(verImg){ $('#imgFull').src = verImg.dataset.img; $('#ovImg').style.display='flex'; }
+  if(verImg){ $('#sud-imgFull').src = verImg.dataset.img; $('#sud-ovImg').style.display='flex'; }
   if(apr){
     try{ await Sudaderas.aprobarAbono(abActual, apr.dataset.aprobar); toast('Abono aprobado ✓'); await cargar(); abrirAbonos(abActual); }
     catch(_){ toast('No se pudo aprobar'); }
@@ -376,26 +550,26 @@ document.addEventListener('click', async e=>{
   }
 });
 
-/* Modal con la lista de abonos de una alumna, para aprobar/rechazar cada uno. */
+/* Modal con la lista de abonos, para aprobar/rechazar cada uno. */
 function abrirAbonos(rid){
   abActual = rid;
   const reg = datos.find(x=>x.id===rid);
-  if(!reg){ $('#ovVer').style.display='none'; return; }
+  if(!reg){ $('#sud-ovVer').style.display='none'; return; }
   const pagado = Sudaderas.pagado(reg), saldo = Sudaderas.saldo(reg), rev = Sudaderas.enRevision(reg);
-  $('#verTit').textContent = `${reg.nombre} — Talla ${reg.talla}`;
-  $('#verResumen').innerHTML =
-    `Total ${Sudaderas.formatoDinero(reg.total)} · Pagado <b style="color:var(--green)">${Sudaderas.formatoDinero(pagado)}</b> · Saldo <b>${Sudaderas.formatoDinero(saldo)}</b>` +
+  $('#sud-verTit').textContent = `${reg.nombre} — Talla ${reg.talla}`;
+  $('#sud-verResumen').innerHTML =
+    `Total ${Sudaderas.formatoDinero(reg.total)} · Pagado <b style="color:#16a34a">${Sudaderas.formatoDinero(pagado)}</b> · Saldo <b>${Sudaderas.formatoDinero(saldo)}</b>` +
     (rev?` · En revisión ${Sudaderas.formatoDinero(rev)}`:'');
   const lista = Sudaderas.listaAbonos(reg);
-  $('#verLista').innerHTML = lista.length ? lista.map(a=>{
+  $('#sud-verLista').innerHTML = lista.length ? lista.map(a=>{
     const fs = new Date(a.fecha||Date.now()).toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'});
     const aprobado = a.estado==='aprobado';
     const acciones = aprobado
-      ? `<span class="badge b-paid">Aprobado ✓</span>`
-      : `<button class="btn ok sm" data-aprobar="${a.id}">Aprobar</button>
-         <button class="btn no sm" data-rechazar="${a.id}">Rechazar</button>`;
-    const verFoto = a.soporte ? `<button class="link" data-img="${a.soporte.replace(/"/g,'&quot;')}">ver soporte</button>` : '';
-    return `<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+      ? `<span class="sud-badge sud-b-paid">Aprobado ✓</span>`
+      : `<button class="sud-btn sud-ok sud-sm" data-aprobar="${a.id}">Aprobar</button>
+         <button class="sud-btn sud-no sud-sm" data-rechazar="${a.id}">Rechazar</button>`;
+    const verFoto = a.soporte ? `<button class="sud-link" data-img="${a.soporte.replace(/"/g,'&quot;')}">ver soporte</button>` : '';
+    return `<div style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
         <div><b style="font-variant-numeric:tabular-nums">${Sudaderas.formatoDinero(a.monto)}</b>
           <div style="font-size:11px;color:var(--muted)">${fs} · ${verFoto}</div></div>
@@ -403,26 +577,25 @@ function abrirAbonos(rid){
       </div>
     </div>`;
   }).join('') : `<div style="color:var(--muted);font-size:13px;padding:8px 0">Aún no hay abonos.</div>`;
-  $('#ovVer').style.display='flex';
+  $('#sud-ovVer').style.display='flex';
 }
 
 /* ---------- QR ---------- */
 function abrirQr(rid){
   const reg = datos.find(x=>x.id===rid);
   const enlace = Sudaderas.enlacePapa(rid);
-  $('#qrNombre').textContent = reg ? reg.nombre : '';
-  $('#qrbox').innerHTML='';
-  new QRCode($('#qrbox'), { text: enlace, width:220, height:220, correctLevel: QRCode.CorrectLevel.M });
-  $('#qrEnlace').textContent = enlace;
-  $('#qrCopiar').onclick = ()=>{ navigator.clipboard.writeText(enlace); toast('Enlace copiado'); };
-  $('#qrWa').onclick = ()=>{
+  $('#sud-qrNombre').textContent = reg ? reg.nombre : '';
+  $('#sud-qrbox').innerHTML='';
+  new QRCode($('#sud-qrbox'), { text: enlace, width:220, height:220, correctLevel: QRCode.CorrectLevel.M });
+  $('#sud-qrEnlace').textContent = enlace;
+  $('#sud-qrCopiar').onclick = ()=>{ navigator.clipboard.writeText(enlace); toast('Enlace copiado'); };
+  $('#sud-qrWa').onclick = ()=>{
     const msg = `Hola, este es el enlace para la sudadera de ${reg.nombre}. Ahí puedes elegir la talla, ver las cuotas y subir tu soporte de pago: ${enlace}`;
     window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
   };
-  $('#qrDescargar').onclick = ()=>{
-    const cv = $('#qrbox').querySelector('canvas');
+  $('#sud-qrDescargar').onclick = ()=>{
+    const cv = $('#sud-qrbox').querySelector('canvas');
     if(!cv) return;
-    // Dibujar el QR + el nombre debajo, para que la hoja impresa quede etiquetada
     const pad=20, hName=46;
     const out=document.createElement('canvas');
     out.width=cv.width+pad*2; out.height=cv.height+pad+hName;
@@ -434,55 +607,57 @@ function abrirQr(rid){
     const a=document.createElement('a'); a.href=out.toDataURL('image/png');
     a.download=`QR-${reg.nombre.replace(/\s+/g,'-')}.png`; a.click();
   };
-  $('#ovQr').style.display='flex';
+  $('#sud-ovQr').style.display='flex';
 }
 
-/* ---------- Crear registro (elige alumna activa) ---------- */
-$('#nvTalla').innerHTML = Object.keys(Sudaderas.TALLAS)
+/* ---------- Crear registro (alumna activa) ---------- */
+$('#sud-nvTalla').innerHTML = Object.keys(Sudaderas.TALLAS)
   .map(t=>`<option value="${t}">Talla ${t} — ${Sudaderas.formatoDinero(Sudaderas.TALLAS[t].total)}</option>`).join('');
-$('#btnNueva').onclick = ()=>{
-  $('#nvErr').textContent='';
-  // Solo alumnas activas que aún NO tienen registro de sudadera
+$('#sud-btnNueva').onclick = ()=>{
+  $('#sud-nvErr').textContent='';
   const conRegistro = new Set(datos.filter(r=>r.alumnaId!=null).map(r=>String(r.alumnaId)));
   const disponibles = alumnas.filter(a=>!conRegistro.has(String(a.id)));
-  $('#nvAlumna').innerHTML = disponibles.length
+  $('#sud-nvAlumna').innerHTML = disponibles.length
     ? disponibles.map(a=>`<option value="${a.id}">${a.nombre}${a.categoria?' — '+a.categoria:''}</option>`).join('')
     : `<option value="">(Todas las alumnas activas ya tienen talla)</option>`;
-  $('#ovNueva').style.display='flex';
+  $('#sud-ovNueva').style.display='flex';
 };
-$('#nvCrear').onclick = async ()=>{
-  const aid = $('#nvAlumna').value;
+$('#sud-nvCrear').onclick = async ()=>{
+  const aid = $('#sud-nvAlumna').value;
   const a = alumnas.find(x=>String(x.id)===String(aid));
-  if(!a){ $('#nvErr').textContent='Elige una alumna.'; return; }
+  if(!a){ $('#sud-nvErr').textContent='Elige una alumna.'; return; }
   try{
-    const rid = await Sudaderas.crearRegistro(a.id, a.nombre, $('#nvTalla').value);
-    $('#ovNueva').style.display='none';
+    const rid = await Sudaderas.crearRegistro(a.id, a.nombre, $('#sud-nvTalla').value);
+    $('#sud-ovNueva').style.display='none';
     await cargar(); abrirQr(rid);
-  }catch(e){ $('#nvErr').textContent = e.message || 'No se pudo crear.'; }
+  }catch(e){ $('#sud-nvErr').textContent = e.message || 'No se pudo crear.'; }
 };
 
-/* ---------- Crear particular (colaborador / amigo) ---------- */
-$('#ptTalla').innerHTML =
+/* ---------- Crear particular ---------- */
+$('#sud-ptTalla').innerHTML =
   `<option value="">— Que elija la talla en su enlace —</option>` +
   Object.keys(Sudaderas.TALLAS)
     .map(t=>`<option value="${t}">Talla ${t} — ${Sudaderas.formatoDinero(Sudaderas.TALLAS[t].total)}</option>`).join('');
-$('#btnParticular').onclick = ()=>{
-  $('#ptErr').textContent=''; $('#ptNombre').value=''; $('#ptTalla').value='';
-  $('#ovPart').style.display='flex';
+$('#sud-btnParticular').onclick = ()=>{
+  $('#sud-ptErr').textContent=''; $('#sud-ptNombre').value=''; $('#sud-ptTalla').value='';
+  $('#sud-ovPart').style.display='flex';
 };
-$('#ptCrear').onclick = async ()=>{
-  const nombre = $('#ptNombre').value.trim();
-  if(!nombre){ $('#ptErr').textContent='Escribe un nombre.'; return; }
+$('#sud-ptCrear').onclick = async ()=>{
+  const nombre = $('#sud-ptNombre').value.trim();
+  if(!nombre){ $('#sud-ptErr').textContent='Escribe un nombre.'; return; }
   try{
-    const rid = await Sudaderas.crearRegistro(null, nombre, $('#ptTalla').value || null, true);
-    $('#ovPart').style.display='none';
+    const rid = await Sudaderas.crearRegistro(null, nombre, $('#sud-ptTalla').value || null, true);
+    $('#sud-ovPart').style.display='none';
     await cargar(); abrirQr(rid);
-  }catch(e){ $('#ptErr').textContent = e.message || 'No se pudo crear.'; }
+  }catch(e){ $('#sud-ptErr').textContent = e.message || 'No se pudo crear.'; }
 };
 
 /* ---------- Toast ---------- */
-let tt; function toast(m){ const t=$('#toast'); t.textContent=m; t.style.display='block';
-  clearTimeout(tt); tt=setTimeout(()=>t.style.display='none',2200); }
+let tt;
+function toast(m){
+  const t=$('#sud-toast'); t.textContent=m; t.style.display='block';
+  clearTimeout(tt); tt=setTimeout(()=>t.style.display='none',2200);
+}
 </script>
 </body>
 </html>
