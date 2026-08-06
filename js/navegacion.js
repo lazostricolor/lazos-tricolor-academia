@@ -2,6 +2,13 @@
    navegacion.js
    Sidebar, cambio de sección y navegación de meses
    Academia de Danzas Lazos Tricolor — Soacha, Cundinamarca
+
+   CAMBIO EN ESTA VERSIÓN
+   Se agregó al final el bloque "IR A SECCIÓN POR URL", que permite
+   abrir el panel directamente en una sección usando index.html#pagos.
+   Lo usa el menú izquierdo de panel-sudaderas.html para volver al
+   panel principal y caer donde corresponde.
+   Nada más cambió: todas las funciones anteriores quedan idénticas.
 ═══════════════════════════════════════════════════════════ */
 
 // ===================== NAVEGACION =====================
@@ -66,3 +73,45 @@ function cambiarMes(seccion,delta){
   else if(seccion==='ingresos') renderOtrosIngresos();
 }
 function cambiarSemana(d){ semanaOfs+=d; renderProfesores(); }
+
+// ===================== IR A SECCIÓN POR URL =====================
+/* Abre una sección concreta cuando se llega con hash en la dirección.
+   Ejemplo: index.html#pagos  →  entra directo a Mensualidades.
+
+   Lo usa el menú izquierdo de panel-sudaderas.html para volver al panel
+   y caer en la sección correcta en vez de siempre en el Dashboard.
+
+   Es completamente pasivo: si la URL no trae hash, no ejecuta nada.
+   No toca datos, ni Firebase, ni el guardado.                          */
+function irSeccionDesdeURL(){
+  var destino = (location.hash || '').replace('#','').trim();
+  if(!destino) return;
+
+  // Solo secciones conocidas — evita llamar showSection con basura
+  var validas = ['dashboard','alumnos','pagos','asistencias','profesores','recaudos',
+                 'rifas','ingresos','gastos','finanzas','presentaciones',
+                 'preinscripciones','planificador','archivo','config'];
+  if(validas.indexOf(destino) === -1) return;
+
+  var intentos = 0;
+  var reloj = setInterval(function(){
+    intentos++;
+    if(intentos > 60){ clearInterval(reloj); return; }   // se rinde a los 30 segundos
+
+    var app     = document.getElementById('app');
+    var seccion = document.getElementById('sec-' + destino);
+    if(!app || !seccion) return;
+
+    // Espera a que el panel sea visible, es decir, que ya se pasó el login
+    if(getComputedStyle(app).visibility === 'hidden') return;
+
+    clearInterval(reloj);
+    try{
+      showSection(destino);
+      history.replaceState(null, '', location.pathname);   // limpia el # de la barra
+    }catch(e){
+      console.warn('irSeccionDesdeURL: no se pudo abrir', destino, e);
+    }
+  }, 400);
+}
+irSeccionDesdeURL();
