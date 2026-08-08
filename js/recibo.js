@@ -63,9 +63,15 @@ function generarRecibo(alumnaId){
   // Construir el ticket
   const cont = document.getElementById('recibo-canvas-wrap');
   cont.innerHTML =
-    '<div id="recibo-ticket" style="width:380px;background:#fff;margin:0 auto;padding:26px 24px;font-family:Arial,Helvetica,sans-serif;color:#1a1a2e;box-sizing:border-box">'
+    '<div id="recibo-ticket" style="width:410px;background:#fff;margin:0 auto;font-family:Arial,Helvetica,sans-serif;color:#1a1a2e;box-sizing:border-box;display:flex;align-items:stretch">'
+    // Banda vertical lateral con el lema del proceso de formación
+    + '<div style="width:34px;background:linear-gradient(180deg,#2b3a8c,#3a57e8);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0">'
+      + '<div style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap;padding:14px 0">Proceso de formación permanente en Danza Folklórica e Internacional</div>'
+    + '</div>'
+    // Contenido del recibo
+    + '<div style="flex:1;padding:26px 22px;box-sizing:border-box;min-width:0">'
     // Logo
-    + '<div style="text-align:center;margin-bottom:14px"><img src="'+RECIBO_LOGO+'" style="width:220px;max-width:100%;height:auto" crossorigin="anonymous"></div>'
+    + '<div style="text-align:center;margin-bottom:14px"><img src="'+RECIBO_LOGO+'" style="width:210px;max-width:100%;height:auto" crossorigin="anonymous"></div>'
     // Datos legales
     + '<div style="text-align:center;border-bottom:2px dashed #c8cede;padding-bottom:12px;margin-bottom:14px">'
       + '<div style="font-size:13px;font-weight:800;color:#2b3a8c">'+RECIBO_LEGAL.nombre+'</div>'
@@ -101,7 +107,8 @@ function generarRecibo(alumnaId){
       + 'Este recibo es un comprobante de pago de mensualidad.<br>'
       + '¡Gracias por ser parte de Lazos Tricolor! 💃'
     + '</div>'
-    + '</div>';
+    + '</div>'   // cierra contenido
+    + '</div>';  // cierra ticket (flex)
 
   document.getElementById('recibo-alumna-nombre').textContent = a.nombre + ' — ' + mesLabel(mk);
   _reciboActual = { alumnaId:a.id, mk:mk, nombre:a.nombre, num:numRecibo };
