@@ -198,6 +198,7 @@ function mergeDB(local, remoto){
   });
 
   base.nextId=Math.max(local.nextId||1,remoto.nextId||1);
+  base.reciboSeq=Math.max(local.reciboSeq||0,remoto.reciboSeq||0);  // consecutivo de recibos
   return base;
 }
 async function _fbCargar(){
