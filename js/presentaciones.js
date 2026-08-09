@@ -19,8 +19,8 @@ function renderPresentaciones(){
   const mesMasActivo=porMes.indexOf(maxMes);
 
   const top5=DB.presentaciones
-    .filter(p=>(p.alumnas||[]).length>0)
-    .map(p=>({...p,asistentes:(p.alumnas||[]).length}))
+    .filter(p=>((p.elenco&&p.elenco.length)||(p.alumnas||[]).length)>0)
+    .map(p=>({...p,asistentes:(p.elenco&&p.elenco.length)||(p.alumnas||[]).length}))
     .sort((a,b)=>b.asistentes-a.asistentes).slice(0,5); // cuenta retiradas también
 
   ['ch-pres-meses'].forEach(id=>{const el=document.getElementById(id);if(el&&el._ch){el._ch.destroy();el._ch=null;}});
@@ -60,14 +60,19 @@ function renderPresentaciones(){
   +'</div>';
 
   let html=lista.map(ev=>{
-    const asistentes=(ev.alumnas||[]).length;
+    // El elenco guardado (nombre+categoría) es la fuente de verdad y conserva a las retiradas.
+    // Para presentaciones viejas sin elenco guardado, reconstruir desde ids (retrocompatible).
+    let elenco = Array.isArray(ev.elenco) && ev.elenco.length
+      ? ev.elenco
+      : todosLosAlumnos().filter(a=>(ev.alumnas||[]).includes(a.id)).map(a=>({id:a.id,nombre:a.nombre,categoria:a.categoria}));
+    const asistentes=elenco.length;
     const total=DB.alumnos.length;
     const pct=total?Math.round(asistentes/total*100):0;
-    const alumnas=todosLosAlumnos().filter(a=>(ev.alumnas||[]).includes(a.id)); // incluye retiradas
+    const catEtiqueta = ev.categoria ? '<span class="badge" style="background:var(--card2);color:var(--text2);font-size:10px;margin-left:6px">'+ev.categoria+'</span>' : '';
     return'<div class="pres-card">'
       +'<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">'
         +'<div>'
-          +'<h4>'+ev.titulo+'</h4>'
+          +'<h4>'+ev.titulo+catEtiqueta+'</h4>'
           +'<div class="meta">📅 '+(ev.fecha||'—')+(ev.hora?' · 🕐 '+ev.hora:'')+(ev.lugar?' · 📍 '+ev.lugar:'')+'</div>'
           +(ev.descripcion?'<p style="font-size:12px;color:var(--muted);margin-bottom:8px">'+ev.descripcion+'</p>':'')
         +'</div>'
@@ -82,7 +87,7 @@ function renderPresentaciones(){
           +'<div style="height:100%;width:'+pct+'%;background:var(--primary);border-radius:3px"></div>'
         +'</div>'
       +'</div>'
-      +'<div class="pres-alumnas">'+alumnas.map(a=>'<span class="badge badge-paid" style="font-size:10px">'+a.nombre.split(' ')[0]+'</span>').join('')+'</div>'
+      +'<div class="pres-alumnas">'+elenco.map(function(a){return '<span class="badge badge-paid" style="font-size:10px">'+String(a.nombre||'').split(' ')[0]+'</span>';}).join('')+'</div>'
     +'</div>';
   }).join('')||'<div style="text-align:center;color:var(--muted);padding:40px"><div style="font-size:48px;margin-bottom:12px">🎭</div>Sin presentaciones registradas</div>';
 
@@ -106,6 +111,7 @@ function renderPresentaciones(){
 function abrirModalPresentacion(idx=null){
   editPresId=idx;
   document.getElementById('modal-pres-title').textContent=idx!==null?'Editar Presentación':'Nueva Presentación';
+  const filtro=document.getElementById('ev-catFiltro'); if(filtro) filtro.value='';
   if(idx!==null){
     const ev=DB.presentaciones[idx];
     document.getElementById('ev-titulo').value=ev.titulo||'';
@@ -113,32 +119,86 @@ function abrirModalPresentacion(idx=null){
     document.getElementById('ev-hora').value=ev.hora||'';
     document.getElementById('ev-lugar').value=ev.lugar||'';
     document.getElementById('ev-desc').value=ev.descripcion||'';
-    const alumnaIds=ev.alumnas||[];
-    document.getElementById('ev-alumnas-check').innerHTML=todosLosAlumnos().map(a=>`
-      <div class="check-group"><input type="checkbox" id="ev-a-${a.id}" ${alumnaIds.includes(a.id)?'checked':''}><label for="ev-a-${a.id}">${a.nombre} (${a.categoria})</label></div>
-    `).join('');
+    _elencoPreseleccion = ev.alumnas||[];
   } else {
     ['ev-titulo','ev-fecha','ev-hora','ev-lugar','ev-desc'].forEach(id=>{document.getElementById(id).value='';});
-    document.getElementById('ev-alumnas-check').innerHTML=todosLosAlumnos().map(a=>`
-      <div class="check-group"><input type="checkbox" id="ev-a-${a.id}"><label for="ev-a-${a.id}">${a.nombre} (${a.categoria})</label></div>
-    `).join('');
+    _elencoPreseleccion = [];
   }
+  _renderElencoCheck();
   abrirModal('modal-presentacion');
+}
+
+// IDs preseleccionados al abrir el modal (se conservan al cambiar de filtro)
+let _elencoPreseleccion = [];
+
+// Dibuja la lista de checkboxes del elenco, respetando el filtro de categoría.
+// SOLO alumnas activas para elegir; las retiradas ya no aparecen para presentaciones nuevas.
+// Pero si al editar una presentación había una alumna ya retirada marcada, se conserva su marca.
+function _renderElencoCheck(){
+  const filtro = (document.getElementById('ev-catFiltro')||{}).value || '';
+  // Capturar el estado actual de los checks ya dibujados (para no perder selección al filtrar)
+  const marcadosAhora = {};
+  document.querySelectorAll('#ev-alumnas-check input[type=checkbox]').forEach(function(chk){
+    marcadosAhora[chk.value] = chk.checked;
+  });
+  const estaMarcado = function(id){
+    if(id in marcadosAhora) return marcadosAhora[id];
+    return _elencoPreseleccion.map(String).includes(String(id));
+  };
+
+  let activas = DB.alumnos.slice();
+  if(filtro) activas = activas.filter(function(a){ return a.categoria===filtro; });
+
+  // Alumnas retiradas que YA estaban en el elenco (al editar) — se muestran para no perderlas
+  const retiradasEnElenco = (DB.alumnosRetirados||[]).filter(function(a){
+    return _elencoPreseleccion.map(String).includes(String(a.id)) && (!filtro || a.categoria===filtro);
+  });
+
+  const html = activas.map(function(a){
+    return '<div class="check-group"><input type="checkbox" id="ev-a-'+a.id+'" value="'+a.id+'"'+(estaMarcado(a.id)?' checked':'')+'>'
+      +'<label for="ev-a-'+a.id+'">'+a.nombre+' <span style="color:var(--muted);font-size:11px">('+a.categoria+')</span></label></div>';
+  }).join('')
+  + retiradasEnElenco.map(function(a){
+    return '<div class="check-group"><input type="checkbox" id="ev-a-'+a.id+'" value="'+a.id+'"'+(estaMarcado(a.id)?' checked':'')+'>'
+      +'<label for="ev-a-'+a.id+'">'+a.nombre+' <span style="color:var(--danger);font-size:11px">(retirada)</span></label></div>';
+  }).join('');
+
+  const cont = document.getElementById('ev-alumnas-check');
+  cont.innerHTML = html || '<p style="font-size:12px;color:var(--muted);text-align:center;padding:10px">Sin alumnas en esta categoría</p>';
+  cont.onclick = function(e){ if(e.target && e.target.type==='checkbox') _actualizarConteoElenco(); };
+  _actualizarConteoElenco();
+}
+
+function filtrarElencoPres(){ _renderElencoCheck(); }
+
+function _actualizarConteoElenco(){
+  const n = document.querySelectorAll('#ev-alumnas-check input[type=checkbox]:checked').length;
+  const el = document.getElementById('ev-elenco-conteo');
+  if(el) el.textContent = n ? '· '+n+' seleccionada'+(n>1?'s':'') : '';
 }
 function guardarPresentacion(){
   const titulo=document.getElementById('ev-titulo').value.trim();
   if(!titulo){toast('El título es obligatorio','err');return;}
-  const alumnas=todosLosAlumnos().filter(a=>document.getElementById('ev-a-'+a.id)?.checked).map(a=>a.id);
-  const ev={titulo,fecha:document.getElementById('ev-fecha').value,hora:document.getElementById('ev-hora').value,lugar:document.getElementById('ev-lugar').value,descripcion:document.getElementById('ev-desc').value,alumnas};
+  // Elenco: guardamos los ids (para vínculos) Y una foto de nombre+categoría como TEXTO.
+  // Así, si una alumna se retira después, su participación queda registrada para siempre.
+  const seleccion = todosLosAlumnos().filter(a=>document.getElementById('ev-a-'+a.id)?.checked);
+  const alumnas = seleccion.map(a=>a.id);
+  const elenco  = seleccion.map(a=>({ id:a.id, nombre:a.nombre, categoria:a.categoria }));
+  const catFiltro = (document.getElementById('ev-catFiltro')||{}).value || '';
+  const ev={titulo,fecha:document.getElementById('ev-fecha').value,hora:document.getElementById('ev-hora').value,lugar:document.getElementById('ev-lugar').value,descripcion:document.getElementById('ev-desc').value,alumnas,elenco,categoria:catFiltro};
   // id estable para poder vincular el uso de vestuario
   if(editPresId!==null){
     ev.id = DB.presentaciones[editPresId] && DB.presentaciones[editPresId].id
           ? DB.presentaciones[editPresId].id : 'pres_'+Date.now();
-    DB.presentaciones[editPresId]=ev;
+    ev._editTs = Date.now();
+    DB.presentaciones[editPresId]=Object.assign(DB.presentaciones[editPresId]||{}, ev);
   }
-  else { ev.id = 'pres_'+Date.now(); DB.presentaciones.push(ev); }
+  else { ev.id = 'pres_'+Date.now(); ev._editTs = Date.now(); DB.presentaciones.push(ev); }
+  tsSeccion('presentaciones'); DB._ts_presentaciones=Date.now();
   cerrarModal('modal-presentacion');
-  saveAll(); renderPresentaciones(); toast('Presentación guardada ✓');
+  renderPresentaciones();
+  toast('⏳ Guardando...');
+  saveAll().then(function(ok){ toast(ok?'✅ Presentación guardada':'⚠️ Guardado local — reintentando...', ok?'ok':'info'); });
 }
 function eliminarPresentacion(idx){
   if(!confirm2('¿Eliminar esta presentación?')) return;

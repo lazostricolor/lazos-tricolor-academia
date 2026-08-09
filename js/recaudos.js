@@ -9,6 +9,14 @@ let editRecaudoId = null;
 let aporteRecaudoId = null;
 let aporteAlumnaId = null;
 
+// Alumnas que participan de un recaudo: si tiene catDanza, solo esa categoría; si no, todas.
+function _alumnasRecaudo(rec){
+  if(rec && rec.catDanza){
+    return DB.alumnos.filter(function(a){ return a.categoria===rec.catDanza; });
+  }
+  return DB.alumnos;
+}
+
 function _saveRecaudos(){
   tsSeccion('recaudos');
   DB._ts_recaudos = Date.now();
@@ -33,6 +41,7 @@ function abrirModalRecaudo(id){
     document.getElementById('rec-meta-total').value  = r.metaTotal||'';
     document.getElementById('rec-desc').value      = r.desc||'';
     document.getElementById('rec-cat').value       = r.cat||'Otro';
+    document.getElementById('rec-catDanza').value  = r.catDanza||'';
   } else {
     document.getElementById('modal-recaudo-title').textContent = 'Nuevo Recaudo';
     document.getElementById('rec-nombre').value    = '';
@@ -42,6 +51,7 @@ function abrirModalRecaudo(id){
     document.getElementById('rec-meta-total').value  = '';
     document.getElementById('rec-desc').value      = '';
     document.getElementById('rec-cat').value       = 'Vestuario';
+    document.getElementById('rec-catDanza').value  = '';
   }
   abrirModal('modal-recaudo');
 }
@@ -52,8 +62,10 @@ function guardarRecaudo(){
   const cierre = document.getElementById('rec-cierre').value;
   if(!nombre||!inicio||!cierre){ toast('Nombre, inicio y cierre son obligatorios','err'); return; }
   if(!DB.recaudos) DB.recaudos=[];
+  const catDanza = document.getElementById('rec-catDanza').value;
   const metaAlumna = Number(document.getElementById('rec-meta-alumna').value)||0;
-  const alumnasTotales = DB.alumnos.length;
+  const alumnasDelRecaudo = catDanza ? DB.alumnos.filter(function(a){return a.categoria===catDanza;}) : DB.alumnos;
+  const alumnasTotales = alumnasDelRecaudo.length;
   const metaTotal = Number(document.getElementById('rec-meta-total').value)||
     (metaAlumna>0 ? metaAlumna*alumnasTotales : 0);
 
@@ -63,18 +75,20 @@ function guardarRecaudo(){
       DB.recaudos[idx] = Object.assign(DB.recaudos[idx],{
         nombre,inicio,cierre,metaAlumna,metaTotal,
         desc:document.getElementById('rec-desc').value.trim(),
-        cat:document.getElementById('rec-cat').value
+        cat:document.getElementById('rec-cat').value,
+        catDanza:document.getElementById('rec-catDanza').value
       });
     }
   } else {
-    // Inicializar aportes vacíos para todas las alumnas activas
+    // Inicializar aportes vacíos solo para las alumnas de la categoría del recaudo
     const aportes = {};
-    DB.alumnos.forEach(function(a){ aportes[String(a.id)]={monto:0,fecha:'',nota:'',pagado:false}; });
+    alumnasDelRecaudo.forEach(function(a){ aportes[String(a.id)]={monto:0,fecha:'',nota:'',pagado:false}; });
     DB.recaudos.push({
       id:String(Date.now()),
       nombre,inicio,cierre,metaAlumna,metaTotal,
       desc:document.getElementById('rec-desc').value.trim(),
       cat:document.getElementById('rec-cat').value,
+      catDanza:catDanza,
       aportes:aportes
     });
   }
@@ -173,7 +187,7 @@ function renderRecaudos(){
   lista.forEach(function(rec){
     var vencido = rec.cierre < hoy;
     var aportes = rec.aportes||{};
-    var alumnas = DB.alumnos;
+    var alumnas = _alumnasRecaudo(rec);
     var totalRec=0, countPagaron=0;
     alumnas.forEach(function(a){
       var k=String(a.id);
@@ -297,7 +311,7 @@ function renderRecaudos(){
       if(el._ch){el._ch.destroy();el._ch=null;}
       var aportes = rec.aportes||{};
       var labels=[], datos=[], colores=[];
-      DB.alumnos.forEach(function(a){
+      _alumnasRecaudo(rec).forEach(function(a){
         var k=String(a.id);
         var ap=aportes[k]||aportes[a.id]||{monto:0};
         var monto=Number(ap.monto)||0;
