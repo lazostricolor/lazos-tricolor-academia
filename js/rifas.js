@@ -237,7 +237,7 @@ function _duenoDeNumero(rifaId, num, exceptId){
     if(entry[0]===exceptId) return;
     (entry[1].numeros||[]).forEach(function(n){
       if(parseInt(n,10)===parseInt(num,10)){   // comparar por valor: "05"==="5"
-        var a = DB.alumnos.find(function(x){return String(x.id)===entry[0];});
+        var a = alumnaPorId(entry[0]);
         res = a ? a.nombre : (entry[1].nombreExt||'otra persona');
       }
     });
@@ -294,7 +294,7 @@ function abrirModalNums(rifaId, alumnaId){
       +'Valor por número: <strong style="color:var(--primary)">$'+Number(rifa.valorNum||0).toLocaleString('es-CO')+'</strong>';
     document.getElementById('nums-nombre-ext').value = asig.nombreExt||'';
   } else {
-    var alumna = DB.alumnos.find(function(a){return String(a.id)===String(alumnaId);});
+    var alumna = alumnaPorId(alumnaId);
     if(!alumna){ toast('Alumna no encontrada','err'); return; }
     titulo = tieneNums ? ('✏️ Editar números de '+alumna.nombre.split(' ')[0])
                        : ('🎟️ Asignar números a '+alumna.nombre.split(' ')[0]);
@@ -411,7 +411,7 @@ function buscarNumGanador(rifaId, num){
   Object.entries(rifa.nums||{}).forEach(function(entry){
     var numerosStr = (entry[1].numeros||[]).map(String);
     if(numerosStr.indexOf(String(num))>=0){
-      var a = DB.alumnos.find(function(a){return String(a.id)===entry[0];});
+      var a = alumnaPorId(entry[0]);
       var pm = _numsPagados(entry[1]);
       dueno = {
         alumna:a,
@@ -517,7 +517,7 @@ function copiarNumerosNoPagados(rifaId){
     var asig = entry[1];
     var pagados = _numsPagados(asig);
     var quien = asig.nombreExt
-      || (DB.alumnos.find(function(a){return String(a.id)===entry[0];})||{}).nombre
+      || (alumnaPorId(entry[0])||{}).nombre
       || 'Sin nombre';
     (asig.numeros||[]).forEach(function(n){
       if(pagados[String(n)]===undefined){
@@ -595,7 +595,7 @@ function renderRifas(){
     Object.entries(nums).forEach(function(entry){
       var pagadosMap=_numsPagados(entry[1]);
       var quien = entry[1].nombreExt
-        || (DB.alumnos.find(function(a){return String(a.id)===entry[0];})||{}).nombre
+        || (alumnaPorId(entry[0])||{}).nombre
         || entry[0];
       (entry[1].numeros||[]).forEach(function(n){
         numsAsignados.push(n);
@@ -638,7 +638,7 @@ function renderRifas(){
     if(rifa.ganador!==null&&rifa.ganador!==undefined&&rifa.ganador!==''){
       Object.entries(nums).forEach(function(entry){
         if((entry[1].numeros||[]).map(String).indexOf(String(rifa.ganador))>=0){
-          var a = DB.alumnos.find(function(x){return String(x.id)===entry[0];});
+          var a = alumnaPorId(entry[0]);
           alumnaGanadora = a || {nombre:'👤 '+(entry[1].nombreExt||'Externo')};
           ganadorNombre = alumnaGanadora.nombre;
           ganadorPagado = _numsPagados(entry[1])[String(rifa.ganador)]!==undefined;
@@ -662,7 +662,7 @@ function renderRifas(){
       var esGanador = String(rifa.ganador)===String(n);
       var cls = esGanador?'ganador':(info.pagado?'pagado':(urgente?'urgente':'pendiente'));
       var duenoInfo = nums[info.alumnaId]||{};
-      var a = DB.alumnos.find(function(a){return String(a.id)===info.alumnaId;});
+      var a = alumnaPorId(info.alumnaId);
       var nombreDueno = a?a.nombre.split(' ')[0]:(duenoInfo.nombreExt||'?');
       var tooltip = nombreDueno+' · Nº'+n+(info.pagado?' ✅ pagado':' ⏳ pendiente — clic para marcar pagado')+(esGanador?' 🏆':'');
       return '<span class="num-chip '+cls+' rifa-chip-toggle" data-rid="'+rifa.id+'" data-aid="'+info.alumnaId+'" data-num="'+n+'" title="'+tooltip+'">'
@@ -673,8 +673,17 @@ function renderRifas(){
 
     // Tabla de alumnas
     var filasAlumnas = '';
-    DB.alumnos.forEach(function(a){
+    // Alumnas a mostrar: todas las activas + retiradas que YA tienen números en esta rifa
+    var _idsActivas = {};
+    DB.alumnos.forEach(function(a){ _idsActivas[String(a.id)]=true; });
+    var _retiradasConNums = (DB.alumnosRetirados||[]).filter(function(a){
+      if(_idsActivas[String(a.id)]) return false;
+      var asg = nums[String(a.id)];
+      return asg && asg.numeros && asg.numeros.length>0;
+    });
+    DB.alumnos.concat(_retiradasConNums).forEach(function(a){
       var ak = String(a.id);
+      var esRetirada = !_idsActivas[ak];
       var asig = nums[ak]||{numeros:[]};
       var tieneNums = asig.numeros&&asig.numeros.length>0;
       var pmF = _numsPagados(asig);
@@ -682,7 +691,7 @@ function renderRifas(){
       var totNums = tieneNums ? asig.numeros.length : 0;
       var montoPagado = pagCount*(Number(rifa.valorNum)||0);
       filasAlumnas += '<div class="rifa-alumna-row">'
-        +'<span class="rifa-alumna-nombre">'+a.nombre.split(' ').slice(0,2).join(' ')+'</span>'
+        +'<span class="rifa-alumna-nombre">'+a.nombre.split(' ').slice(0,2).join(' ')+(esRetirada?' <span style="font-size:9px;color:var(--danger)">(retirada)</span>':'')+'</span>'
         +'<div class="rifa-nums-wrap">'
           +(tieneNums
             ? asig.numeros.map(function(n){

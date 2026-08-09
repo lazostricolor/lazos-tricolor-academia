@@ -10,11 +10,24 @@ let aporteRecaudoId = null;
 let aporteAlumnaId = null;
 
 // Alumnas que participan de un recaudo: si tiene catDanza, solo esa categoría; si no, todas.
+// Además incluye a RETIRADAS que ya tienen un aporte registrado, para conservar su historial.
 function _alumnasRecaudo(rec){
+  let activas;
   if(rec && rec.catDanza){
-    return DB.alumnos.filter(function(a){ return a.categoria===rec.catDanza; });
+    activas = DB.alumnos.filter(function(a){ return a.categoria===rec.catDanza; });
+  } else {
+    activas = DB.alumnos.slice();
   }
-  return DB.alumnos;
+  const idsActivas = {};
+  activas.forEach(function(a){ idsActivas[String(a.id)]=true; });
+  // Retiradas con aporte (monto > 0) en este recaudo → conservarlas en la lista
+  const aportes = (rec && rec.aportes) || {};
+  const retiradasConAporte = (DB.alumnosRetirados||[]).filter(function(a){
+    if(idsActivas[String(a.id)]) return false;
+    const ap = aportes[String(a.id)] || aportes[a.id];
+    return ap && Number(ap.monto) > 0;
+  });
+  return activas.concat(retiradasConAporte);
 }
 
 function _saveRecaudos(){

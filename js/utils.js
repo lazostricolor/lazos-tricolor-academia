@@ -38,7 +38,13 @@ function alumnaActivaEnMes(alumna,mk){
   } else {
     fi=fi.trim().substring(0,7);
   }
-  return fi<=mk;
+  if(fi>mk) return false;                         // aún no había ingresado
+  // Si tiene fecha de retiro, solo cuenta hasta el mes de retiro (inclusive)
+  if(alumna.fechaRetiro){
+    const fr=String(alumna.fechaRetiro).trim().substring(0,7);
+    if(fr && mk>fr) return false;                 // el mes es posterior al retiro
+  }
+  return true;
 }
 function calcMensualidad(alumna,mk){
   const mes=parseInt(mk.split('-')[1]);
@@ -46,9 +52,30 @@ function calcMensualidad(alumna,mk){
   if(alumna.familiar) return esMedio?25000:PRECIO_FAMI;
   return esMedio?PRECIO_MEDIO:PRECIO_BASE;
 }
-function getAlumnasMes(mk){ return DB.alumnos.filter(a=>alumnaActivaEnMes(a,mk)); }
+function getAlumnasMes(mk){
+  // Activas + retiradas que estuvieron activas en ese mes (hasta su fecha de retiro).
+  // Así los meses viejos conservan su lista real, y los meses posteriores al retiro no las muestran.
+  const activas = DB.alumnos.filter(a=>alumnaActivaEnMes(a,mk));
+  const retiradasEseMes = (DB.alumnosRetirados||[]).filter(a=>alumnaActivaEnMes(a,mk));
+  return activas.concat(retiradasEseMes);
+}
 // Incluye activas Y retiradas — para registros históricos como presentaciones
 function todosLosAlumnos(){ return [...(DB.alumnos||[]),...(DB.alumnosRetirados||[])]; }
+
+// Busca una alumna por id en activas O retiradas (para historial que no se pierde)
+function alumnaPorId(id){
+  return (DB.alumnos||[]).find(a=>String(a.id)===String(id))
+      || (DB.alumnosRetirados||[]).find(a=>String(a.id)===String(id))
+      || (DB.alumnosHistoricas||[]).find(a=>String(a.id)===String(id))
+      || null;
+}
+// Nombre de una alumna por id, con respaldo a un nombre guardado como texto
+function nombreAlumnaId(id, nombreGuardado){
+  const a = alumnaPorId(id);
+  if(a) return a.nombre + (a.fechaRetiro?' (retirada)':'');
+  return nombreGuardado || 'Alumna eliminada';
+}
+
 function formatCOP(n){ return '$'+n.toLocaleString('es-CO'); }
 function iniciales(n){ return n.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase(); }
 function catBadge(c){
