@@ -262,6 +262,57 @@ const Sudaderas = {
     });
   },
 
+  /* --- REGISTRO MANUAL POR EL ADMIN ---
+     Para cuando un papá envía el soporte por fuera (WhatsApp) y te saltas el flujo del QR.
+     Tú eliges la talla y subes la imagen que te llegó. El abono queda YA APROBADO
+     (no "por_verificar"), porque tú mismo lo estás validando.
+     - Si el registro no tiene talla, se la asigna (y fija el total).
+     - El soporte puede ser un File (se comprime a base64) o venir ya como base64/URL. */
+  async abonoManual(registroId, { talla, monto, soporte } = {}) {
+    const db  = firebase.firestore();
+    const ref = db.collection('sudaderas').doc(registroId);
+    const snap = await ref.get();
+    if (!snap.exists) throw new Error('Registro no encontrado');
+    const reg = snap.data();
+
+    // 1) Talla: si mandas una, la fija (y el total). Si no, respeta la que ya tenga.
+    const update = { actualizadoEn: Date.now() };
+    if (talla) {
+      const precio = this.TALLAS[talla];
+      if (!precio) throw new Error('Talla no válida');
+      update.talla = talla;
+      update.total = precio.total;
+    } else if (!reg.talla) {
+      throw new Error('Este registro no tiene talla; debes elegir una');
+    }
+
+    // 2) Soporte: si es un File, comprimir a base64; si ya es texto (base64/URL), usar tal cual.
+    let soporteFinal = null;
+    if (soporte) {
+      if (typeof soporte === 'string') {
+        soporteFinal = soporte;
+      } else if (soporte instanceof Blob || (soporte && soporte.name)) {
+        soporteFinal = await this.soporteComoBase64(soporte);
+      }
+    }
+
+    // 3) Abono ya APROBADO, marcado como cargado manualmente por el admin.
+    const m = Math.round(Number(monto) || 0);
+    if (m <= 0) throw new Error('El monto debe ser mayor a cero');
+    const abonoId = 'ab' + Date.now() + Math.floor(Math.random() * 1000);
+    update['abonos.' + abonoId] = {
+      monto: m,
+      soporte: soporteFinal,
+      estado: 'aprobado',
+      manual: true,              // marca de que lo cargaste tú por fuera del QR
+      fecha: Date.now(),
+      aprobadoEn: Date.now()
+    };
+
+    await ref.update(update);
+    return abonoId;
+  },
+
   /* Rechazas un abono (soporte que no sirve): se elimina y el papá puede subir otro. */
   async rechazarAbono(registroId, abonoId) {
     const db = firebase.firestore();
