@@ -29,31 +29,39 @@ var ENC_C = {
 
 // Nombres visibles de cada área
 var ENC_CATEGORIAS = {
-  bienestar:'Sentimiento y bienestar',
+  // Módulo de bienestar comunitario (lo responde el ALUMNO)
+  bienestar:'Bienestar percibido',
   pertenencia:'Sentido de pertenencia',
+  seguridad:'Seguridad y confianza',
+  relaciones:'Relaciones y compañerismo',
+  equilibrio:'Equilibrio y exigencia',
+  motivacion:'Motivación',
+  apoyo:'Comunicación y apoyo',
+  // Percepción de las familias
+  bienestar_familia:'Bienestar visto por las familias',
+  // Encuesta general
   profesores:'Profesores',
   contenidos:'Contenidos y metodología',
   horarios:'Horarios',
   instalaciones:'Instalaciones',
-  comunicacion:'Comunicación',
+  comunicacion:'Comunicación de la academia',
   presentaciones:'Presentaciones y eventos',
   administrativo:'Administración (acudientes)',
   continuidad:'Intención de continuidad'
 };
+
+// Índices que componen el Índice de Bienestar Comunitario
+var ENC_INDICES_BC = ['bienestar','pertenencia','seguridad','relaciones','equilibrio','motivacion','apoyo'];
+
+// Mínimo de respuestas para mostrar resultados.
+// Protege la reserva: con muy pocas respuestas se podría deducir quién contestó.
+var ENC_MINIMO = 5;
 
 /* Catálogo de preguntas.
    Si agregas o cambias una pregunta en encuesta.html, agrega o cambia
    aquí la línea correspondiente (mismo id).
      id = identificador · t = texto · c = área · k = tipo · b = bloque   */
 var ENC_PREGUNTAS = [
-  // Bloque A · Información general
-  // Bloque B · Sentimiento y experiencia
-  {id:'b_sentir', t:'¿Cómo te sientes actualmente siendo parte de Lazos Tricolor?', c:'bienestar', k:'escala5', b:'B'},
-  {id:'b_disfrute', t:'¿Qué tanto disfrutas asistir a las clases?', c:'bienestar', k:'escala5', b:'B'},
-  {id:'b_seguridad', t:'¿Te sientes cómodo(a) y seguro(a) dentro de la academia?', c:'bienestar', k:'escala5', b:'B'},
-  {id:'b_expresion', t:'¿Sientes que puedes expresarte libremente dentro de la academia?', c:'bienestar', k:'escala5', b:'B'},
-  {id:'b_comunidad', t:'¿Sientes que haces parte de una comunidad dentro de Lazos Tricolor?', c:'pertenencia', k:'escala5', b:'B'},
-  {id:'b_animo', t:'¿Consideras que la academia ha aportado positivamente a tu estado de ánimo?', c:'bienestar', k:'escala5', b:'B'},
   // Bloque C · Profesores
   {id:'c_general', t:'¿Cómo calificas en general a los profesores de Lazos Tricolor?', c:'profesores', k:'escala5', b:'C'},
   {id:'c_respeto', t:'¿Consideras que los profesores tienen un trato respetuoso con los alumnos?', c:'profesores', k:'escala5', b:'C'},
@@ -90,17 +98,66 @@ var ENC_PREGUNTAS = [
   {id:'g_satisfaccion', t:'¿Qué tan satisfecho(a) estás con las presentaciones y eventos?', c:'presentaciones', k:'escala5', b:'G'},
   {id:'g_muestran', t:'¿Consideras que las presentaciones permiten mostrar lo aprendido?', c:'presentaciones', k:'escala5', b:'G'},
   {id:'g_mas_eventos', t:'¿Te gustaría que Lazos Tricolor participara en más eventos?', c:'presentaciones', k:'unica', b:'G'},
-  {id:'g_orgullo', t:'¿Qué tan orgulloso(a) te sientes de representar a Lazos Tricolor?', c:'pertenencia', k:'escala5', b:'G'},
+  // ¿Cómo estamos como comunidad?
+  {id:'bc_bien', t:'Cuando estoy en Lazos Tricolor, generalmente me siento bien.', c:'bienestar', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_positivo', t:'Salgo de las clases con una sensación positiva.', c:'bienestar', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_aporta', t:'Siento que pertenecer a la academia aporta cosas buenas a mi vida.', c:'bienestar', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_dia_dificil', t:'Cuando tengo un día difícil, venir a la academia puede ayudarme a sentirme mejor.', c:'bienestar', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_disfrutar', t:'Siento que puedo disfrutar de la danza sin importar si mi desempeño es perfecto.', c:'bienestar', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_parte', t:'Siento que soy parte importante de Lazos Tricolor.', c:'pertenencia', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_ser_yo', t:'Siento que puedo ser yo mismo(a) dentro de la academia.', c:'pertenencia', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_valoran', t:'Siento que hay personas dentro de la academia que valoran mi presencia.', c:'pertenencia', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_apoyo_mutuo', t:'Siento que los integrantes de Lazos Tricolor se apoyan entre sí.', c:'pertenencia', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_orgullo', t:'Siento orgullo de pertenecer a Lazos Tricolor.', c:'pertenencia', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_opinar', t:'Me siento tranquilo(a) expresando mi opinión dentro de la academia.', c:'seguridad', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_equivocarme', t:'Siento que puedo equivocarme durante una clase sin sentirme mal por ello.', c:'seguridad', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_incomoda', t:'Siento que puedo expresar algo que me incomoda sin temor a ser juzgado(a).', c:'seguridad', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_respeto', t:'Considero que existe respeto entre las personas que hacen parte de la academia.', c:'seguridad', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_diferencias', t:'Siento que las diferencias entre las personas son respetadas.', c:'seguridad', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_companerismo', t:'Siento que existe compañerismo entre los integrantes de la academia.', c:'relaciones', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_nuevos', t:'Considero que los nuevos integrantes son recibidos adecuadamente.', c:'relaciones', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_relacion', t:'Siento que puedo relacionarme con mis compañeros de manera positiva.', c:'relaciones', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_dialogo', t:'Cuando existe un conflicto, considero que puede solucionarse mediante el diálogo.', c:'relaciones', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_pensar_distinto', t:'Considero que en Lazos Tricolor nos tratamos con respeto incluso cuando pensamos diferente.', c:'relaciones', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_exigencia', t:'Siento que las exigencias de la academia me ayudan a crecer.', c:'equilibrio', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_presion', t:'A veces siento demasiada presión por mi desempeño dentro de la academia.', c:'equilibrio', k:'escala5', b:'BC', inv:true, solo:'alumno'},
+  {id:'bc_ritmo', t:'Siento que puedo aprender a mi propio ritmo.', c:'equilibrio', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_errores', t:'Siento que cometer errores es una parte normal del aprendizaje.', c:'equilibrio', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_present_motivan', t:'Las presentaciones y actividades especiales me generan principalmente motivación.', c:'equilibrio', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_equilibrio', t:'Siento que existe un equilibrio adecuado entre disciplina, exigencia y bienestar.', c:'equilibrio', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_entusiasmo', t:'Espero con entusiasmo las clases.', c:'motivacion', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_progreso', t:'Siento que estoy progresando.', c:'motivacion', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_seguir', t:'Tengo ganas de seguir aprendiendo.', c:'motivacion', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_actividades', t:'Las actividades de la academia me motivan.', c:'motivacion', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_esfuerzo', t:'Siento que mi esfuerzo es valorado.', c:'motivacion', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_decirlo', t:'Cuando algo no me gusta o me preocupa dentro de la academia, siento que puedo decirlo.', c:'apoyo', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_escuchado', t:'Siento que mis opiniones son escuchadas.', c:'apoyo', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_acudir', t:'Si estuviera pasando por un momento difícil relacionado con mi experiencia en la academia, sabría a quién acudir.', c:'apoyo', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_hablar_antes', t:'Siento que en Lazos Tricolor podemos hablar de los problemas antes de que se conviertan en conflictos mayores.', c:'apoyo', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bc_estar_bien', t:'Siento que en la academia nos preocupamos no solamente por bailar bien, sino también por estar bien.', c:'apoyo', k:'escala5', b:'BC', solo:'alumno'},
+  {id:'bca_disfruta', t:'¿Percibe que el alumno disfruta asistir a Lazos Tricolor?', c:'bienestar_familia', k:'escala5', b:'BC', solo:'acudiente'},
+  {id:'bca_confianza', t:'¿Ha observado cambios positivos en la confianza o seguridad personal del alumno?', c:'bienestar_familia', k:'escala5', b:'BC', solo:'acudiente'},
+  {id:'bca_ambiente', t:'¿Considera que el ambiente de la academia favorece relaciones saludables entre los alumnos?', c:'bienestar_familia', k:'escala5', b:'BC', solo:'acudiente'},
+  {id:'bca_equilibrio', t:'¿Considera que existe un equilibrio adecuado entre disciplina, exigencia y bienestar?', c:'bienestar_familia', k:'escala5', b:'BC', solo:'acudiente'},
+  {id:'bca_comunicar', t:'¿Siente que podría comunicar una preocupación relacionada con el bienestar del alumno?', c:'bienestar_familia', k:'escala5', b:'BC', solo:'acudiente'},
+  {id:'bca_escucha', t:'¿Considera que la academia escucha adecuadamente las preocupaciones de las familias?', c:'bienestar_familia', k:'escala5', b:'BC', solo:'acudiente'},
+  // Cuidarnos como comunidad
+  {id:'bc_ab_contribuye', t:'¿Qué es lo que más contribuye a que te sientas bien dentro de Lazos Tricolor?', c:'abierta', k:'texto', b:'BCJ'},
+  {id:'bc_ab_cuidar', t:'¿Qué consideras que deberíamos cuidar mejor como comunidad?', c:'abierta', k:'texto', b:'BCJ'},
+  {id:'bc_ab_propuesta', t:'Si pudieras hacer algo para que Lazos Tricolor fuera un espacio emocionalmente mejor para todos, ¿qué propondrías?', c:'abierta', k:'texto', b:'BCJ'},
+  {id:'bc_ab_revisar', t:'¿Hay alguna situación dentro de la academia que consideres importante que revisemos o mejoremos?', c:'abierta', k:'texto', b:'BCJ'},
+  {id:'bc_ab_comunidad', t:'¿Hay algo que quieras decirnos sobre cómo estamos viviendo como comunidad?', c:'abierta', k:'texto', b:'BCJ'},
+  {id:'bca_ab_cuidar', t:'Desde su perspectiva como acudiente, ¿qué deberíamos cuidar para que Lazos Tricolor siga siendo un espacio positivo para nuestros alumnos?', c:'abierta', k:'texto', b:'BCJ', solo:'acudiente'},
   // Bloque H · Evaluación general
   {id:'h_experiencia', t:'Pensando en tu experiencia durante estos primeros meses de 2026, ¿cómo calificas a Lazos Tricolor?', c:'experiencia', k:'escala10', b:'H'},
   {id:'h_expectativas', t:'¿La academia ha cumplido tus expectativas?', c:'experiencia', k:'unica', b:'H'},
   {id:'h_mejora2026', t:'¿Consideras que Lazos Tricolor ha mejorado durante 2026?', c:'experiencia', k:'unica', b:'H'},
   // Bloque I · Familias y acudientes
-  {id:'i_inversion', t:'¿Considera que la inversión económica corresponde al valor recibido?', c:'administrativo', k:'escala5', b:'I'},
-  {id:'i_comunicacion_familias', t:'¿Cómo califica la comunicación de la academia con las familias?', c:'administrativo', k:'escala5', b:'I'},
-  {id:'i_cambios', t:'¿Ha observado cambios positivos en el alumno desde que ingresó a Lazos Tricolor?', c:'impacto', k:'multiple', b:'I'},
-  {id:'i_escuchado', t:'¿Se siente escuchado(a) cuando presenta una inquietud?', c:'administrativo', k:'escala5', b:'I'},
-  {id:'i_administrativa', t:'¿Cómo califica la organización administrativa de la academia?', c:'administrativo', k:'escala5', b:'I'},
+  {id:'i_inversion', t:'¿Considera que la inversión económica corresponde al valor recibido?', c:'administrativo', k:'escala5', b:'I', solo:'acudiente'},
+  {id:'i_comunicacion_familias', t:'¿Cómo califica la comunicación de la academia con las familias?', c:'administrativo', k:'escala5', b:'I', solo:'acudiente'},
+  {id:'i_cambios', t:'¿Ha observado cambios positivos en el alumno desde que ingresó a Lazos Tricolor?', c:'impacto', k:'multiple', b:'I', solo:'acudiente'},
+  {id:'i_escuchado', t:'¿Se siente escuchado(a) cuando presenta una inquietud?', c:'administrativo', k:'escala5', b:'I', solo:'acudiente'},
+  {id:'i_administrativa', t:'¿Cómo califica la organización administrativa de la academia?', c:'administrativo', k:'escala5', b:'I', solo:'acudiente'},
   // Continuidad y recomendación
   {id:'k_continuidad', t:'Pensando en los próximos meses, ¿qué tan interesado(a) estás en continuar haciendo parte de Lazos Tricolor?', c:'continuidad', k:'escala5', b:'K'},
   {id:'k_nps', t:'¿Qué tan probable es que recomiendes Lazos Tricolor a otra persona?', c:'nps', k:'nps', b:'K'},
@@ -216,13 +273,28 @@ function encFiltradas(){
            (!ENC_FILTRO.grupo  || r.group === ENC_FILTRO.grupo);
   });
 }
+/* Promedio de un conjunto de preguntas.
+   Las marcadas con inv:true se invierten (6 - valor) antes de promediar,
+   para que "más presión" no suba artificialmente el índice de equilibrio. */
 function encPromedio(datos, ids){
   var s=0, n=0;
-  datos.forEach(function(r){
-    ids.forEach(function(id){
+  ids.forEach(function(id){
+    var def = encPregunta(id);
+    var invertir = !!(def && def.inv);
+    datos.forEach(function(r){
       var v = r.answers && r.answers[id];
-      if(typeof v === 'number'){ s+=v; n++; }
+      if(typeof v === 'number'){ s += invertir ? (6 - v) : v; n++; }
     });
+  });
+  return { prom: n ? s/n : null, n: n };
+}
+
+/* Promedio SIN invertir — para mostrar la presión percibida tal cual */
+function encPromedioCrudo(datos, id){
+  var s=0, n=0;
+  datos.forEach(function(r){
+    var v = r.answers && r.answers[id];
+    if(typeof v === 'number'){ s+=v; n++; }
   });
   return { prom: n ? s/n : null, n: n };
 }
@@ -271,6 +343,20 @@ function renderEncuestas(){
     return;
   }
 
+  // Reserva: con muy pocas respuestas se podría deducir quién contestó
+  if(total > 0 && total < ENC_MINIMO){
+    cont.innerHTML = encHTMLFiltros() +
+      '<div class="table-card"><div style="padding:40px 24px;text-align:center;color:var(--text2)">' +
+      '<div style="font-size:34px;margin-bottom:10px">🔒</div>' +
+      '<b style="color:var(--text);font-size:15px">Solo ' + total + ' respuesta(s) con este filtro</b><br>' +
+      '<span style="font-size:13px">Para proteger la reserva no mostramos resultados de grupos con menos de ' +
+      ENC_MINIMO + ' respuestas: sería posible deducir quién contestó.<br>' +
+      'Amplía el filtro o espera a que lleguen más respuestas.</span>' +
+      '</div></div>';
+    encConectarFiltros();
+    return;
+  }
+
   var alumnas    = datos.filter(function(r){ return r.respondentType==='alumno'; }).length;
   var acudientes = datos.filter(function(r){ return r.respondentType==='acudiente'; }).length;
   var ids5       = ENC_PREGUNTAS.filter(function(p){ return p.k==='escala5'; }).map(function(p){ return p.id; });
@@ -301,6 +387,7 @@ function renderEncuestas(){
         '<div id="enc-pane-resumen">' +
           encHTMLStats(total, alumnas, acudientes, general, experiencia, nps) +
           encHTMLDonuts(pctGeneral, general, nps, continuidad) +
+          encHTMLBienestar(datos) +
           encHTMLCharts() +
         '</div>' +
         '<div id="enc-pane-detalle" style="display:none">' +
@@ -312,13 +399,20 @@ function renderEncuestas(){
         '</div>'
       ));
 
-  var fp = document.getElementById('enc-filtro-perfil'); if(fp) fp.value = ENC_FILTRO.perfil;
-  var fg = document.getElementById('enc-filtro-grupo');  if(fg) fg.value = ENC_FILTRO.grupo;
+  encConectarFiltros();
 
   if(total > 0) setTimeout(function(){ encPintarGraficos(pctGeneral, nps, areas, grupos); }, 80);
 }
 
 function encFiltrar(campo, valor){ ENC_FILTRO[campo] = valor; renderEncuestas(); }
+
+// Deja los dos selectores con el valor actual y escuchando cambios
+function encConectarFiltros(){
+  var fp = document.getElementById('enc-filtro-perfil');
+  var fg = document.getElementById('enc-filtro-grupo');
+  if(fp){ fp.value = ENC_FILTRO.perfil; fp.onchange = function(){ encFiltrar('perfil', this.value); }; }
+  if(fg){ fg.value = ENC_FILTRO.grupo;  fg.onchange = function(){ encFiltrar('grupo',  this.value); }; }
+}
 
 // ── Sub-pestañas ──
 var ENC_TAB = 'resumen';
@@ -435,6 +529,77 @@ function encInyectarEstilos(){
   document.head.appendChild(st);
 }
 
+/* ───────────────────────────────────────────────────────────────
+   BIENESTAR Y SALUD DE LA COMUNIDAD
+   Índices agregados. NO es un diagnóstico ni una evaluación
+   psicológica: es la percepción del grupo sobre su convivencia.
+   ─────────────────────────────────────────────────────────────── */
+function encHTMLBienestar(datos){
+  var indices = ENC_INDICES_BC.map(function(c){
+    var r = encPromedio(datos, encIdsArea(c));
+    return { clave:c, nombre:ENC_CATEGORIAS[c], valor:r.prom, n:r.n };
+  }).filter(function(x){ return x.n > 0; });
+
+  var familias = encPromedio(datos, encIdsArea('bienestar_familia'));
+  var presion  = encPromedioCrudo(datos, 'bc_presion');
+
+  if(!indices.length && !familias.n) return '';
+
+  // Índice general = promedio de los índices (la presión ya entra invertida)
+  var general = indices.length
+    ? indices.reduce(function(a,b){ return a + b.valor; }, 0) / indices.length
+    : null;
+
+  var color = function(v){ return v >= 4.2 ? 'var(--success)' : v >= 3.5 ? 'var(--warning)' : 'var(--danger)'; };
+  var ordenados = indices.slice().sort(function(a,b){ return b.valor - a.valor; });
+
+  var barras = ordenados.map(function(i){
+    return '<div style="display:flex;align-items:center;gap:10px;padding:5px 0">' +
+      '<span style="font-size:12.5px;color:var(--text2);min-width:170px;flex:0 0 auto">' + encEsc(i.nombre) + '</span>' +
+      '<div style="flex:1;height:12px;background:var(--card2);border-radius:6px;overflow:hidden">' +
+        '<div style="height:100%;width:' + (i.valor/5*100) + '%;background:' + ENC_C.primary + ';border-radius:0 5px 5px 0"></div></div>' +
+      '<span style="font-size:13px;font-weight:800;min-width:44px;text-align:right;color:' + color(i.valor) + '">' + enc1(i.valor) + '</span>' +
+    '</div>';
+  }).join('');
+
+  // La presión se lee al revés: puntaje alto = más presión percibida
+  var colorPresion = presion.prom === null ? 'var(--text2)'
+                   : presion.prom <= 2.5 ? 'var(--success)'
+                   : presion.prom <= 3.5 ? 'var(--warning)' : 'var(--danger)';
+
+  return '<div class="table-card">' +
+    '<div class="table-card-header">' +
+      '<h3>💛 Bienestar y salud de la comunidad</h3>' +
+      '<span style="font-size:11px;color:var(--text2)">percepción del grupo · no es un diagnóstico</span>' +
+    '</div>' +
+    '<div style="padding:18px 20px">' +
+      '<div class="prof-stats-grid" style="grid-template-columns:repeat(3,1fr)">' +
+        '<div class="prof-stat">' +
+          '<div class="val" style="color:' + (general===null?'var(--text2)':color(general)) + '">' +
+            (general===null ? '—' : enc1(general)) + '<span style="font-size:13px;color:var(--text2)"> /5</span></div>' +
+          '<div class="lab">Índice de bienestar comunitario</div>' +
+        '</div>' +
+        '<div class="prof-stat" style="background:var(--card2)">' +
+          '<div class="val" style="color:' + colorPresion + '">' +
+            (presion.prom===null ? '—' : enc1(presion.prom)) + '<span style="font-size:13px;color:var(--text2)"> /5</span></div>' +
+          '<div class="lab">Presión percibida · alto = más presión</div>' +
+        '</div>' +
+        '<div class="prof-stat">' +
+          '<div class="val" style="color:' + (familias.prom===null?'var(--text2)':color(familias.prom)) + '">' +
+            (familias.prom===null ? '—' : enc1(familias.prom)) + '<span style="font-size:13px;color:var(--text2)"> /5</span></div>' +
+          '<div class="lab">Bienestar visto por las familias</div>' +
+        '</div>' +
+      '</div>' +
+      (barras ? '<div style="margin-top:16px">' + barras + '</div>' : '') +
+      '<p style="font-size:12px;color:var(--text2);margin-top:14px;line-height:1.6">' +
+        'Los índices resumen la percepción de la comunidad sobre su propia convivencia. ' +
+        'No identifican ni evalúan a ninguna persona. La pregunta de presión se cuenta invertida dentro del ' +
+        'índice de equilibrio y se muestra aparte tal como se respondió.' +
+        (indices.length ? '<br>Las siete áreas las responden los alumnos; el bloque de familias lo responden los acudientes.' : '') +
+      '</p>' +
+    '</div></div>';
+}
+
 function encHTMLCharts(){
   return '<div class="enc-charts">' +
     '<div class="chart-card"><h4>📊 Promedio por Área (1 a 5)</h4><canvas id="enc-chart-areas" style="max-height:280px"></canvas></div>' +
@@ -453,9 +618,11 @@ function encHTMLDetalle(datos){
     bloques[p.b].push({ p:p, d:d });
   });
 
-  var titulos = { B:'💛 Sentimiento y experiencia', C:'🩰 Profesores', D:'🎶 Contenidos y metodología',
+  // El orden de esta lista es el orden en que aparecen los bloques en el detalle
+  var titulos = { C:'🩰 Profesores', D:'🎶 Contenidos y metodología',
                   E:'🏫 Horarios e instalaciones', F:'📣 Comunicación y organización',
-                  G:'🎪 Presentaciones y pertenencia', I:'👨‍👩‍👧 Familias y acudientes', K:'🚀 Continuidad' };
+                  G:'🎪 Presentaciones y eventos', BC:'💛 ¿Cómo estamos como comunidad?',
+                  I:'👨‍👩‍👧 Familias y acudientes', K:'🚀 Continuidad' };
 
   var html = '<div class="table-card"><div class="table-card-header">' +
       '<h3>Detalle por pregunta</h3>' +
@@ -471,10 +638,14 @@ function encHTMLDetalle(datos){
     if(!bloques[b]) return;
     html += '<div style="font-size:13px;font-weight:800;color:var(--primary);margin:18px 0 8px">'+titulos[b]+'</div>';
     bloques[b].forEach(function(x){
-      var color = x.d.prom >= 4.2 ? 'var(--success)' : x.d.prom >= 3.5 ? 'var(--warning)' : 'var(--danger)';
+      // En una pregunta inversa (ej. presión percibida) un puntaje alto es señal de alerta
+      var color = x.p.inv
+        ? (x.d.prom <= 2.5 ? 'var(--success)' : x.d.prom <= 3.5 ? 'var(--warning)' : 'var(--danger)')
+        : (x.d.prom >= 4.2 ? 'var(--success)' : x.d.prom >= 3.5 ? 'var(--warning)' : 'var(--danger)');
+      var marca = x.p.inv ? ' <span class="badge" style="background:var(--warning-lt);color:#a06d00;font-size:10px">INVERSA</span>' : '';
       html += '<div class="enc-q">' +
         '<div class="enc-q-top">' +
-          '<span style="font-size:12.5px;color:var(--text)">'+encEsc(x.p.t)+'</span>' +
+          '<span style="font-size:12.5px;color:var(--text)">'+encEsc(x.p.t)+marca+'</span>' +
           '<span style="font-weight:800;font-size:13px;color:'+color+';white-space:nowrap">'+enc1(x.d.prom)+' /5 ' +
           '<span style="color:var(--text2);font-weight:600">('+x.d.n+')</span></span>' +
         '</div>' + encBarraApilada(x.d) + '</div>';
