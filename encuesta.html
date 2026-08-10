@@ -1,0 +1,1592 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#101014">
+<meta name="robots" content="noindex, nofollow">
+<title>Medición 2026 · Academia de Danzas Lazos Tricolor</title>
+<meta name="description" content="Medición interna y reservada de percepción, satisfacción y bienestar — Lazos Tricolor 2026.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   LAZOS TRICOLOR — MEDICIÓN 2026
+   Hoja de estilos única. Identidad: rojo / amarillo / azul
+   sobre base negro-blanco.
+   ============================================================ */
+
+/* ---------- 1. TOKENS DE DISEÑO ---------- */
+:root{
+  --rojo:#E1251B;
+  --rojo-osc:#B21A12;
+  --amarillo:#FFD500;
+  --amarillo-osc:#D9B400;
+  --azul:#3B3E96;
+  --azul-osc:#2A2C73;
+  --azul-claro:#EEEFFA;
+
+  --negro:#101014;
+  --tinta:#1A1A22;
+  --gris-900:#2E2E3A;
+  --gris-600:#5C5C6E;
+  --gris-400:#9A9AAC;
+  --gris-200:#D9D9E3;
+  --gris-100:#EFEFF5;
+  --gris-50:#F7F7FB;
+  --blanco:#FFFFFF;
+
+  --ok:#128A4B;
+  --error:#C42B21;
+
+  --radio-sm:10px;
+  --radio:16px;
+  --radio-lg:24px;
+
+  --sombra-sm:0 1px 2px rgba(16,16,20,.06), 0 2px 8px rgba(16,16,20,.05);
+  --sombra:0 2px 4px rgba(16,16,20,.05), 0 12px 32px rgba(16,16,20,.09);
+  --sombra-lg:0 8px 20px rgba(16,16,20,.10), 0 24px 60px rgba(16,16,20,.14);
+
+  --fuente:'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --ancho:760px;
+  --transicion:220ms cubic-bezier(.22,.61,.36,1);
+}
+
+/* ---------- 2. BASE ---------- */
+*,*::before,*::after{box-sizing:border-box;}
+html{-webkit-text-size-adjust:100%;}
+body{
+  margin:0;
+  font-family:var(--fuente);
+  font-size:16px;
+  line-height:1.55;
+  color:var(--tinta);
+  background:var(--gris-50);
+  background-image:
+    radial-gradient(1100px 460px at 8% -8%, rgba(225,37,27,.07), transparent 60%),
+    radial-gradient(900px 420px at 96% 2%, rgba(59,62,150,.09), transparent 62%),
+    radial-gradient(760px 360px at 50% 108%, rgba(255,213,0,.10), transparent 60%);
+  background-attachment:fixed;
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;}
+input,textarea,select{font-family:inherit;font-size:16px;}
+:focus-visible{outline:3px solid var(--azul);outline-offset:3px;border-radius:6px;}
+
+.oculto{display:none !important;}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+
+/* ---------- 3. ESTRUCTURA ---------- */
+.app{max-width:var(--ancho);margin:0 auto;padding:0 16px 64px;}
+
+/* Encabezado con logo sobre fondo oscuro */
+.cabecera{
+  margin:16px auto 0;
+  max-width:var(--ancho);
+  background:linear-gradient(135deg,#141419 0%,#0C0C10 55%,#17171E 100%);
+  border-radius:var(--radio-lg);
+  padding:22px 24px 20px;
+  text-align:center;
+  position:relative;
+  overflow:hidden;
+  box-shadow:var(--sombra);
+}
+.cabecera::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:5px;
+  background:linear-gradient(90deg,var(--amarillo) 0 33.33%,var(--azul) 33.33% 66.66%,var(--rojo) 66.66% 100%);
+}
+.cabecera img{width:min(300px,72vw);height:auto;display:block;margin:0 auto;}
+.cabecera .kicker{
+  margin-top:10px;color:#C9C9D8;font-size:12.5px;letter-spacing:.16em;
+  text-transform:uppercase;font-weight:600;
+}
+
+/* Barra de progreso fija */
+.progreso-wrap{
+  position:sticky;top:0;z-index:40;
+  padding:12px 16px 10px;
+  margin:0 -16px 18px;
+  background:rgba(247,247,251,.86);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--gris-200);
+}
+.progreso-info{
+  display:flex;justify-content:space-between;align-items:baseline;
+  max-width:var(--ancho);margin:0 auto 8px;gap:12px;
+}
+.progreso-info .paso{font-size:13.5px;font-weight:600;color:var(--gris-600);}
+.progreso-info .pct{font-size:13.5px;font-weight:700;color:var(--azul);font-variant-numeric:tabular-nums;}
+.barra{
+  max-width:var(--ancho);margin:0 auto;
+  height:9px;border-radius:99px;background:var(--gris-200);overflow:hidden;
+}
+.barra > i{
+  display:block;height:100%;width:0%;border-radius:99px;
+  background:linear-gradient(90deg,var(--amarillo),var(--rojo) 55%,var(--azul));
+  transition:width 420ms cubic-bezier(.22,.61,.36,1);
+}
+
+/* ---------- 4. TARJETAS ---------- */
+.tarjeta{
+  background:var(--blanco);
+  border:1px solid var(--gris-200);
+  border-radius:var(--radio-lg);
+  box-shadow:var(--sombra);
+  padding:26px 24px;
+  margin-bottom:18px;
+}
+@media (max-width:520px){ .tarjeta{padding:20px 16px;border-radius:20px;} }
+
+.aparece{animation:entra 340ms cubic-bezier(.22,.61,.36,1) both;}
+@keyframes entra{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms !important;transition-duration:.001ms !important;}
+}
+
+.etiqueta-bloque{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--azul);background:var(--azul-claro);
+  padding:6px 12px;border-radius:99px;margin-bottom:16px;
+}
+h1{font-size:clamp(22px,5.2vw,30px);line-height:1.2;margin:0 0 12px;font-weight:800;letter-spacing:-.02em;}
+h2{font-size:clamp(19px,4.4vw,23px);line-height:1.28;margin:0 0 6px;font-weight:700;letter-spacing:-.01em;}
+p{margin:0 0 14px;color:var(--gris-900);}
+.suave{color:var(--gris-600);font-size:14.5px;}
+
+/* ---------- 5. AVISO DE RESERVA ---------- */
+.aviso{
+  border:1px solid var(--gris-200);
+  border-left:5px solid var(--azul);
+  background:linear-gradient(180deg,#FBFBFF,#F5F5FC);
+  border-radius:var(--radio);
+  padding:18px 18px 6px;margin:18px 0 8px;
+}
+.aviso h3{margin:0 0 10px;font-size:16px;font-weight:700;color:var(--azul-osc);display:flex;align-items:center;gap:8px;}
+.aviso .cita{
+  font-style:italic;color:var(--gris-900);
+  border-left:3px solid var(--amarillo);padding-left:12px;margin:0 0 14px;
+}
+.lista-check{list-style:none;padding:0;margin:0 0 12px;display:grid;gap:9px;}
+.lista-check li{position:relative;padding-left:28px;font-size:14.6px;color:var(--gris-900);}
+.lista-check li::before{
+  content:"";position:absolute;left:0;top:6px;width:17px;height:17px;border-radius:50%;
+  background:var(--ok) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E") center/11px no-repeat;
+}
+
+/* ---------- 6. CAMPOS ---------- */
+.campo{margin-bottom:18px;}
+.campo > label{display:block;font-weight:600;margin-bottom:7px;font-size:15.5px;}
+.campo .ayuda{font-size:13.6px;color:var(--gris-600);margin:-2px 0 9px;}
+input[type="email"],input[type="text"],input[type="password"],textarea{
+  width:100%;padding:14px 16px;
+  border:1.5px solid var(--gris-200);border-radius:var(--radio);
+  background:var(--blanco);color:var(--tinta);
+  transition:border-color var(--transicion), box-shadow var(--transicion);
+}
+textarea{min-height:118px;resize:vertical;line-height:1.5;}
+input:focus,textarea:focus{
+  outline:none;border-color:var(--azul);
+  box-shadow:0 0 0 4px rgba(59,62,150,.14);
+}
+input.malo,textarea.malo{border-color:var(--error);box-shadow:0 0 0 4px rgba(196,43,33,.12);}
+.contador{text-align:right;font-size:12.5px;color:var(--gris-400);margin-top:5px;}
+
+.error-msg{
+  display:none;align-items:center;gap:7px;
+  color:var(--error);font-size:14px;font-weight:500;margin-top:9px;
+}
+.error-msg.ver{display:flex;animation:sacude 380ms;}
+.error-msg::before{content:"!";flex:0 0 auto;width:18px;height:18px;border-radius:50%;background:var(--error);color:#fff;font-size:12px;font-weight:800;display:grid;place-items:center;}
+@keyframes sacude{10%,90%{transform:translateX(-2px)}30%,70%{transform:translateX(3px)}50%{transform:translateX(-3px)}}
+
+/* ---------- 7. SELECTOR DE PERFIL ---------- */
+.perfiles{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px;}
+@media (max-width:560px){.perfiles{grid-template-columns:1fr;}}
+.perfil{
+  appearance:none;cursor:pointer;text-align:center;
+  background:var(--blanco);border:2px solid var(--gris-200);
+  border-radius:20px;padding:26px 16px;
+  transition:transform var(--transicion),border-color var(--transicion),box-shadow var(--transicion),background var(--transicion);
+}
+.perfil .emo{font-size:40px;line-height:1;display:block;margin-bottom:10px;}
+.perfil .tit{display:block;font-weight:700;font-size:16.5px;color:var(--tinta);}
+.perfil .sub{display:block;font-size:13.4px;color:var(--gris-600);margin-top:4px;}
+.perfil:hover{border-color:var(--azul);transform:translateY(-3px);box-shadow:var(--sombra);}
+.perfil[aria-pressed="true"]{
+  border-color:var(--azul);background:var(--azul-claro);
+  box-shadow:0 0 0 4px rgba(59,62,150,.13);
+}
+.perfil[aria-pressed="true"] .tit{color:var(--azul-osc);}
+
+/* ---------- 8. PREGUNTAS ---------- */
+.pregunta{padding:20px 0;border-top:1px dashed var(--gris-200);}
+.pregunta:first-of-type{border-top:0;padding-top:4px;}
+.pregunta .enunciado{
+  display:block;font-weight:600;font-size:16.5px;line-height:1.4;margin-bottom:4px;color:var(--tinta);
+}
+.pregunta .num{color:var(--gris-400);font-weight:700;margin-right:6px;font-variant-numeric:tabular-nums;}
+.opcional{
+  display:inline-block;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--gris-600);background:var(--gris-100);border-radius:99px;padding:2px 9px;margin-left:8px;vertical-align:2px;
+}
+
+/* Escala 1–5 con botones grandes */
+.escala5{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:14px;}
+.escala5 button{
+  cursor:pointer;background:var(--blanco);border:2px solid var(--gris-200);
+  border-radius:var(--radio);padding:12px 4px 10px;
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  transition:transform var(--transicion),border-color var(--transicion),background var(--transicion),box-shadow var(--transicion);
+}
+.escala5 button .cara{font-size:25px;line-height:1;filter:grayscale(.55);opacity:.75;transition:var(--transicion);}
+.escala5 button .val{font-weight:800;font-size:15px;color:var(--gris-600);}
+.escala5 button .txt{font-size:10.8px;line-height:1.15;color:var(--gris-600);text-align:center;min-height:24px;}
+.escala5 button:hover{border-color:var(--azul);transform:translateY(-2px);}
+.escala5 button:hover .cara{filter:none;opacity:1;}
+.escala5 button[aria-pressed="true"]{
+  border-color:var(--azul);background:var(--azul-claro);
+  box-shadow:0 0 0 4px rgba(59,62,150,.13);
+}
+.escala5 button[aria-pressed="true"] .cara{filter:none;opacity:1;transform:scale(1.14);}
+.escala5 button[aria-pressed="true"] .val,
+.escala5 button[aria-pressed="true"] .txt{color:var(--azul-osc);font-weight:700;}
+@media (max-width:400px){
+  .escala5{gap:6px;}
+  .escala5 button{padding:10px 2px 8px;}
+  .escala5 button .cara{font-size:22px;}
+  .escala5 button .txt{font-size:9.6px;}
+}
+
+/* Escala 0–10 / 1–10 en fila adaptable */
+.escala10{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px;}
+.escala10 button{
+  flex:1 1 52px;min-width:44px;min-height:52px;cursor:pointer;
+  background:var(--blanco);border:2px solid var(--gris-200);border-radius:14px;
+  font-weight:800;font-size:16px;color:var(--gris-900);
+  transition:transform var(--transicion),border-color var(--transicion),background var(--transicion),color var(--transicion);
+}
+.escala10 button:hover{border-color:var(--azul);transform:translateY(-2px);}
+.escala10 button[aria-pressed="true"]{background:var(--azul);border-color:var(--azul);color:#fff;box-shadow:0 0 0 4px rgba(59,62,150,.16);}
+.escala10.calor button[data-v="0"][aria-pressed="true"],
+.escala10.calor button[data-v="1"][aria-pressed="true"],
+.escala10.calor button[data-v="2"][aria-pressed="true"],
+.escala10.calor button[data-v="3"][aria-pressed="true"],
+.escala10.calor button[data-v="4"][aria-pressed="true"],
+.escala10.calor button[data-v="5"][aria-pressed="true"],
+.escala10.calor button[data-v="6"][aria-pressed="true"]{background:var(--rojo);border-color:var(--rojo);box-shadow:0 0 0 4px rgba(225,37,27,.16);}
+.escala10.calor button[data-v="7"][aria-pressed="true"],
+.escala10.calor button[data-v="8"][aria-pressed="true"]{background:var(--amarillo-osc);border-color:var(--amarillo-osc);color:#231D00;box-shadow:0 0 0 4px rgba(255,213,0,.28);}
+.escala10.calor button[data-v="9"][aria-pressed="true"],
+.escala10.calor button[data-v="10"][aria-pressed="true"]{background:var(--ok);border-color:var(--ok);box-shadow:0 0 0 4px rgba(18,138,75,.18);}
+.extremos{display:flex;justify-content:space-between;gap:12px;margin-top:9px;font-size:12.6px;color:var(--gris-600);}
+
+/* Opciones (radio y checkbox) */
+.opciones{display:grid;gap:9px;margin-top:14px;}
+.opciones.dos{grid-template-columns:1fr 1fr;}
+@media (max-width:520px){.opciones.dos{grid-template-columns:1fr;}}
+.opcion{
+  display:flex;align-items:center;gap:12px;cursor:pointer;text-align:left;width:100%;
+  background:var(--blanco);border:2px solid var(--gris-200);border-radius:var(--radio);
+  padding:14px 16px;font-size:15.4px;color:var(--tinta);font-weight:500;
+  transition:transform var(--transicion),border-color var(--transicion),background var(--transicion),box-shadow var(--transicion);
+}
+.opcion .marca{
+  flex:0 0 auto;width:22px;height:22px;border:2px solid var(--gris-400);border-radius:50%;
+  display:grid;place-items:center;transition:var(--transicion);
+}
+.opcion.multi .marca{border-radius:7px;}
+.opcion .marca::after{content:"";width:10px;height:10px;border-radius:50%;background:transparent;transition:var(--transicion);}
+.opcion.multi .marca::after{border-radius:2px;}
+.opcion:hover{border-color:var(--azul);transform:translateY(-2px);}
+.opcion[aria-pressed="true"]{border-color:var(--azul);background:var(--azul-claro);box-shadow:0 0 0 4px rgba(59,62,150,.11);}
+.opcion[aria-pressed="true"] .marca{border-color:var(--azul);background:var(--azul);}
+.opcion[aria-pressed="true"] .marca::after{background:#fff;}
+
+/* ---------- 9. BOTONES DE NAVEGACIÓN ---------- */
+.nav{
+  display:flex;gap:12px;align-items:center;justify-content:space-between;
+  margin-top:22px;padding-top:18px;border-top:1px solid var(--gris-100);
+}
+.btn{
+  cursor:pointer;border:2px solid transparent;border-radius:99px;
+  padding:15px 26px;font-size:16px;font-weight:700;
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  transition:transform var(--transicion),box-shadow var(--transicion),background var(--transicion),opacity var(--transicion);
+  min-height:52px;
+}
+.btn:active{transform:scale(.98);}
+.btn-primario{
+  background:linear-gradient(135deg,var(--azul),var(--azul-osc));color:#fff;
+  box-shadow:0 6px 18px rgba(59,62,150,.30);flex:1 1 auto;
+}
+.btn-primario:hover{box-shadow:0 10px 26px rgba(59,62,150,.38);transform:translateY(-2px);}
+.btn-enviar{background:linear-gradient(135deg,var(--rojo),var(--rojo-osc));box-shadow:0 6px 18px rgba(225,37,27,.30);}
+.btn-enviar:hover{box-shadow:0 10px 26px rgba(225,37,27,.38);}
+.btn-secundario{background:var(--blanco);color:var(--gris-900);border-color:var(--gris-200);flex:0 0 auto;}
+.btn-secundario:hover{border-color:var(--gris-400);background:var(--gris-50);}
+.btn[disabled]{opacity:.6;cursor:not-allowed;transform:none !important;}
+.btn .spin{
+  width:17px;height:17px;border-radius:50%;
+  border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;
+  animation:gira .8s linear infinite;
+}
+@keyframes gira{to{transform:rotate(360deg);}}
+
+/* ---------- 10. RESUMEN ---------- */
+.resumen-bloque{border:1px solid var(--gris-200);border-radius:var(--radio);margin-bottom:12px;overflow:hidden;background:var(--gris-50);}
+.resumen-bloque > h4{
+  margin:0;padding:13px 16px;font-size:14px;font-weight:700;color:var(--azul-osc);
+  background:var(--azul-claro);letter-spacing:.02em;
+}
+.resumen-bloque dl{margin:0;padding:6px 16px 14px;}
+.resumen-fila{display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-bottom:1px dashed var(--gris-200);}
+.resumen-fila:last-child{border-bottom:0;}
+.resumen-fila dt{font-size:14px;color:var(--gris-600);flex:1 1 auto;}
+.resumen-fila dd{margin:0;font-size:14.4px;font-weight:700;color:var(--tinta);flex:0 0 auto;text-align:right;max-width:52%;}
+.resumen-fila dd.vacio{color:var(--gris-400);font-weight:500;font-style:italic;}
+
+/* ---------- 11. PANTALLA FINAL ---------- */
+.gracias{text-align:center;padding:44px 22px;}
+.gracias .globo{
+  width:96px;height:96px;margin:0 auto 20px;border-radius:50%;
+  background:conic-gradient(var(--rojo) 0 33%,var(--amarillo) 33% 66%,var(--azul) 66% 100%);
+  display:grid;place-items:center;box-shadow:0 12px 34px rgba(59,62,150,.26);
+  animation:pop 620ms cubic-bezier(.2,1.3,.4,1) both;
+}
+.gracias .globo span{
+  width:74px;height:74px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:34px;
+}
+@keyframes pop{0%{transform:scale(.4) rotate(-25deg);opacity:0}100%{transform:none;opacity:1}}
+.gracias h2{font-size:clamp(23px,5.6vw,30px);margin-bottom:14px;}
+.gracias p{max-width:52ch;margin-left:auto;margin-right:auto;}
+.gracias .firma{margin-top:26px;font-weight:700;color:var(--azul-osc);}
+.confeti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:5;}
+.confeti i{position:absolute;top:-14px;width:9px;height:14px;border-radius:2px;animation:cae linear forwards;}
+@keyframes cae{to{transform:translateY(105vh) rotate(720deg);opacity:.15;}}
+
+/* ---------- 12. PIE ---------- */
+.pie{text-align:center;color:var(--gris-400);font-size:12.6px;margin-top:26px;line-height:1.6;}
+.pie strong{color:var(--gris-600);}
+.candado{display:inline-flex;align-items:center;gap:6px;}
+</style>
+</head>
+<body>
+
+<header class="cabecera">
+  <img src="data:image/png;base64,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" alt="Academia de Danzas Lazos Tricolor — Bailarines Integrales">
+  <div class="kicker">Medición interna 2026</div>
+</header>
+
+<main class="app">
+
+  <!-- ====== BARRA DE PROGRESO (visible solo durante las preguntas) ====== -->
+  <div class="progreso-wrap oculto" id="progresoWrap">
+    <div class="progreso-info">
+      <span class="paso" id="progresoTexto">Pregunta 1 de 1</span>
+      <span class="pct" id="progresoPct">0%</span>
+    </div>
+    <div class="barra" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Avance de la encuesta">
+      <i id="progresoBarra"></i>
+    </div>
+  </div>
+
+  <!-- ====== PANTALLA 0 · BIENVENIDA + RESERVA + REGISTRO ====== -->
+  <section id="pantallaInicio" class="tarjeta aparece">
+    <span class="etiqueta-bloque">🎭 Lazos Tricolor · 2026</span>
+    <h1>Queremos saber cómo te sientes en Lazos Tricolor</h1>
+    <p>Esta medición nos ayuda a conocer la experiencia de nuestros alumnos y sus familias durante los primeros meses de 2026, para tomar decisiones y mejorar en los meses que vienen.</p>
+    <p class="suave">Te tomará entre 6 y 10 minutos. Puedes devolverte a cualquier pregunta antes de enviar.</p>
+
+    <div class="aviso">
+      <h3><span class="candado">🔒</span> Medición interna y reservada</h3>
+      <p class="cita">"Esta es una medición interna y reservada de Lazos Tricolor. Las respuestas serán utilizadas exclusivamente para conocer la percepción de nuestros alumnos y acudientes y orientar procesos de mejora. No se expondrán públicamente respuestas individuales ni se señalará a ninguna persona por sus opiniones."</p>
+      <ul class="lista-check">
+        <li>Tus opiniones se tratan de manera reservada.</li>
+        <li>No se publicarán respuestas individuales.</li>
+        <li>La información se analiza de manera general y agrupada.</li>
+        <li>Esta encuesta busca mejorar, no señalar a nadie.</li>
+        <li>Puedes responder con total sinceridad.</li>
+        <li>Las respuestas negativas también son importantes: son las que más nos ayudan.</li>
+      </ul>
+    </div>
+
+    <div class="campo" style="margin-top:26px">
+      <label for="email">Correo electrónico <span aria-hidden="true" style="color:var(--rojo)">*</span></label>
+      <p class="ayuda">Ingresa tu correo electrónico para registrar tu participación. Solo lo usamos para evitar respuestas duplicadas: <strong>nunca se muestra junto a tus respuestas</strong>.</p>
+      <input type="email" id="email" name="email" inputmode="email" autocomplete="email" placeholder="tucorreo@ejemplo.com" aria-describedby="errEmail">
+      <div class="error-msg" id="errEmail" role="alert"></div>
+    </div>
+
+    <div class="campo">
+      <label id="lblPerfil">¿Quién está respondiendo esta encuesta? <span aria-hidden="true" style="color:var(--rojo)">*</span></label>
+      <div class="perfiles" role="group" aria-labelledby="lblPerfil">
+        <button type="button" class="perfil" data-perfil="alumno" aria-pressed="false">
+          <span class="emo" aria-hidden="true">🧑‍🎓</span>
+          <span class="tit">ALUMNO(A)</span>
+          <span class="sub">Hago parte de las clases</span>
+        </button>
+        <button type="button" class="perfil" data-perfil="acudiente" aria-pressed="false">
+          <span class="emo" aria-hidden="true">👨‍👩‍👧</span>
+          <span class="tit">ACUDIENTE</span>
+          <span class="sub">Padre, madre o acudiente</span>
+        </button>
+      </div>
+      <div class="error-msg" id="errPerfil" role="alert"></div>
+    </div>
+
+    <div class="nav">
+      <button type="button" class="btn btn-primario" id="btnComenzar">Comenzar la encuesta →</button>
+    </div>
+  </section>
+
+  <!-- ====== PANTALLAS DE PREGUNTAS (generadas por JavaScript) ====== -->
+  <section id="pantallaPreguntas" class="oculto" aria-live="polite"></section>
+
+  <!-- ====== PANTALLA DE RESUMEN ====== -->
+  <section id="pantallaResumen" class="tarjeta oculto">
+    <span class="etiqueta-bloque">📋 Último paso</span>
+    <h2>Revisa tus respuestas antes de enviar</h2>
+    <p class="suave">Puedes volver atrás y ajustar cualquier respuesta. Nada se envía hasta que presiones <strong>Enviar encuesta</strong>.</p>
+    <div id="resumenContenido" style="margin-top:20px"></div>
+    <div class="error-msg" id="errEnvio" role="alert"></div>
+    <div class="nav">
+      <button type="button" class="btn btn-secundario" id="btnResumenAtras">← Anterior</button>
+      <button type="button" class="btn btn-primario btn-enviar" id="btnEnviar">Enviar encuesta ✓</button>
+    </div>
+  </section>
+
+  <!-- ====== PANTALLA FINAL ====== -->
+  <section id="pantallaGracias" class="tarjeta oculto">
+    <div class="gracias">
+      <div class="globo"><span aria-hidden="true">💃</span></div>
+      <h2>¡Gracias por ser parte de Lazos Tricolor! 💛💙❤️</h2>
+      <p>Tu opinión es importante para nosotros. Esta medición nos permitirá conocer qué estamos haciendo bien y qué podemos mejorar durante los próximos meses de 2026.</p>
+      <p class="firma">Gracias por ayudarnos a seguir creciendo.</p>
+      <p class="suave" style="margin-top:22px">Ya puedes cerrar esta ventana.</p>
+    </div>
+  </section>
+
+  <p class="pie">
+    <strong>Academia de Danzas Lazos Tricolor</strong> · Bailarines Integrales<br>
+    Medición interna de percepción y bienestar · 2026<br>
+    <span class="candado">🔒 Información reservada · uso exclusivamente interno</span>
+  </p>
+
+</main>
+
+<script>
+/* ============================================================================
+   LAZOS TRICOLOR · MEDICIÓN 2026
+   ----------------------------------------------------------------------------
+   ARCHIVO ÚNICO: HTML + CSS + JavaScript, sin frameworks.
+   Estructura del script:
+     1) CONFIG          → ajustes generales y conexión al backend
+     2) ESCALAS         → definición de las escalas 1–5
+     3) SECCIONES       → TODAS las preguntas (aquí se editan)
+     4) MOTOR           → construcción de pasos, render, validación, navegación
+     5) ENVÍO           → submitSurvey(data) + Firebase Firestore
+   ============================================================================ */
+
+/* ===========================================================================
+   1) CONFIGURACIÓN GENERAL
+   ===========================================================================*/
+const CONFIG = {
+  version: '2026.1',
+
+  // --- MODO DEMO -----------------------------------------------------------
+  // true  → NO envía nada. Muestra los datos en la consola (F12) y simula
+  //         una respuesta exitosa. Ideal para probar la encuesta.
+  // false → Envía de verdad a Firestore con los datos de CONFIG.firestore.
+  modoDemo: false,
+
+  // --- FIRESTORE (API REST, igual que el panel administrativo) -------------
+  // proyecto → el projectId de Firebase (aparece dentro de FB_URL en js/state.js)
+  // apiKey   → la misma FB_KEY que ya usa el panel
+  firestore: {
+    proyecto: "lazos-tricolor-academia",
+    apiKey:   "AIzaSyCIj32zyCreKyCGJSMo6T5yTDhMeqctpG4"
+  },
+
+  // Nombres de las colecciones en Firestore
+  coleccionRespuestas:   'respuestas',    // respuestas SIN correo (análisis)
+  coleccionParticipantes:'participantes', // correo + huella (control de duplicados)
+
+  // Evitar que la misma persona responda dos veces
+  evitarDuplicados: true,
+
+  // Guardar un borrador en el navegador para no perder respuestas al recargar
+  guardarBorrador: true,
+  claveBorrador: 'lazos_encuesta_2026_borrador'
+};
+
+/* ===========================================================================
+   2) ESCALAS 1–5
+   Cada escala define las etiquetas y caritas de los 5 botones.
+   ===========================================================================*/
+const ESCALAS = {
+  // Satisfacción (la escala base solicitada)
+  sat5: [
+    {v:1, cara:'😞', txt:'Muy insatisfecho'},
+    {v:2, cara:'🙁', txt:'Insatisfecho'},
+    {v:3, cara:'😐', txt:'Neutral'},
+    {v:4, cara:'🙂', txt:'Satisfecho'},
+    {v:5, cara:'😄', txt:'Muy satisfecho'}
+  ],
+  // Calificación de un aspecto ("¿Cómo calificas...?")
+  cal5: [
+    {v:1, cara:'😞', txt:'Muy mala'},
+    {v:2, cara:'🙁', txt:'Mala'},
+    {v:3, cara:'😐', txt:'Regular'},
+    {v:4, cara:'🙂', txt:'Buena'},
+    {v:5, cara:'🤩', txt:'Excelente'}
+  ],
+  // Acuerdo / percepción ("¿Sientes que...?")
+  acu5: [
+    {v:1, cara:'😞', txt:'Nada'},
+    {v:2, cara:'🙁', txt:'Poco'},
+    {v:3, cara:'😐', txt:'Algo'},
+    {v:4, cara:'🙂', txt:'Bastante'},
+    {v:5, cara:'😄', txt:'Totalmente'}
+  ],
+  // Interés / continuidad
+  int5: [
+    {v:1, cara:'😞', txt:'Nada interesado'},
+    {v:2, cara:'🙁', txt:'Poco interesado'},
+    {v:3, cara:'😐', txt:'Indeciso'},
+    {v:4, cara:'🙂', txt:'Interesado'},
+    {v:5, cara:'🤩', txt:'Muy interesado'}
+  ]
+};
+
+/* ===========================================================================
+   3) SECCIONES Y PREGUNTAS
+   ---------------------------------------------------------------------------
+   PARA EDITAR LA ENCUESTA SOLO SE MODIFICA ESTE BLOQUE.
+
+   Propiedades de cada pregunta:
+     id           → identificador único (se usa al guardar y en el panel)
+     tipo         → 'escala5' | 'escala10' | 'nps' | 'unica' | 'multiple' | 'texto'
+     escala       → nombre de la escala si tipo = 'escala5'
+     texto        → enunciado por defecto (se usa para ALUMNO)
+     textoAcudiente → enunciado alternativo cuando responde un ACUDIENTE
+     opciones     → lista de opciones ('unica' y 'multiple')
+     obligatoria  → true / false
+     categoria    → agrupa promedios en el panel de resultados
+     soloPara     → 'alumno' | 'acudiente' (si se omite, se muestra a ambos)
+     sola         → true → la pregunta ocupa su propia pantalla
+     columnas     → 2 → opciones en dos columnas
+   ===========================================================================*/
+const SECCIONES = [
+
+  /* ---------------------- BLOQUE A · INFORMACIÓN GENERAL ------------------ */
+  {
+    id:'A', icono:'📌', etiqueta:'Bloque A · Información general',
+    titulo:'Empecemos por lo básico',
+    intro:'Esta información nos permite analizar los resultados por grupo. No identifica a ninguna persona.',
+    porPagina:2,
+    preguntas:[
+      {
+        id:'grupo', tipo:'unica', obligatoria:true, categoria:'perfil',
+        texto:'¿A qué grupo perteneces?',
+        textoAcudiente:'¿A qué grupo pertenece el alumno que acompañas?',
+        opciones:['Preinfantil','Infantil','Juvenil','Adulto','Senior']
+      },
+      {
+        id:'antiguedad', tipo:'unica', obligatoria:true, categoria:'perfil',
+        texto:'¿Cuánto tiempo llevas vinculado(a) a Lazos Tricolor?',
+        textoAcudiente:'¿Cuánto tiempo lleva el alumno vinculado a Lazos Tricolor?',
+        opciones:['Menos de 3 meses','Entre 3 y 6 meses','Más de 6 meses','Desde los inicios de la academia']
+      }
+    ]
+  },
+
+  /* ------------------- BLOQUE B · SENTIMIENTO Y EXPERIENCIA --------------- */
+  {
+    id:'B', icono:'💛', etiqueta:'Bloque B · Sentimiento y experiencia',
+    titulo:'Cómo se vive Lazos Tricolor',
+    intro:'Responde pensando en cómo te has sentido durante estos primeros meses de 2026.',
+    porPagina:3,
+    preguntas:[
+      { id:'b_sentir', tipo:'escala5', escala:'sat5', obligatoria:true, categoria:'bienestar',
+        texto:'¿Cómo te sientes actualmente siendo parte de Lazos Tricolor?',
+        textoAcudiente:'¿Cómo se siente tu familia actualmente siendo parte de Lazos Tricolor?' },
+      { id:'b_disfrute', tipo:'escala5', escala:'sat5', obligatoria:true, categoria:'bienestar',
+        texto:'¿Qué tanto disfrutas asistir a las clases?',
+        textoAcudiente:'¿Qué tanto disfruta el alumno asistir a las clases?' },
+      { id:'b_seguridad', tipo:'escala5', escala:'acu5', obligatoria:true, categoria:'bienestar',
+        texto:'¿Te sientes cómodo(a) y seguro(a) dentro de la academia?',
+        textoAcudiente:'¿Consideras que el alumno se siente cómodo(a) y seguro(a) dentro de la academia?' },
+      { id:'b_expresion', tipo:'escala5', escala:'acu5', obligatoria:true, categoria:'bienestar',
+        texto:'¿Sientes que puedes expresarte libremente dentro de la academia?',
+        textoAcudiente:'¿Sientes que el alumno puede expresarse libremente dentro de la academia?' },
+      { id:'b_comunidad', tipo:'escala5', escala:'acu5', obligatoria:true, categoria:'pertenencia',
+        texto:'¿Sientes que haces parte de una comunidad dentro de Lazos Tricolor?',
+        textoAcudiente:'¿Sientes que tu familia hace parte de una comunidad dentro de Lazos Tricolor?' },
+      { id:'b_animo', tipo:'escala5', escala:'acu5', obligatoria:true, categoria:'bienestar',
+        texto:'¿Consideras que la academia ha aportado positivamente a tu estado de ánimo?',
+        textoAcudiente:'¿Consideras que la academia ha aportado positivamente al estado de ánimo y bienestar del alumno?' }
+    ]
+  },
+
+  /* --------------------------- BLOQUE C · PROFESORES ---------------------- */
+  {
+    id:'C', icono:'🩰', etiqueta:'Bloque C · Profesores',
+    titulo:'Nuestro equipo de profesores',
+    intro:'Tus respuestas nos ayudan a acompañar mejor a nuestro equipo. No se señala a ninguna persona.',
+    porPagina:3,
+    preguntas:[
+      { id:'c_general', tipo:'escala5', escala:'cal5', obligatoria:true, categoria:'profesores',
+        texto:'¿Cómo calificas en general a los profesores de Lazos Tricolor?' },
+      { id:'c_respeto', tipo:'escala5', escala:'acu5', obligatoria:true, categoria:'profesores',
+        texto:'¿Consideras que los profesores tienen un trato respetuoso con los alumnos?' },
+      { id:'c_explican', tipo:'escala5', escala:'acu5', obligatoria:true, categoria:'profesores',
+        texto:'¿Consideras que explican adecuadamente los ejercicios y contenidos?' },
+      { id:'c_progreso', tipo:'escala5', escala:'acu5', obligatoria:true, categoria:'profesores',
+        texto:'¿Sientes que se preocupan por el progreso de los alumnos?' },
+      { id:'c_disciplina', tipo:'escala5', escala:'cal5', obligatoria:true, categoria:'profesores',
+        texto:'¿Consideras adecuada la disciplina durante las clases?' },
+      { id:'c_nivel', tipo:'escala5', escala:'cal5', obligatoria:true, categoria:'profesores',
+        texto:'¿Cómo calificas el nivel técnico y artístico de las clases?' },
+      { id:'c_aprendizaje', tipo:'escala5', escala:'acu5', obligatoria:true, categoria:'profesores',
+        texto:'¿Sientes que estás aprendiendo y mejorando?',
+        textoAcudiente:'¿Sientes que el alumno está aprendiendo y mejorando?' },
+      { id:'c_destacar', tipo:'texto', obligatoria:false, sola:true, categoria:'abierta',
+        texto:'¿Hay algún aspecto de nuestros profesores que quieras destacar?',
+        ayuda:'Opcional. Nos encanta reconocer el trabajo bien hecho.',
+        placeholder:'Escribe aquí lo que quieras resaltar…' },
+      { id:'c_mejorar_ensenanza', tipo:'texto', obligatoria:false, sola:true, categoria:'abierta',
+        texto:'¿Hay algún aspecto de la enseñanza que consideres que podemos mejorar?',
+        ayuda:'Opcional. Escríbelo con confianza: se analiza de forma reservada y general.',
+        placeholder:'Cuéntanos qué podríamos hacer mejor…' }
+    ]
+  },
+
+  /* --------------------- BLOQUE D · CONTENIDOS Y METODOLOGÍA -------------- */
+  {
+    id:'D', icono:'🎶', etiqueta:'Bloque D · Contenidos y metodología',
+    titulo:'Lo que se enseña y cómo se enseña',
+    porPagina:2,
+    preguntas:[
+      { id:'d_contenidos', tipo:'escala5', escala:'sat5', obligatoria:true, categoria:'contenidos',
+        texto:'¿Qué tan satisfecho(a) estás con los contenidos trabajados?' },
+      { id:'d_variedad', tipo:'escala5', escala:'acu5', obligatoria:true, categoria:'contenidos',
+        texto:'¿Consideras que existe suficiente variedad de danzas y estilos?' },
+      { id:'d_dinamicas', tipo:'escala5', escala:'acu5', obligatoria:true, categoria:'contenidos',
+        texto:'¿Las clases son dinámicas y entretenidas?' },
+      { id:'d_equilibrio', tipo:'escala5', escala:'acu5', obligatoria:true, categoria:'contenidos',
+        texto:'¿Existe un buen equilibrio entre técnica, expresión artística y diversión?' },
+      { id:'d_favorito', tipo:'unica', obligatoria:true, sola:true, columnas:2, categoria:'contenidos',
+        texto:'¿Cuál de estos contenidos disfrutas más?',
+        textoAcudiente:'¿Cuál de estos contenidos consideras que disfruta más el alumno?',
+        opciones:['Folclor colombiano','Folclor venezolano','Folclor mexicano','Ballet','Danza contemporánea','Ritmos modernos','Preparación para presentaciones',{valor:'Otro', otro:true}] },
+      { id:'d_incorporar', tipo:'texto', obligatoria:false, sola:true, categoria:'abierta',
+        texto:'¿Qué contenido, actividad o estilo te gustaría que incorporáramos?',
+        ayuda:'Opcional. Tus ideas nos ayudan a planear los próximos meses.',
+        placeholder:'Por ejemplo: un nuevo ritmo, un taller, una actividad…' }
+    ]
+  },
+
+  /* -------------------- BLOQUE E · HORARIOS E INSTALACIONES --------------- */
+  {
+    id:'E', icono:'🏫', etiqueta:'Bloque E · Horarios e instalaciones',
+    titulo:'Tiempos y espacios',
+    intro:'Califica cada aspecto de 1 (muy mala) a 5 (excelente).',
+    porPagina:3,
+    preguntas:[
+      { id:'e_horarios', tipo:'escala5', escala:'cal5', obligatoria:true, categoria:'horarios',
+        texto:'¿Cómo calificas los horarios?' },
+      { id:'e_duracion', tipo:'escala5', escala:'cal5', obligatoria:true, categoria:'horarios',
+        texto:'¿Cómo calificas la duración de las clases?' },
+      { id:'e_frecuencia', tipo:'escala5', escala:'cal5', obligatoria:true, categoria:'horarios',
+        texto:'¿Cómo calificas la frecuencia semanal?' },
+      { id:'e_espacio', tipo:'escala5', escala:'cal5', obligatoria:true, categoria:'instalaciones',
+        texto:'¿Cómo calificas el espacio donde se realizan las clases?' },
+      { id:'e_comodidad', tipo:'escala5', escala:'cal5', obligatoria:true, categoria:'instalaciones',
+        texto:'¿Cómo calificas la comodidad de las instalaciones?' },
+      { id:'e_limpieza', tipo:'escala5', escala:'cal5', obligatoria:true, categoria:'instalaciones',
+        texto:'¿Cómo calificas la limpieza?' },
+      { id:'e_seguridad', tipo:'escala5', escala:'cal5', obligatoria:true, categoria:'instalaciones',
+        texto:'¿Cómo calificas la seguridad del lugar?' }
+    ]
+  },
+
+  /* ------------------ BLOQUE F · COMUNICACIÓN Y ORGANIZACIÓN -------------- */
+  {
+    id:'F', icono:'📣', etiqueta:'Bloque F · Comunicación y organización',
+    titulo:'Cómo nos comunicamos y organizamos',
+    porPagina:3,
+    preguntas:[
+      { id:'f_comunicacion', tipo:'escala5', escala:'cal5', obligatoria:true, categoria:'comunicacion',
+        texto:'¿Cómo calificas la comunicación de la academia?' },
+      { id:'f_oportuna', tipo:'escala5', escala:'acu5', obligatoria:true, categoria:'comunicacion',
+        texto:'¿La información sobre actividades llega oportunamente?' },
+      { id:'f_org_presentaciones', tipo:'escala5', escala:'cal5', obligatoria:true, categoria:'presentaciones',
+        texto:'¿Cómo calificas la organización de las presentaciones?' },
+      { id:'f_org_actividades', tipo:'escala5', escala:'cal5', obligatoria:true, categoria:'presentaciones',
+        texto:'¿Cómo calificas la organización de actividades especiales?' },
+      { id:'f_uniformes', tipo:'escala5', escala:'cal5', obligatoria:true, categoria:'comunicacion',
+        texto:'¿Cómo calificas la información relacionada con uniformes, vestuario y elementos necesarios?' },
+      { id:'f_escucha', tipo:'escala5', escala:'acu5', obligatoria:true, categoria:'comunicacion',
+        texto:'¿Consideras que la academia escucha las inquietudes de alumnos y familias?' }
+    ]
+  },
+
+  /* ------------- BLOQUE G · PRESENTACIONES Y SENTIDO DE PERTENENCIA ------- */
+  {
+    id:'G', icono:'🎪', etiqueta:'Bloque G · Presentaciones y pertenencia',
+    titulo:'Presentaciones, eventos y orgullo tricolor',
+    porPagina:2,
+    preguntas:[
+      { id:'g_satisfaccion', tipo:'escala5', escala:'sat5', obligatoria:true, categoria:'presentaciones',
+        texto:'¿Qué tan satisfecho(a) estás con las presentaciones y eventos?' },
+      { id:'g_muestran', tipo:'escala5', escala:'acu5', obligatoria:true, categoria:'presentaciones',
+        texto:'¿Consideras que las presentaciones permiten mostrar lo aprendido?' },
+      { id:'g_mas_eventos', tipo:'unica', obligatoria:true, sola:true, categoria:'presentaciones',
+        texto:'¿Te gustaría que Lazos Tricolor participara en más eventos?',
+        opciones:['Sí','No','Me es indiferente'] },
+      { id:'g_orgullo', tipo:'escala5', escala:'acu5', obligatoria:true, categoria:'pertenencia', sola:true,
+        texto:'¿Qué tan orgulloso(a) te sientes de representar a Lazos Tricolor?' }
+    ]
+  },
+
+  /* ----------------------- BLOQUE H · EVALUACIÓN GENERAL ------------------ */
+  {
+    id:'H', icono:'⭐', etiqueta:'Bloque H · Evaluación general',
+    titulo:'Tu balance de estos primeros meses',
+    intro:'Estas tres preguntas resumen tu experiencia general con la academia en 2026.',
+    porPagina:1,
+    preguntas:[
+      { id:'h_experiencia', tipo:'escala10', obligatoria:true, sola:true, categoria:'experiencia',
+        min:1, max:10, izquierda:'1 = Muy mala experiencia', derecha:'10 = Excelente experiencia',
+        texto:'Pensando en tu experiencia durante estos primeros meses de 2026, ¿cómo calificas a Lazos Tricolor?' },
+      { id:'h_expectativas', tipo:'unica', obligatoria:true, sola:true, categoria:'experiencia',
+        texto:'¿La academia ha cumplido tus expectativas?',
+        opciones:['Superó mis expectativas','Cumplió mis expectativas','Cumplió parcialmente mis expectativas','No cumplió mis expectativas'] },
+      { id:'h_mejora2026', tipo:'unica', obligatoria:true, sola:true, categoria:'experiencia',
+        texto:'¿Consideras que Lazos Tricolor ha mejorado durante 2026?',
+        opciones:['Sí, mucho','Sí, moderadamente','Poco','No','No puedo determinarlo'] }
+    ]
+  },
+
+  /* ------------------- BLOQUE I · SOLO PARA ACUDIENTES -------------------- */
+  {
+    id:'I', icono:'👨‍👩‍👧', etiqueta:'Bloque I · Familias y acudientes',
+    titulo:'Preguntas para acudientes',
+    intro:'Esta sección se muestra únicamente a padres, madres y acudientes.',
+    soloPara:'acudiente',
+    porPagina:2,
+    preguntas:[
+      { id:'i_inversion', tipo:'escala5', escala:'acu5', obligatoria:true, categoria:'administrativo', soloPara:'acudiente',
+        texto:'¿Considera que la inversión económica corresponde al valor recibido?' },
+      { id:'i_comunicacion_familias', tipo:'escala5', escala:'cal5', obligatoria:true, categoria:'administrativo', soloPara:'acudiente',
+        texto:'¿Cómo califica la comunicación de la academia con las familias?' },
+      { id:'i_cambios', tipo:'multiple', obligatoria:true, sola:true, columnas:2, categoria:'impacto', soloPara:'acudiente',
+        texto:'¿Ha observado cambios positivos en el alumno desde que ingresó a Lazos Tricolor?',
+        ayuda:'Puedes seleccionar varias opciones.',
+        opciones:['Mayor confianza','Mayor disciplina','Mayor expresión corporal','Mayor seguridad','Mayor compromiso','Mayor interacción social','Mejor técnica de danza','No he observado cambios significativos',{valor:'Otro', otro:true}] },
+      { id:'i_escuchado', tipo:'escala5', escala:'acu5', obligatoria:true, categoria:'administrativo', soloPara:'acudiente',
+        texto:'¿Se siente escuchado(a) cuando presenta una inquietud?' },
+      { id:'i_administrativa', tipo:'escala5', escala:'cal5', obligatoria:true, categoria:'administrativo', soloPara:'acudiente',
+        texto:'¿Cómo califica la organización administrativa de la academia?' }
+    ]
+  },
+
+  /* ------------------- CONTINUIDAD Y RECOMENDACIÓN ------------------------ */
+  {
+    id:'K', icono:'🚀', etiqueta:'Continuidad y recomendación',
+    titulo:'Mirando hacia los próximos meses',
+    porPagina:1,
+    preguntas:[
+      { id:'k_continuidad', tipo:'escala5', escala:'int5', obligatoria:true, sola:true, categoria:'continuidad',
+        texto:'Pensando en los próximos meses, ¿qué tan interesado(a) estás en continuar haciendo parte de Lazos Tricolor?',
+        textoAcudiente:'Pensando en los próximos meses, ¿qué tan interesado está en que el alumno continúe haciendo parte de Lazos Tricolor?' },
+      { id:'k_nps', tipo:'nps', obligatoria:true, sola:true, categoria:'nps',
+        min:0, max:10, izquierda:'0 = Nada probable', derecha:'10 = Totalmente probable',
+        texto:'¿Qué tan probable es que recomiendes Lazos Tricolor a otra persona?',
+        textoAcudiente:'¿Qué tan probable es que recomiende Lazos Tricolor a otra familia o persona?',
+        ayuda:'Esta pregunta nos permite calcular nuestro indicador de recomendación (NPS).' }
+    ]
+  },
+
+  /* -------------------------- BLOQUE J · ABIERTAS ------------------------- */
+  {
+    id:'J', icono:'💬', etiqueta:'Bloque J · Tu voz',
+    titulo:'Cuéntanos con tus palabras',
+    intro:'Todas estas preguntas son opcionales. Escribe con confianza: se analizan de forma reservada y nunca se publican con tu nombre.',
+    porPagina:2,
+    preguntas:[
+      { id:'j_gusta', tipo:'texto', obligatoria:false, categoria:'abierta',
+        texto:'¿Qué es lo que más te gusta de Lazos Tricolor?', placeholder:'Escribe aquí…' },
+      { id:'j_mejor2026', tipo:'texto', obligatoria:false, categoria:'abierta',
+        texto:'¿Qué consideras que hemos hecho mejor durante este 2026?', placeholder:'Escribe aquí…' },
+      { id:'j_mejorar', tipo:'texto', obligatoria:false, categoria:'abierta',
+        texto:'¿Qué consideras que podemos mejorar durante los próximos meses?', placeholder:'Escribe aquí…' },
+      { id:'j_cambiaria', tipo:'texto', obligatoria:false, categoria:'abierta',
+        texto:'Si pudieras cambiar una sola cosa de Lazos Tricolor, ¿qué cambiarías?', placeholder:'Escribe aquí…' },
+      { id:'j_logro', tipo:'texto', obligatoria:false, categoria:'abierta',
+        texto:'¿Qué te gustaría que Lazos Tricolor lograra antes de terminar 2026?', placeholder:'Escribe aquí…' },
+      { id:'j_libre', tipo:'texto', obligatoria:false, categoria:'abierta',
+        texto:'¿Hay algo que quieras decirnos y que no hayas podido expresar en las preguntas anteriores?',
+        placeholder:'Este espacio es completamente tuyo…' }
+    ]
+  }
+];
+
+/* ===========================================================================
+   4) MOTOR DE LA ENCUESTA
+   ===========================================================================*/
+
+const $  = (sel, ctx) => (ctx || document).querySelector(sel);
+const $$ = (sel, ctx) => Array.from((ctx || document).querySelectorAll(sel));
+
+/* Estado global de la sesión ------------------------------------------------ */
+const estado = {
+  email: '',
+  tipo: null,           // 'alumno' | 'acudiente'
+  respuestas: {},       // { idPregunta: valor }
+  otros: {},            // { idPregunta: 'texto del Otro' }
+  pasos: [],            // pantallas construidas
+  paso: 0,
+  enviando: false,
+  enviado: false,
+  inicio: null          // marca de tiempo de inicio
+};
+
+/* Utilidades ---------------------------------------------------------------- */
+const escapar = (s) => String(s).replace(/[&<>"']/g, m => (
+  {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]
+));
+const normalizarOpcion = (o) => (typeof o === 'string' ? {valor:o} : o);
+const emailValido = (v) => /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(String(v).trim());
+
+function textoPregunta(p){
+  return (estado.tipo === 'acudiente' && p.textoAcudiente) ? p.textoAcudiente : p.texto;
+}
+
+/* --- Construcción de los pasos según el perfil (lógica condicional) -------- */
+function construirPasos(){
+  const pasos = [];
+  let n = 0; // numeración continua de preguntas
+
+  SECCIONES.forEach(sec => {
+    if (sec.soloPara && sec.soloPara !== estado.tipo) return;
+
+    const preguntas = sec.preguntas.filter(p => !p.soloPara || p.soloPara === estado.tipo);
+    if (!preguntas.length) return;
+
+    let buffer = [];
+    let primeraDeSeccion = true;
+
+    const volcar = () => {
+      if (!buffer.length) return;
+      pasos.push({
+        seccion: sec,
+        preguntas: buffer,
+        encabezado: primeraDeSeccion,
+        desde: n + 1,
+        hasta: n + buffer.length
+      });
+      n += buffer.length;
+      primeraDeSeccion = false;
+      buffer = [];
+    };
+
+    preguntas.forEach(p => {
+      if (p.sola){ volcar(); buffer = [p]; volcar(); }
+      else {
+        buffer.push(p);
+        if (buffer.length >= (sec.porPagina || 3)) volcar();
+      }
+    });
+    volcar();
+  });
+
+  // Numeración total de preguntas para la barra de progreso
+  const total = n;
+  pasos.forEach(p => p.total = total);
+  return pasos;
+}
+
+/* --- Render de una pregunta ------------------------------------------------ */
+function htmlPregunta(p, numero){
+  const enunciado = escapar(textoPregunta(p));
+  const opcional  = p.obligatoria ? '' : '<span class="opcional">Opcional</span>';
+  const ayuda     = p.ayuda ? `<p class="ayuda">${escapar(p.ayuda)}</p>` : '';
+  let cuerpo = '';
+
+  /* Escala 1–5 */
+  if (p.tipo === 'escala5'){
+    const esc = ESCALAS[p.escala || 'sat5'];
+    cuerpo = `<div class="escala5" role="group" aria-label="Escala de 1 a 5">` +
+      esc.map(o => `
+        <button type="button" data-q="${p.id}" data-v="${o.v}" aria-pressed="false"
+                aria-label="${o.v} — ${escapar(o.txt)}">
+          <span class="cara" aria-hidden="true">${o.cara}</span>
+          <span class="val">${o.v}</span>
+          <span class="txt">${escapar(o.txt)}</span>
+        </button>`).join('') +
+      `</div>`;
+  }
+
+  /* Escala numérica 1–10 / 0–10 (NPS) */
+  else if (p.tipo === 'escala10' || p.tipo === 'nps'){
+    const min = (p.min !== undefined) ? p.min : (p.tipo === 'nps' ? 0 : 1);
+    const max = (p.max !== undefined) ? p.max : 10;
+    let botones = '';
+    for (let i = min; i <= max; i++){
+      botones += `<button type="button" class="" data-q="${p.id}" data-v="${i}" aria-pressed="false" aria-label="${i}">${i}</button>`;
+    }
+    cuerpo = `<div class="escala10 calor" role="group" aria-label="Escala de ${min} a ${max}">${botones}</div>
+      <div class="extremos"><span>${escapar(p.izquierda || min)}</span><span style="text-align:right">${escapar(p.derecha || max)}</span></div>`;
+  }
+
+  /* Opción única / múltiple */
+  else if (p.tipo === 'unica' || p.tipo === 'multiple'){
+    const multi = p.tipo === 'multiple';
+    const cols  = p.columnas === 2 ? ' dos' : '';
+    const ops   = p.opciones.map(normalizarOpcion);
+    cuerpo = `<div class="opciones${cols}" role="group" aria-label="Opciones">` +
+      ops.map(o => `
+        <button type="button" class="opcion${multi ? ' multi' : ''}" data-q="${p.id}"
+                data-v="${escapar(o.valor)}" data-multi="${multi}" data-otro="${!!o.otro}" aria-pressed="false">
+          <span class="marca" aria-hidden="true"></span><span>${escapar(o.valor)}</span>
+        </button>`).join('') +
+      `</div>` +
+      (ops.some(o => o.otro)
+        ? `<div class="campo oculto" data-otro-de="${p.id}" style="margin-top:10px">
+             <input type="text" data-otro-input="${p.id}" maxlength="120" placeholder="Cuéntanos cuál…">
+           </div>`
+        : '');
+  }
+
+  /* Texto abierto */
+  else if (p.tipo === 'texto'){
+    cuerpo = `<textarea data-q="${p.id}" maxlength="800"
+                placeholder="${escapar(p.placeholder || 'Escribe aquí…')}"></textarea>
+              <div class="contador"><span data-contador="${p.id}">0</span>/800</div>`;
+  }
+
+  return `
+    <div class="pregunta" data-pregunta="${p.id}">
+      <label class="enunciado"><span class="num">${numero}.</span>${enunciado}${opcional}</label>
+      ${ayuda}
+      ${cuerpo}
+      <div class="error-msg" data-error="${p.id}" role="alert"></div>
+    </div>`;
+}
+
+/* --- Render de un paso completo -------------------------------------------- */
+function renderPaso(){
+  const paso = estado.pasos[estado.paso];
+  const sec  = paso.seccion;
+  const cont = $('#pantallaPreguntas');
+
+  const cabecera = paso.encabezado ? `
+      <h2>${escapar(sec.titulo)}</h2>
+      ${sec.intro ? `<p class="suave">${escapar(sec.intro)}</p>` : ''}` : '';
+
+  let num = paso.desde;
+  const preguntas = paso.preguntas.map(p => htmlPregunta(p, num++)).join('');
+
+  const esUltimo = estado.paso === estado.pasos.length - 1;
+
+  cont.innerHTML = `
+    <div class="tarjeta aparece">
+      <span class="etiqueta-bloque">${sec.icono} ${escapar(sec.etiqueta)}</span>
+      ${cabecera}
+      ${preguntas}
+      <div class="nav">
+        <button type="button" class="btn btn-secundario" id="btnAtras">← Anterior</button>
+        <button type="button" class="btn btn-primario" id="btnSiguiente">
+          ${esUltimo ? 'Revisar mis respuestas →' : 'Continuar →'}
+        </button>
+      </div>
+    </div>`;
+
+  restaurarRespuestas(paso);
+  conectarEventosPaso();
+  actualizarProgreso();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+/* --- Vuelve a pintar las respuestas ya dadas (no se pierde nada) ----------- */
+function restaurarRespuestas(paso){
+  paso.preguntas.forEach(p => {
+    const val = estado.respuestas[p.id];
+
+    if (p.tipo === 'texto'){
+      const ta = $(`textarea[data-q="${p.id}"]`);
+      if (ta && val){ ta.value = val; $(`[data-contador="${p.id}"]`).textContent = val.length; }
+      return;
+    }
+    if (val === undefined || val === null) return;
+
+    const valores = Array.isArray(val) ? val.map(String) : [String(val)];
+    $$(`[data-q="${p.id}"]`).forEach(b => {
+      if (b.tagName === 'BUTTON' && valores.includes(b.dataset.v)){
+        b.setAttribute('aria-pressed','true');
+        if (b.dataset.otro === 'true') mostrarOtro(p.id, true);
+      }
+    });
+    const inputOtro = $(`[data-otro-input="${p.id}"]`);
+    if (inputOtro && estado.otros[p.id]) inputOtro.value = estado.otros[p.id];
+  });
+}
+
+function mostrarOtro(qid, ver){
+  const caja = $(`[data-otro-de="${qid}"]`);
+  if (caja) caja.classList.toggle('oculto', !ver);
+}
+
+/* --- Eventos dentro del paso actual ---------------------------------------- */
+function conectarEventosPaso(){
+  // Botones de escala y de opciones
+  $$('#pantallaPreguntas button[data-q]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const qid   = btn.dataset.q;
+      const multi = btn.dataset.multi === 'true';
+      const valor = btn.dataset.v;
+
+      if (multi){
+        const actual = Array.isArray(estado.respuestas[qid]) ? estado.respuestas[qid].slice() : [];
+        const i = actual.indexOf(valor);
+        if (i >= 0){ actual.splice(i,1); btn.setAttribute('aria-pressed','false'); }
+        else       { actual.push(valor);  btn.setAttribute('aria-pressed','true');  }
+        estado.respuestas[qid] = actual;
+        if (btn.dataset.otro === 'true') mostrarOtro(qid, actual.includes(valor));
+      } else {
+        $$(`#pantallaPreguntas button[data-q="${qid}"]`).forEach(b => b.setAttribute('aria-pressed','false'));
+        btn.setAttribute('aria-pressed','true');
+        estado.respuestas[qid] = isNaN(Number(valor)) ? valor : Number(valor);
+        const hayOtro = $(`[data-otro-de="${qid}"]`);
+        if (hayOtro) mostrarOtro(qid, btn.dataset.otro === 'true');
+      }
+      limpiarError(qid);
+      guardarBorrador();
+    });
+  });
+
+  // Campos "Otro"
+  $$('#pantallaPreguntas [data-otro-input]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      estado.otros[inp.dataset.otroInput] = inp.value.trim();
+      guardarBorrador();
+    });
+  });
+
+  // Áreas de texto
+  $$('#pantallaPreguntas textarea[data-q]').forEach(ta => {
+    ta.addEventListener('input', () => {
+      estado.respuestas[ta.dataset.q] = ta.value;
+      const c = $(`[data-contador="${ta.dataset.q}"]`);
+      if (c) c.textContent = ta.value.length;
+      limpiarError(ta.dataset.q);
+      guardarBorrador();
+    });
+  });
+
+  $('#btnAtras').addEventListener('click', irAtras);
+  $('#btnSiguiente').addEventListener('click', irAdelante);
+}
+
+/* --- Errores --------------------------------------------------------------- */
+function mostrarError(qid, mensaje){
+  const div = $(`[data-error="${qid}"]`);
+  if (!div) return;
+  div.textContent = mensaje;
+  div.classList.add('ver');
+}
+function limpiarError(qid){
+  const div = $(`[data-error="${qid}"]`);
+  if (div){ div.classList.remove('ver'); div.textContent = ''; }
+}
+
+/* --- Validación del paso actual -------------------------------------------- */
+function validarPaso(){
+  const paso = estado.pasos[estado.paso];
+  let primeroConError = null;
+
+  paso.preguntas.forEach(p => {
+    limpiarError(p.id);
+    if (!p.obligatoria) return;
+
+    const v = estado.respuestas[p.id];
+    const vacio = v === undefined || v === null || v === '' ||
+                  (Array.isArray(v) && v.length === 0) ||
+                  (typeof v === 'string' && v.trim() === '');
+
+    if (vacio){
+      const msg = (p.tipo === 'multiple')
+        ? 'Selecciona al menos una opción para continuar.'
+        : (p.tipo === 'texto' ? 'Esta respuesta es necesaria para continuar.'
+                              : 'Selecciona una opción para continuar.');
+      mostrarError(p.id, msg);
+      if (!primeroConError) primeroConError = p.id;
+    }
+  });
+
+  if (primeroConError){
+    const el = $(`[data-pregunta="${primeroConError}"]`);
+    if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
+    return false;
+  }
+  return true;
+}
+
+/* --- Navegación ------------------------------------------------------------ */
+function irAdelante(){
+  if (!validarPaso()) return;
+  if (estado.paso < estado.pasos.length - 1){
+    estado.paso++;
+    renderPaso();
+  } else {
+    mostrarResumen();
+  }
+  guardarBorrador();
+}
+
+function irAtras(){
+  if (estado.paso > 0){
+    estado.paso--;
+    renderPaso();
+  } else {
+    // Volver a la pantalla de registro
+    $('#pantallaPreguntas').classList.add('oculto');
+    $('#progresoWrap').classList.add('oculto');
+    $('#pantallaInicio').classList.remove('oculto');
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+  guardarBorrador();
+}
+
+/* --- Barra de progreso ----------------------------------------------------- */
+function actualizarProgreso(){
+  const paso = estado.pasos[estado.paso];
+  const pct  = Math.round((paso.hasta / paso.total) * 100);
+  const txt  = (paso.desde === paso.hasta)
+      ? `Pregunta ${paso.desde} de ${paso.total}`
+      : `Preguntas ${paso.desde}–${paso.hasta} de ${paso.total}`;
+
+  $('#progresoTexto').textContent = txt;
+  $('#progresoPct').textContent = pct + '%';
+  $('#progresoBarra').style.width = pct + '%';
+  $('.barra').setAttribute('aria-valuenow', pct);
+}
+
+/* --- Pantalla de resumen --------------------------------------------------- */
+function etiquetaValor(p, v){
+  if (v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length)) return null;
+  if (p.tipo === 'escala5'){
+    const esc = ESCALAS[p.escala || 'sat5'];
+    const o = esc.find(x => x.v === Number(v));
+    return o ? `${o.cara} ${v} · ${o.txt}` : String(v);
+  }
+  if (p.tipo === 'escala10') return `${v} / 10`;
+  if (p.tipo === 'nps')      return `${v} / 10`;
+  if (p.tipo === 'multiple'){
+    return v.map(x => (x === 'Otro' && estado.otros[p.id]) ? `Otro: ${estado.otros[p.id]}` : x).join(' · ');
+  }
+  if (p.tipo === 'unica' && v === 'Otro' && estado.otros[p.id]) return `Otro: ${estado.otros[p.id]}`;
+  return String(v);
+}
+
+function mostrarResumen(){
+  const cont = $('#resumenContenido');
+  const porSeccion = new Map();
+
+  estado.pasos.forEach(paso => {
+    if (!porSeccion.has(paso.seccion.id)) porSeccion.set(paso.seccion.id, {sec:paso.seccion, preguntas:[]});
+    porSeccion.get(paso.seccion.id).preguntas.push(...paso.preguntas);
+  });
+
+  let html = `
+    <div class="resumen-bloque">
+      <h4>Registro de participación</h4>
+      <dl>
+        <div class="resumen-fila"><dt>Correo registrado</dt><dd>${escapar(estado.email)}</dd></div>
+        <div class="resumen-fila"><dt>Responde como</dt><dd>${estado.tipo === 'alumno' ? '🧑‍🎓 Alumno(a)' : '👨‍👩‍👧 Acudiente'}</dd></div>
+      </dl>
+    </div>`;
+
+  porSeccion.forEach(({sec, preguntas}) => {
+    const filas = preguntas.map(p => {
+      const val = etiquetaValor(p, estado.respuestas[p.id]);
+      return `<div class="resumen-fila">
+                <dt>${escapar(textoPregunta(p))}</dt>
+                <dd class="${val ? '' : 'vacio'}">${val ? escapar(val) : 'Sin responder'}</dd>
+              </div>`;
+    }).join('');
+    html += `<div class="resumen-bloque"><h4>${sec.icono} ${escapar(sec.etiqueta)}</h4><dl>${filas}</dl></div>`;
+  });
+
+  html += `<p class="suave" style="margin-top:16px">🔒 Tu correo se guarda por separado de tus respuestas y nunca se muestra junto a ellas.</p>`;
+
+  cont.innerHTML = html;
+  $('#pantallaPreguntas').classList.add('oculto');
+  $('#progresoWrap').classList.add('oculto');
+  $('#pantallaResumen').classList.remove('oculto');
+  $('#pantallaResumen').classList.add('aparece');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+/* --- Borrador local (evita perder respuestas si se recarga la página) ------ */
+function guardarBorrador(){
+  if (!CONFIG.guardarBorrador) return;
+  try{
+    localStorage.setItem(CONFIG.claveBorrador, JSON.stringify({
+      email: estado.email, tipo: estado.tipo,
+      respuestas: estado.respuestas, otros: estado.otros,
+      paso: estado.paso, inicio: estado.inicio
+    }));
+  }catch(e){ /* almacenamiento no disponible: la encuesta sigue funcionando */ }
+}
+function leerBorrador(){
+  if (!CONFIG.guardarBorrador) return null;
+  try{ return JSON.parse(localStorage.getItem(CONFIG.claveBorrador) || 'null'); }
+  catch(e){ return null; }
+}
+function borrarBorrador(){
+  try{ localStorage.removeItem(CONFIG.claveBorrador); }catch(e){}
+}
+
+/* --- Pantalla inicial: validación y arranque -------------------------------- */
+function iniciarEncuesta(){
+  const inputEmail = $('#email');
+  const valor = inputEmail.value.trim().toLowerCase();
+  let ok = true;
+
+  // Correo
+  const errE = $('#errEmail');
+  errE.classList.remove('ver'); inputEmail.classList.remove('malo');
+  if (!valor){
+    errE.textContent = 'Necesitamos tu correo electrónico para registrar tu participación.';
+    errE.classList.add('ver'); inputEmail.classList.add('malo'); ok = false;
+  } else if (!emailValido(valor)){
+    errE.textContent = 'Revisa el correo: parece que le falta algo (ejemplo: nombre@correo.com).';
+    errE.classList.add('ver'); inputEmail.classList.add('malo'); ok = false;
+  }
+
+  // Perfil
+  const errP = $('#errPerfil');
+  errP.classList.remove('ver');
+  if (!estado.tipo){
+    errP.textContent = 'Indícanos si respondes como alumno(a) o como acudiente.';
+    errP.classList.add('ver'); ok = false;
+  }
+
+  if (!ok){
+    const primero = $('.error-msg.ver');
+    if (primero) primero.scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
+
+  estado.email = valor;
+  estado.inicio = estado.inicio || new Date().toISOString();
+  estado.pasos = construirPasos();
+  if (estado.paso >= estado.pasos.length) estado.paso = 0;
+
+  $('#pantallaInicio').classList.add('oculto');
+  $('#pantallaPreguntas').classList.remove('oculto');
+  $('#progresoWrap').classList.remove('oculto');
+  renderPaso();
+  guardarBorrador();
+}
+
+/* --- Arranque -------------------------------------------------------------- */
+function arrancar(){
+  // Selector de perfil
+  $$('.perfil').forEach(b => {
+    b.addEventListener('click', () => {
+      $$('.perfil').forEach(x => x.setAttribute('aria-pressed','false'));
+      b.setAttribute('aria-pressed','true');
+      estado.tipo = b.dataset.perfil;
+      $('#errPerfil').classList.remove('ver');
+      guardarBorrador();
+    });
+  });
+
+  $('#email').addEventListener('input', () => {
+    $('#email').classList.remove('malo');
+    $('#errEmail').classList.remove('ver');
+    estado.email = $('#email').value.trim().toLowerCase();
+  });
+  $('#email').addEventListener('keydown', e => { if (e.key === 'Enter') iniciarEncuesta(); });
+
+  $('#btnComenzar').addEventListener('click', iniciarEncuesta);
+  $('#btnResumenAtras').addEventListener('click', () => {
+    $('#pantallaResumen').classList.add('oculto');
+    $('#pantallaPreguntas').classList.remove('oculto');
+    $('#progresoWrap').classList.remove('oculto');
+    renderPaso();
+  });
+  $('#btnEnviar').addEventListener('click', enviarEncuesta);
+
+  // Restaurar borrador si existe
+  const b = leerBorrador();
+  if (b && b.email){
+    $('#email').value = b.email;
+    estado.email = b.email;
+    if (b.tipo){
+      estado.tipo = b.tipo;
+      const btn = $(`.perfil[data-perfil="${b.tipo}"]`);
+      if (btn) btn.setAttribute('aria-pressed','true');
+    }
+    estado.respuestas = b.respuestas || {};
+    estado.otros = b.otros || {};
+    estado.paso = b.paso || 0;
+    estado.inicio = b.inicio || null;
+  }
+
+  // Aviso al salir con respuestas sin enviar
+  window.addEventListener('beforeunload', e => {
+    if (!estado.enviado && Object.keys(estado.respuestas).length > 3 && !estado.enviando){
+      e.preventDefault(); e.returnValue = '';
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', arrancar);
+
+/* ===========================================================================
+   5) ENVÍO DE LA ENCUESTA
+   ---------------------------------------------------------------------------
+   La única función que habla con el servidor es submitSurvey(data).
+   Usa la API REST de Firestore — el MISMO mecanismo que ya usa el panel
+   administrativo (js/firebase.js), sin SDK ni librerías externas.
+
+   Para cambiar a Google Sheets o a una API propia solo se reescribe
+   el interior de submitSurvey(data).
+   ===========================================================================*/
+
+/* --- Construye el objeto de datos ------------------------------------------ */
+function construirDatos(){
+  const ahora = new Date();
+
+  // Respuestas sin ningún dato personal
+  const answers = {};
+  estado.pasos.forEach(paso => paso.preguntas.forEach(p => {
+    let v = estado.respuestas[p.id];
+    if (typeof v === 'string') v = v.trim();
+    if (v === undefined || v === '' || (Array.isArray(v) && !v.length)) return;
+    answers[p.id] = v;
+    if (estado.otros[p.id] && (v === 'Otro' || (Array.isArray(v) && v.includes('Otro')))){
+      answers[p.id + '__otro'] = estado.otros[p.id];
+    }
+  }));
+
+  return {
+    // --- Identificación (se almacena SEPARADA de las respuestas) ---
+    email: estado.email,
+
+    // --- Datos de la respuesta (nunca incluyen el correo) ---
+    timestamp: ahora.toISOString(),
+    respondentType: estado.tipo,                       // 'alumno' | 'acudiente'
+    group: estado.respuestas.grupo || null,            // Preinfantil, Infantil, …
+    membershipDuration: estado.respuestas.antiguedad || null,
+    answers: answers,
+
+    // --- Metadatos útiles para el análisis ---
+    meta: {
+      version: CONFIG.version,
+      medicion: 'Lazos Tricolor 2026',
+      iniciadaEn: estado.inicio || '',
+      duracionSegundos: estado.inicio ? Math.round((ahora - new Date(estado.inicio))/1000) : 0,
+      dispositivo: /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 'movil' : 'escritorio',
+      idioma: navigator.language || ''
+    }
+  };
+}
+
+/* --- Huella anónima del correo (SHA-256) ----------------------------------- */
+async function huellaCorreo(email){
+  const limpio = String(email).trim().toLowerCase();
+  if (window.crypto && crypto.subtle){
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(limpio));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+  // Alternativa si el navegador no soporta crypto.subtle
+  let h = 0; for (let i=0;i<limpio.length;i++){ h = (h*31 + limpio.charCodeAt(i))|0; }
+  return 'f' + Math.abs(h).toString(16);
+}
+
+/* --- Traducción a los tipos de la API REST de Firestore --------------------- */
+function fsValor(v){
+  if (v === null || v === undefined)  return { nullValue: null };
+  if (typeof v === 'number')          return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+  if (typeof v === 'boolean')         return { booleanValue: v };
+  if (Array.isArray(v))               return { arrayValue: { values: v.map(fsValor) } };
+  if (typeof v === 'object')          return { mapValue: { fields: fsCampos(v) } };
+  return { stringValue: String(v) };
+}
+function fsCampos(o){
+  const f = {};
+  Object.keys(o).forEach(k => { f[k] = fsValor(o[k]); });
+  return f;
+}
+/* Dirección base de la colección, a partir del proyecto configurado */
+function fsBase(){
+  return 'https://firestore.googleapis.com/v1/projects/' + CONFIG.firestore.proyecto +
+         '/databases/(default)/documents';
+}
+
+/* ===========================================================================
+   submitSurvey(data)
+   ---------------------------------------------------------------------------
+   Devuelve una promesa con { ok:true } o { ok:false, motivo:'...' }
+   motivo puede ser: 'duplicado' | 'configuracion' | 'red'
+   ===========================================================================*/
+async function submitSurvey(data){
+
+  /* ---------- MODO DEMO: no envía nada, solo muestra en consola ---------- */
+  if (CONFIG.modoDemo){
+    console.group('%c[LAZOS TRICOLOR] Envío simulado (modoDemo = true)','color:#3B3E96;font-weight:bold');
+    console.log('Correo (se guardaría aparte):', data.email);
+    console.log('Respuesta que se guardaría:', {
+      timestamp: data.timestamp, respondentType: data.respondentType,
+      group: data.group, membershipDuration: data.membershipDuration,
+      answers: data.answers, meta: data.meta
+    });
+    console.log('JSON completo:', JSON.stringify(data, null, 2));
+    console.groupEnd();
+    await new Promise(r => setTimeout(r, 900));   // simula latencia de red
+    return { ok:true, demo:true, id:'demo-' + Date.now() };
+  }
+
+  /* ---------- MODO REAL: API REST de Firestore --------------------------- */
+  if (!CONFIG.firestore || CONFIG.firestore.proyecto === 'TU_PROYECTO' || CONFIG.firestore.apiKey === 'TU_API_KEY'){
+    console.error('[LAZOS] Falta configurar CONFIG.firestore (proyecto y apiKey).');
+    return { ok:false, motivo:'configuracion' };
+  }
+
+  const base = fsBase();
+  const key  = CONFIG.firestore.apiKey;
+
+  try{
+    const huella = await huellaCorreo(data.email);
+
+    // 1) Control de duplicados — el documento se identifica por la huella,
+    //    nunca por el correo en claro.
+    if (CONFIG.evitarDuplicados){
+      const rDup = await fetch(base + '/' + CONFIG.coleccionParticipantes + '/' + huella + '?key=' + key);
+      if (rDup.ok) return { ok:false, motivo:'duplicado' };
+      if (rDup.status !== 404 && rDup.status !== 403){
+        // 403 = las reglas no permiten consultar; seguimos sin control de duplicados
+        console.warn('[LAZOS] Consulta de duplicados devolvió', rDup.status);
+      }
+    }
+
+    // 2) Guardar la RESPUESTA — sin correo, sin nombre, sin identificadores
+    const cuerpoRespuesta = JSON.stringify({ fields: fsCampos({
+      timestamp:  data.timestamp,
+      respondentType: data.respondentType,
+      group: data.group,
+      membershipDuration: data.membershipDuration,
+      answers: data.answers,
+      meta: data.meta,
+      huella: huella          // permite vincular SOLO desde la administración
+    })});
+
+    const rResp = await fetch(base + '/' + CONFIG.coleccionRespuestas + '?key=' + key, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: cuerpoRespuesta, keepalive:true
+    });
+    if (!rResp.ok) throw new Error('HTTP ' + rResp.status + ' al guardar la respuesta');
+    const guardada = await rResp.json();
+    const idRespuesta = String(guardada.name || '').split('/').pop();
+
+    // 3) Guardar el PARTICIPANTE — colección reservada, nunca se lee en público
+    await fetch(base + '/' + CONFIG.coleccionParticipantes + '/' + huella + '?key=' + key, {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ fields: fsCampos({
+        email: data.email,
+        registradoEn: data.timestamp,
+        respuestaId: idRespuesta,
+        respondentType: data.respondentType
+      })}), keepalive:true
+    });
+
+    return { ok:true, id: idRespuesta };
+
+  }catch(err){
+    console.error('[LAZOS] Error al enviar:', err);
+    return { ok:false, motivo:'red', error:String(err && err.message || err) };
+  }
+}
+
+/* --- Acción del botón "Enviar encuesta" ------------------------------------ */
+async function enviarEncuesta(){
+  if (estado.enviando || estado.enviado) return;   // evita el doble envío
+
+  const btn = $('#btnEnviar');
+  const err = $('#errEnvio');
+  err.classList.remove('ver');
+
+  estado.enviando = true;
+  btn.disabled = true;
+  $('#btnResumenAtras').disabled = true;
+  btn.innerHTML = '<span class="spin" aria-hidden="true"></span> Enviando…';
+
+  const datos = construirDatos();
+  let res;
+  try { res = await submitSurvey(datos); }
+  catch(e){ res = { ok:false, motivo:'red' }; }
+
+  if (res && res.ok){
+    estado.enviado = true;
+    borrarBorrador();
+    mostrarGracias();
+    return;
+  }
+
+  // --- Error: mensaje amable y posibilidad de reintentar ---
+  estado.enviando = false;
+  btn.disabled = false;
+  $('#btnResumenAtras').disabled = false;
+  btn.innerHTML = 'Enviar encuesta ✓';
+
+  const mensajes = {
+    duplicado:     'Este correo ya registró una respuesta. ¡Gracias! Si crees que se trata de un error, escríbenos y con gusto lo revisamos.',
+    configuracion: 'La encuesta aún no está conectada al servidor. Avísale al administrador de la academia.',
+    red:           'No pudimos enviar tus respuestas en este momento. Revisa tu conexión e inténtalo de nuevo; tus respuestas siguen guardadas aquí.'
+  };
+  err.textContent = mensajes[res && res.motivo] || mensajes.red;
+  err.classList.add('ver');
+  err.scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+/* --- Pantalla de agradecimiento -------------------------------------------- */
+function mostrarGracias(){
+  $('#pantallaResumen').classList.add('oculto');
+  $('#pantallaPreguntas').classList.add('oculto');
+  $('#progresoWrap').classList.add('oculto');
+  const g = $('#pantallaGracias');
+  g.classList.remove('oculto');
+  g.classList.add('aparece');
+  window.scrollTo({top:0, behavior:'smooth'});
+  lanzarConfeti();
+}
+
+function lanzarConfeti(){
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const capa = document.createElement('div');
+  capa.className = 'confeti';
+  const colores = ['#E1251B','#FFD500','#3B3E96','#FFFFFF'];
+  for (let i=0;i<70;i++){
+    const p = document.createElement('i');
+    p.style.left = Math.random()*100 + 'vw';
+    p.style.background = colores[i % colores.length];
+    p.style.animationDuration = (2.6 + Math.random()*2.2) + 's';
+    p.style.animationDelay = (Math.random()*1.1) + 's';
+    p.style.opacity = 0.85;
+    capa.appendChild(p);
+  }
+  document.body.appendChild(capa);
+  setTimeout(() => capa.remove(), 6500);
+}
+</script>
+</body>
+</html>
