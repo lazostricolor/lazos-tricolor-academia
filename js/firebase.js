@@ -82,6 +82,54 @@ function _fusionarArrayPorId(prioritario, secundario, priorEsBase){
   return orden.map(id=>porId[id]);
 }
 
+// ── Coherencia entre alumnas activas y archivadas ──────────────────────────
+// Una alumna NO puede estar en las dos listas: la fusión por id une los dos
+// arrays y, sin esto, una alumna retirada revivía como activa en cada
+// sincronización (y volvía a aparecer al final de la lista de Alumnas).
+// Gana el último movimiento real: `_movTs` lo graban retirarAlumna() y
+// reactivarAlumna(). Si ninguna de las dos copias lo trae (datos viejos),
+// manda el archivo — que es lo que el usuario pidió explícitamente.
+function _movTsAl(a){ return (a && a._movTs) || 0; }
+
+function coherenciaAlumnas(db){
+  if(!db || !Array.isArray(db.alumnos) || !Array.isArray(db.alumnosRetirados)) return false;
+  let cambio=false;
+
+  // 1) Sin repetidas dentro del archivo (conservando la fecha de retiro más antigua)
+  const porId={}; const retiradas=[];
+  db.alumnosRetirados.forEach(a=>{
+    if(!a || a.id===undefined){ retiradas.push(a); return; }
+    const k=String(a.id), prev=porId[k];
+    if(!prev){ porId[k]=a; retiradas.push(a); return; }
+    cambio=true;                                  // copia repetida → se descarta
+    const frViejo = (prev.fechaRetiro && a.fechaRetiro)
+      ? (prev.fechaRetiro < a.fechaRetiro ? prev.fechaRetiro : a.fechaRetiro)
+      : (prev.fechaRetiro || a.fechaRetiro);
+    if(_movTsAl(a) > _movTsAl(prev)) Object.assign(prev, a);
+    prev.fechaRetiro = frViejo;
+  });
+  if(cambio) db.alumnosRetirados = retiradas;
+
+  // 2) Nadie a la vez activa y archivada
+  const activas=[]; const vuelvenAActivas=new Set();
+  db.alumnos.forEach(a=>{
+    if(!a || a.id===undefined){ activas.push(a); return; }
+    const ret = porId[String(a.id)];
+    if(!ret){ activas.push(a); return; }
+    cambio = true;
+    if(_movTsAl(a) > _movTsAl(ret)){               // la reactivación es más reciente
+      activas.push(a);
+      vuelvenAActivas.add(String(a.id));
+    }                                              // si no, manda el retiro: se descarta de activas
+  });
+  db.alumnos = activas;
+  if(vuelvenAActivas.size){
+    db.alumnosRetirados = db.alumnosRetirados.filter(a=>!(a && a.id!==undefined && vuelvenAActivas.has(String(a.id))));
+  }
+  if(cambio) console.log('🧹 Coherencia alumnas: activas='+db.alumnos.length+' · archivo='+db.alumnosRetirados.length);
+  return cambio;
+}
+
 function mergeDB(local, remoto){
   // Defaults seguros — garantiza que ninguna clave queda undefined
   const defaults = {
@@ -199,6 +247,18 @@ function mergeDB(local, remoto){
 
   base.nextId=Math.max(local.nextId||1,remoto.nextId||1);
   base.reciboSeq=Math.max(local.reciboSeq||0,remoto.reciboSeq||0);  // consecutivo de recibos
+
+  // Claves que no están en la lista de secciones (p. ej. alumnosHistoricas):
+  // conservarlas siempre — antes la fusión las borraba en silencio.
+  Object.keys(local||{}).concat(Object.keys(remoto||{})).forEach(k=>{
+    if(k.startsWith('_') || base[k]!==undefined) return;
+    const lv=local?.[k], rv=remoto?.[k];
+    if(Array.isArray(lv) && Array.isArray(rv)) base[k]=_fusionarArrayPorId(lv,rv);
+    else base[k] = (lv!==undefined && lv!==null) ? lv : rv;
+  });
+
+  // Una alumna archivada nunca debe revivir como activa por efecto de la fusión
+  coherenciaAlumnas(base);
   return base;
 }
 async function _fbCargar(){

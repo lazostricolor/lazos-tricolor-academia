@@ -8,10 +8,20 @@
 let alumnasFotoTemp={};
 function renderAlumnos(){
   const mk=mesSec.alumnos;
+  // Autocuración: si una alumna quedó a la vez en activas y en el archivo
+  // (o repetida dentro del archivo), se corrige antes de pintar la tabla.
+  if(typeof coherenciaAlumnas==='function' && coherenciaAlumnas(DB)){
+    tsSeccion('alumnos'); tsSeccion('alumnosRetirados'); saveBackground();
+  }
   document.getElementById('alumnos-mes-label').textContent=mesLabel(mk);
+  // Alumnas ACTIVAS del mes (nunca las del archivo) y, aparte, las que se
+  // retiraron durante este mes: se muestran como referencia al final, pero
+  // no cuentan como activas ni se pueden volver a retirar.
+  const activasMes  = (DB.alumnos||[]).filter(a=>alumnaActivaEnMes(a,mk));
+  const retiradasMes= (DB.alumnosRetirados||[]).filter(a=>alumnaActivaEnMes(a,mk));
   // Badge cumpleaños — extraer mes directamente del string YYYY-MM-DD
   const mesMkStr=mk.split('-')[1]; // "04" para abril
-  const cumpleMes=getAlumnasMes(mk).filter(a=>{
+  const cumpleMes=activasMes.filter(a=>{
     if(!a.nacimiento||a.nacimiento.length<7) return false;
     return a.nacimiento.split('-')[1]===mesMkStr;
   });
@@ -23,7 +33,7 @@ function renderAlumnos(){
   const buscar=document.getElementById('alumnos-search')?.value.toLowerCase()||'';
   const cat=document.getElementById('alumnos-cat')?.value||'';
   const estado=document.getElementById('alumnos-estado')?.value||'';
-  const todasActivas=getAlumnasMes(mk);
+  const todasActivas=activasMes;
   let lista=todasActivas.filter(a=>{
     if(buscar&&!a.nombre.toLowerCase().includes(buscar)) return false;
     if(cat&&a.categoria!==cat) return false;
@@ -122,12 +132,26 @@ function renderAlumnos(){
       </div>`;
     });
     html+='</div>';
-    container.innerHTML=html;
+    container.innerHTML=html+bloqueRetiradasMes(retiradasMes,mk);
   } else {
-    container.innerHTML=`<div class="table-card">${tablaAlumnas(lista,mk)}</div>`;
+    container.innerHTML=`<div class="table-card">${tablaAlumnas(lista,mk)}</div>`+bloqueRetiradasMes(retiradasMes,mk);
   }
 }
-function tablaAlumnas(lista,mk){
+// Tarjeta informativa: alumnas que se retiraron durante el mes que se está viendo.
+// Solo lectura — ya están en el Archivo, por eso no llevan el botón "Retirar".
+function bloqueRetiradasMes(retiradas,mk){
+  if(!retiradas||!retiradas.length) return '';
+  return `<div class="table-card" style="margin-top:16px;opacity:.85">
+    <div class="table-card-header" style="border-left:3px solid var(--muted)">
+      <h3>🚪 Retiradas <span style="color:var(--muted);font-weight:400">— estuvieron activas en ${mesLabel(mk)} (${retiradas.length})</span></h3>
+    </div>
+    ${tablaAlumnas(retiradas,mk,true)}
+    <div style="padding:10px 16px;font-size:12px;color:var(--muted)">
+      Ya no cuentan como activas. Se listan aquí solo por el registro del mes; para reactivarlas ve a <strong>Archivo</strong>.
+    </div>
+  </div>`;
+}
+function tablaAlumnas(lista,mk,soloLectura){
   const hoy=getHoyReal();
   const esPasado=mk<mesKey(hoy);
   return`<table>
@@ -148,12 +172,12 @@ function tablaAlumnas(lista,mk){
         <td>${catBadge(a.categoria)}</td>
         <td style="font-size:12px;color:var(--muted)">${a.fechaIngreso||'—'}</td>
         <td>${formatCOP(real)}</td>
-        <td><span class="badge ${p.pagado?'badge-paid':'badge-unpaid'}">${vencido?'<span class="led-red"></span>':''}${p.pagado?'✓ Pagado':'Pendiente'}</span></td>
+        <td><span class="badge ${p.pagado?'badge-paid':'badge-unpaid'}">${vencido?'<span class="led-red"></span>':''}${p.pagado?'✓ Pagado':'Pendiente'}</span>${soloLectura&&a.fechaRetiro?`<div style="font-size:11px;color:var(--muted);margin-top:4px">🚪 Retirada ${a.fechaRetiro}</div>`:''}</td>
         <td>
           <div style="display:flex;gap:4px">
-            <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="abrirModalAlumna(${a.id})">✏️</button>
+            ${soloLectura?'':`<button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="abrirModalAlumna(${a.id})">✏️</button>`}
             <button class="btn btn-ghost btn-sm btn-icon" title="Historial pagos" onclick="verHistorialPagos(${a.id})">💰</button>
-            <button class="btn btn-danger btn-sm btn-icon" title="Retirar" onclick="retirarAlumna(${a.id})">🚪</button>
+            ${soloLectura?'':`<button class="btn btn-danger btn-sm btn-icon" title="Retirar" onclick="retirarAlumna(${a.id})">🚪</button>`}
           </div>
         </td>
       </tr>`;
@@ -202,7 +226,9 @@ function abrirModalAlumna(id=null){
   document.getElementById('modal-alumna-title').textContent=id?'Editar Alumna':'Nueva Alumna';
   const campos=['nombre','nacimiento','categoria','genero','fechaIngreso','direccion','barrio','pantalon','camiseta','calzado','peso','estatura','experiencia','repNombre','correo','telefono','conocio'];
   if(id){
-    const a=DB.alumnos.find(x=>x.id===id);
+    // También permite abrir la ficha de una alumna del archivo (antes no hacía nada)
+    const a=DB.alumnos.find(x=>String(x.id)===String(id))
+          ||(DB.alumnosRetirados||[]).find(x=>String(x.id)===String(id));
     if(!a)return;
     campos.forEach(c=>{ const el=document.getElementById('a-'+c); if(el) el.value=a[c]||''; });
     document.getElementById('a-familiar').checked=!!a.familiar;
@@ -252,10 +278,19 @@ async function guardarAlumna(){
     foto:fotoTemp||null
   };
   if(editAlumnaId){
-    const idx=DB.alumnos.findIndex(x=>x.id===editAlumnaId);
-    if(idx>=0) DB.alumnos[idx]={...DB.alumnos[idx],...datos};
+    const idx=DB.alumnos.findIndex(x=>String(x.id)===String(editAlumnaId));
+    if(idx>=0){
+      DB.alumnos[idx]={...DB.alumnos[idx],...datos,_editTs:Date.now()};
+    } else {
+      // La alumna está en el archivo: se edita allí, sin revivirla como activa
+      const iR=(DB.alumnosRetirados||[]).findIndex(x=>String(x.id)===String(editAlumnaId));
+      if(iR>=0){
+        DB.alumnosRetirados[iR]={...DB.alumnosRetirados[iR],...datos,_editTs:Date.now()};
+        tsSeccion('alumnosRetirados');
+      }
+    }
   } else {
-    const nuevo={id:DB.nextId++,...datos};
+    const nuevo={id:DB.nextId++,...datos,_editTs:Date.now()};
     DB.alumnos.push(nuevo);
   }
   tsSeccion('alumnos');
@@ -270,13 +305,33 @@ async function guardarAlumna(){
     toast('⚠️ Alumna registrada localmente — reintentando sincronizar...','info');
   }
 }
-function retirarAlumna(id){
+async function retirarAlumna(id){
   if(!confirm2('¿Retirar esta alumna? Se moverá al archivo.')) return;
-  const idx=DB.alumnos.findIndex(x=>x.id===id);
-  if(idx<0) return;
-  DB.alumnosRetirados.push({...DB.alumnos[idx],fechaRetiro:dateStr(getHoyReal())});
-  DB.alumnos.splice(idx,1);
-  saveAll(); renderAlumnos(); toast('Alumna retirada');
+  const alumna=DB.alumnos.find(x=>String(x.id)===String(id));
+  const yaEnArchivo=(DB.alumnosRetirados||[]).find(x=>String(x.id)===String(id));
+  if(!alumna&&!yaEnArchivo) return;
+  const ahora=Date.now();
+  const hoy=dateStr(getHoyReal());
+
+  if(!DB.alumnosRetirados) DB.alumnosRetirados=[];
+  if(yaEnArchivo){
+    // Ya estaba en el archivo (quedó duplicada): NO se crea otra copia
+    yaEnArchivo.fechaRetiro=yaEnArchivo.fechaRetiro||hoy;
+    yaEnArchivo._movTs=ahora;
+  } else {
+    DB.alumnosRetirados.push({...alumna,fechaRetiro:hoy,_movTs:ahora});
+  }
+  // Quitar TODAS sus copias de las activas (antes se quitaba solo la primera)
+  DB.alumnos=DB.alumnos.filter(x=>String(x.id)!==String(id));
+
+  // Sellos de tiempo: sin esto la sincronización con Firebase la devolvía a activas
+  tsSeccion('alumnos');
+  tsSeccion('alumnosRetirados');
+
+  renderAlumnos();
+  const ok=await saveAll();
+  toast(ok?'🚪 Alumna retirada y guardada en Firebase'
+          :'⚠️ Alumna retirada localmente — reintentando sincronizar...', ok?'ok':'info');
 }
 function verHistorialPagos(id){
   const a=DB.alumnos.find(x=>x.id===id)||DB.alumnosRetirados.find(x=>x.id===id);

@@ -6,6 +6,11 @@
 
 // ===================== ARCHIVO =====================
 function renderArchivo(){
+  // Autocuración: nadie puede estar a la vez en activas y en el archivo,
+  // ni repetida dentro del archivo.
+  if(typeof coherenciaAlumnas==='function' && coherenciaAlumnas(DB)){
+    tsSeccion('alumnos'); tsSeccion('alumnosRetirados'); saveBackground();
+  }
   document.getElementById('archivo-content').innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
       <div class="table-card">
@@ -44,13 +49,23 @@ function renderArchivo(){
   `;
 }
 
-function reactivarAlumna(idx){
+async function reactivarAlumna(idx){
   const a = DB.alumnosRetirados[idx];
   if(!a) return;
   if(!confirm('¿Reactivar a '+a.nombre+' como alumna activa?')) return;
-  DB.alumnos.push({...a, fechaRetiro:undefined});
-  DB.alumnosRetirados.splice(idx,1);
-  saveBackground(); renderArchivo(); toast('♻️ '+a.nombre+' reactivada como alumna activa');
+  const activa={...a, _movTs:Date.now()};
+  delete activa.fechaRetiro;
+  // Sin duplicados: si ya estaba en activas, se reemplaza su copia
+  DB.alumnos=(DB.alumnos||[]).filter(x=>String(x.id)!==String(a.id));
+  DB.alumnos.push(activa);
+  DB.alumnosRetirados=DB.alumnosRetirados.filter(x=>String(x.id)!==String(a.id));
+  // Sellos de tiempo: sin esto la sincronización deshacía la reactivación
+  tsSeccion('alumnos');
+  tsSeccion('alumnosRetirados');
+  renderArchivo();
+  const ok=await saveAll();
+  toast(ok?'♻️ '+a.nombre+' reactivada y guardada en Firebase'
+          :'⚠️ '+a.nombre+' reactivada localmente — reintentando sincronizar...', ok?'ok':'info');
 }
 
 function eliminarAlumnaDefinitivo(idx){
