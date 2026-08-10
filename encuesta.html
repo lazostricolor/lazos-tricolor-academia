@@ -552,6 +552,14 @@ const ESCALAS = {
     {v:4, cara:'🙂', txt:'Bastante'},
     {v:5, cara:'😄', txt:'Totalmente'}
   ],
+  // Frecuencia (módulo de bienestar comunitario)
+  frec5: [
+    {v:1, cara:'😞', txt:'Nunca'},
+    {v:2, cara:'🙁', txt:'Casi nunca'},
+    {v:3, cara:'😐', txt:'Algunas veces'},
+    {v:4, cara:'🙂', txt:'Casi siempre'},
+    {v:5, cara:'😄', txt:'Siempre'}
+  ],
   // Interés / continuidad
   int5: [
     {v:1, cara:'😞', txt:'Nada interesado'},
@@ -579,6 +587,7 @@ const ESCALAS = {
      soloPara     → 'alumno' | 'acudiente' (si se omite, se muestra a ambos)
      sola         → true → la pregunta ocupa su propia pantalla
      columnas     → 2 → opciones en dos columnas
+     inverso      → true → puntaje alto significa algo negativo (se invierte al promediar)
    ===========================================================================*/
 const SECCIONES = [
 
@@ -601,34 +610,6 @@ const SECCIONES = [
         textoAcudiente:'¿Cuánto tiempo lleva el alumno vinculado a Lazos Tricolor?',
         opciones:['Menos de 3 meses','Entre 3 y 6 meses','Más de 6 meses','Desde los inicios de la academia']
       }
-    ]
-  },
-
-  /* ------------------- BLOQUE B · SENTIMIENTO Y EXPERIENCIA --------------- */
-  {
-    id:'B', icono:'💛', etiqueta:'Bloque B · Sentimiento y experiencia',
-    titulo:'Cómo se vive Lazos Tricolor',
-    intro:'Responde pensando en cómo te has sentido durante estos primeros meses de 2026.',
-    porPagina:3,
-    preguntas:[
-      { id:'b_sentir', tipo:'escala5', escala:'sat5', obligatoria:true, categoria:'bienestar',
-        texto:'¿Cómo te sientes actualmente siendo parte de Lazos Tricolor?',
-        textoAcudiente:'¿Cómo se siente tu familia actualmente siendo parte de Lazos Tricolor?' },
-      { id:'b_disfrute', tipo:'escala5', escala:'sat5', obligatoria:true, categoria:'bienestar',
-        texto:'¿Qué tanto disfrutas asistir a las clases?',
-        textoAcudiente:'¿Qué tanto disfruta el alumno asistir a las clases?' },
-      { id:'b_seguridad', tipo:'escala5', escala:'acu5', obligatoria:true, categoria:'bienestar',
-        texto:'¿Te sientes cómodo(a) y seguro(a) dentro de la academia?',
-        textoAcudiente:'¿Consideras que el alumno se siente cómodo(a) y seguro(a) dentro de la academia?' },
-      { id:'b_expresion', tipo:'escala5', escala:'acu5', obligatoria:true, categoria:'bienestar',
-        texto:'¿Sientes que puedes expresarte libremente dentro de la academia?',
-        textoAcudiente:'¿Sientes que el alumno puede expresarse libremente dentro de la academia?' },
-      { id:'b_comunidad', tipo:'escala5', escala:'acu5', obligatoria:true, categoria:'pertenencia',
-        texto:'¿Sientes que haces parte de una comunidad dentro de Lazos Tricolor?',
-        textoAcudiente:'¿Sientes que tu familia hace parte de una comunidad dentro de Lazos Tricolor?' },
-      { id:'b_animo', tipo:'escala5', escala:'acu5', obligatoria:true, categoria:'bienestar',
-        texto:'¿Consideras que la academia ha aportado positivamente a tu estado de ánimo?',
-        textoAcudiente:'¿Consideras que la academia ha aportado positivamente al estado de ánimo y bienestar del alumno?' }
     ]
   },
 
@@ -747,9 +728,153 @@ const SECCIONES = [
         texto:'¿Consideras que las presentaciones permiten mostrar lo aprendido?' },
       { id:'g_mas_eventos', tipo:'unica', obligatoria:true, sola:true, categoria:'presentaciones',
         texto:'¿Te gustaría que Lazos Tricolor participara en más eventos?',
-        opciones:['Sí','No','Me es indiferente'] },
-      { id:'g_orgullo', tipo:'escala5', escala:'acu5', obligatoria:true, categoria:'pertenencia', sola:true,
-        texto:'¿Qué tan orgulloso(a) te sientes de representar a Lazos Tricolor?' }
+        opciones:['Sí','No','Me es indiferente'] }
+    ]
+  },
+
+
+  /* ═══════════ MÓDULO · BIENESTAR Y SALUD DE LA COMUNIDAD ═══════════════════
+     Escala de frecuencia (frec5): 1 Nunca … 5 Siempre.
+     Las preguntas 1–36 las responde SOLO EL ALUMNO, porque están escritas
+     desde su propia vivencia. El acudiente responde su propio bloque (A1–A6)
+     y las preguntas abiertas, que son comunes.
+     bc_presion es un INDICADOR INVERSO: puntaje alto = más presión percibida.
+     ═════════════════════════════════════════════════════════════════════════ */
+  {
+    id:'BC', icono:'💛', etiqueta:'¿Cómo estamos como comunidad?',
+    titulo:'¿Cómo estamos como comunidad? 💛💙❤️',
+    intro:'Queremos conocer cómo estamos viviendo nuestra experiencia como comunidad Lazos Tricolor. Estas preguntas nos ayudarán a identificar qué estamos haciendo bien y qué podemos cuidar o mejorar entre todos.',
+    aviso:'No existen respuestas correctas o incorrectas. Responde con sinceridad desde tu propia experiencia.|Esta sección no es una evaluación psicológica ni busca diagnosticar a ninguna persona. Su objetivo es conocer nuestro bienestar como comunidad.|Tus respuestas serán analizadas de manera general y reservada. No se expondrán públicamente respuestas individuales.',
+    porPagina:4,
+    preguntas:[
+
+      /* --- 1 a 5 · Bienestar y experiencia emocional (solo alumnos) --- */
+      { id:'bc_bien', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'bienestar', soloPara:'alumno',
+        texto:'Cuando estoy en Lazos Tricolor, generalmente me siento bien.' },
+      { id:'bc_positivo', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'bienestar', soloPara:'alumno',
+        texto:'Salgo de las clases con una sensación positiva.' },
+      { id:'bc_aporta', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'bienestar', soloPara:'alumno',
+        texto:'Siento que pertenecer a la academia aporta cosas buenas a mi vida.' },
+      { id:'bc_dia_dificil', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'bienestar', soloPara:'alumno',
+        texto:'Cuando tengo un día difícil, venir a la academia puede ayudarme a sentirme mejor.' },
+      { id:'bc_disfrutar', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'bienestar', soloPara:'alumno',
+        texto:'Siento que puedo disfrutar de la danza sin importar si mi desempeño es perfecto.' },
+
+      /* --- 6 a 10 · Sentido de pertenencia --- */
+      { id:'bc_parte', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'pertenencia', soloPara:'alumno',
+        texto:'Siento que soy parte importante de Lazos Tricolor.' },
+      { id:'bc_ser_yo', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'pertenencia', soloPara:'alumno',
+        texto:'Siento que puedo ser yo mismo(a) dentro de la academia.' },
+      { id:'bc_valoran', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'pertenencia', soloPara:'alumno',
+        texto:'Siento que hay personas dentro de la academia que valoran mi presencia.' },
+      { id:'bc_apoyo_mutuo', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'pertenencia', soloPara:'alumno',
+        texto:'Siento que los integrantes de Lazos Tricolor se apoyan entre sí.' },
+      { id:'bc_orgullo', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'pertenencia', soloPara:'alumno',
+        texto:'Siento orgullo de pertenecer a Lazos Tricolor.' },
+
+      /* --- 11 a 15 · Seguridad y confianza --- */
+      { id:'bc_opinar', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'seguridad', soloPara:'alumno',
+        texto:'Me siento tranquilo(a) expresando mi opinión dentro de la academia.' },
+      { id:'bc_equivocarme', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'seguridad', soloPara:'alumno',
+        texto:'Siento que puedo equivocarme durante una clase sin sentirme mal por ello.' },
+      { id:'bc_incomoda', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'seguridad', soloPara:'alumno',
+        texto:'Siento que puedo expresar algo que me incomoda sin temor a ser juzgado(a).' },
+      { id:'bc_respeto', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'seguridad', soloPara:'alumno',
+        texto:'Considero que existe respeto entre las personas que hacen parte de la academia.' },
+      { id:'bc_diferencias', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'seguridad', soloPara:'alumno',
+        texto:'Siento que las diferencias entre las personas son respetadas.' },
+
+      /* --- 16 a 20 · Relaciones y compañerismo --- */
+      { id:'bc_companerismo', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'relaciones', soloPara:'alumno',
+        texto:'Siento que existe compañerismo entre los integrantes de la academia.' },
+      { id:'bc_nuevos', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'relaciones', soloPara:'alumno',
+        texto:'Considero que los nuevos integrantes son recibidos adecuadamente.' },
+      { id:'bc_relacion', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'relaciones', soloPara:'alumno',
+        texto:'Siento que puedo relacionarme con mis compañeros de manera positiva.' },
+      { id:'bc_dialogo', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'relaciones', soloPara:'alumno',
+        texto:'Cuando existe un conflicto, considero que puede solucionarse mediante el diálogo.' },
+      { id:'bc_pensar_distinto', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'relaciones', soloPara:'alumno',
+        texto:'Considero que en Lazos Tricolor nos tratamos con respeto incluso cuando pensamos diferente.' },
+
+      /* --- 21 a 26 · Exigencia, presión y aprendizaje --- */
+      { id:'bc_exigencia', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'equilibrio', soloPara:'alumno',
+        texto:'Siento que las exigencias de la academia me ayudan a crecer.' },
+      { id:'bc_presion', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'equilibrio', inverso:true, soloPara:'alumno',
+        texto:'A veces siento demasiada presión por mi desempeño dentro de la academia.' },
+      { id:'bc_ritmo', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'equilibrio', soloPara:'alumno',
+        texto:'Siento que puedo aprender a mi propio ritmo.' },
+      { id:'bc_errores', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'equilibrio', soloPara:'alumno',
+        texto:'Siento que cometer errores es una parte normal del aprendizaje.' },
+      { id:'bc_present_motivan', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'equilibrio', soloPara:'alumno',
+        texto:'Las presentaciones y actividades especiales me generan principalmente motivación.' },
+      { id:'bc_equilibrio', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'equilibrio', soloPara:'alumno',
+        texto:'Siento que existe un equilibrio adecuado entre disciplina, exigencia y bienestar.' },
+
+      /* --- 27 a 31 · Motivación --- */
+      { id:'bc_entusiasmo', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'motivacion', soloPara:'alumno',
+        texto:'Espero con entusiasmo las clases.' },
+      { id:'bc_progreso', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'motivacion', soloPara:'alumno',
+        texto:'Siento que estoy progresando.' },
+      { id:'bc_seguir', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'motivacion', soloPara:'alumno',
+        texto:'Tengo ganas de seguir aprendiendo.' },
+      { id:'bc_actividades', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'motivacion', soloPara:'alumno',
+        texto:'Las actividades de la academia me motivan.' },
+      { id:'bc_esfuerzo', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'motivacion', soloPara:'alumno',
+        texto:'Siento que mi esfuerzo es valorado.' },
+
+      /* --- 32 a 36 · Comunicación y apoyo --- */
+      { id:'bc_decirlo', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'apoyo', soloPara:'alumno',
+        texto:'Cuando algo no me gusta o me preocupa dentro de la academia, siento que puedo decirlo.' },
+      { id:'bc_escuchado', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'apoyo', soloPara:'alumno',
+        texto:'Siento que mis opiniones son escuchadas.' },
+      { id:'bc_acudir', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'apoyo', soloPara:'alumno',
+        texto:'Si estuviera pasando por un momento difícil relacionado con mi experiencia en la academia, sabría a quién acudir.' },
+      { id:'bc_hablar_antes', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'apoyo', soloPara:'alumno',
+        texto:'Siento que en Lazos Tricolor podemos hablar de los problemas antes de que se conviertan en conflictos mayores.' },
+      { id:'bc_estar_bien', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'apoyo', soloPara:'alumno',
+        texto:'Siento que en la academia nos preocupamos no solamente por bailar bien, sino también por estar bien.' },
+
+      /* --- A1 a A6 · Solo acudientes (percepción sobre el alumno) --- */
+      { id:'bca_disfruta', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'bienestar_familia', soloPara:'acudiente',
+        texto:'¿Percibe que el alumno disfruta asistir a Lazos Tricolor?' },
+      { id:'bca_confianza', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'bienestar_familia', soloPara:'acudiente',
+        texto:'¿Ha observado cambios positivos en la confianza o seguridad personal del alumno?' },
+      { id:'bca_ambiente', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'bienestar_familia', soloPara:'acudiente',
+        texto:'¿Considera que el ambiente de la academia favorece relaciones saludables entre los alumnos?' },
+      { id:'bca_equilibrio', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'bienestar_familia', soloPara:'acudiente',
+        texto:'¿Considera que existe un equilibrio adecuado entre disciplina, exigencia y bienestar?' },
+      { id:'bca_comunicar', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'bienestar_familia', soloPara:'acudiente',
+        texto:'¿Siente que podría comunicar una preocupación relacionada con el bienestar del alumno?' },
+      { id:'bca_escucha', tipo:'escala5', escala:'frec5', obligatoria:true, categoria:'bienestar_familia', soloPara:'acudiente',
+        texto:'¿Considera que la academia escucha adecuadamente las preocupaciones de las familias?' }
+    ]
+  },
+
+  /* ---------- MÓDULO DE BIENESTAR · PREGUNTAS ABIERTAS (todos) ------------- */
+  {
+    id:'BCJ', icono:'💬', etiqueta:'Cuidarnos como comunidad',
+    titulo:'Lo que quieras contarnos sobre nuestra convivencia',
+    intro:'Todas estas preguntas son opcionales. Escribe con confianza: se analizan de manera general y reservada.',
+    porPagina:2,
+    preguntas:[
+      { id:'bc_ab_contribuye', tipo:'texto', obligatoria:false, categoria:'abierta',
+        texto:'¿Qué es lo que más contribuye a que te sientas bien dentro de Lazos Tricolor?',
+        textoAcudiente:'¿Qué es lo que más contribuye a que el alumno y tu familia se sientan bien dentro de Lazos Tricolor?',
+        placeholder:'Escribe aquí…' },
+      { id:'bc_ab_cuidar', tipo:'texto', obligatoria:false, categoria:'abierta',
+        texto:'¿Qué consideras que deberíamos cuidar mejor como comunidad?', placeholder:'Escribe aquí…' },
+      { id:'bc_ab_propuesta', tipo:'texto', obligatoria:false, categoria:'abierta',
+        texto:'Si pudieras hacer algo para que Lazos Tricolor fuera un espacio emocionalmente mejor para todos, ¿qué propondrías?',
+        placeholder:'Escribe aquí…' },
+      { id:'bc_ab_revisar', tipo:'texto', obligatoria:false, categoria:'abierta',
+        texto:'¿Hay alguna situación dentro de la academia que consideres importante que revisemos o mejoremos?',
+        ayuda:'Opcional. Se lee de manera reservada y no se comparte con nombres.',
+        placeholder:'Escribe aquí…' },
+      { id:'bc_ab_comunidad', tipo:'texto', obligatoria:false, categoria:'abierta',
+        texto:'¿Hay algo que quieras decirnos sobre cómo estamos viviendo como comunidad?', placeholder:'Escribe aquí…' },
+      { id:'bca_ab_cuidar', tipo:'texto', obligatoria:false, categoria:'abierta', soloPara:'acudiente',
+        texto:'Desde su perspectiva como acudiente, ¿qué deberíamos cuidar para que Lazos Tricolor siga siendo un espacio positivo para nuestros alumnos?',
+        placeholder:'Escribe aquí…' }
     ]
   },
 
@@ -985,9 +1110,17 @@ function renderPaso(){
   const sec  = paso.seccion;
   const cont = $('#pantallaPreguntas');
 
+  // Aviso destacado de la sección (se separa con "|" en la definición)
+  const aviso = (paso.encabezado && sec.aviso)
+    ? `<div class="aviso" style="margin-top:14px">
+         <ul class="lista-check">${sec.aviso.split('|').map(t => `<li>${escapar(t.trim())}</li>`).join('')}</ul>
+       </div>`
+    : '';
+
   const cabecera = paso.encabezado ? `
       <h2>${escapar(sec.titulo)}</h2>
-      ${sec.intro ? `<p class="suave">${escapar(sec.intro)}</p>` : ''}` : '';
+      ${sec.intro ? `<p class="suave">${escapar(sec.intro)}</p>` : ''}
+      ${aviso}` : '';
 
   let num = paso.desde;
   const preguntas = paso.preguntas.map(p => htmlPregunta(p, num++)).join('');
