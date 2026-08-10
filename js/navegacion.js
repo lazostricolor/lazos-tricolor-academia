@@ -20,7 +20,7 @@ function showSection(name){
     if(b.textContent.toLowerCase().includes(name.substring(0,5))) b.classList.add('active');
   });
   activeSection=name;
-  const titles={dashboard:'Dashboard',alumnos:'Alumnas',pagos:'Mensualidades',asistencias:'Asistencias',profesores:'Profesores',finanzas:'Finanzas',presentaciones:'Presentaciones',archivo:'Archivo',config:'Configuración',preinscripciones:'📥 Preinscripciones',planificador:'📅 Planificador',gastos:'🧾 Gastos Varios',ingresos:'💰 Otros Ingresos',recaudos:'🎯 Recaudos',rifas:'🎟️ Rifas'};
+  const titles={dashboard:'Dashboard',alumnos:'Alumnas',pagos:'Mensualidades',asistencias:'Asistencias',profesores:'Profesores',finanzas:'Finanzas',presentaciones:'Presentaciones',archivo:'Archivo',config:'Configuración',preinscripciones:'📥 Preinscripciones',planificador:'📅 Planificador',gastos:'🧾 Gastos Varios',ingresos:'💰 Otros Ingresos',recaudos:'🎯 Recaudos',rifas:'🎟️ Rifas',encuestas:'📊 Encuesta 2026'};
   document.getElementById('header-title').innerHTML=titles[name]||name;
   closeSidebar();
   renderSection(name);
@@ -46,6 +46,7 @@ function renderSection(name){
   else if(name==='recaudos'){ renderRecaudos(); }
   else if(name==='rifas'){ renderRifas(); }
   else if(name==='preinscripciones'){ cargarPreinscripciones(); }
+  else if(name==='encuestas'){ renderEncuestas(); }
 }
 function toggleSidebar(){
   document.getElementById('sidebar').classList.toggle('open');
@@ -90,7 +91,7 @@ function irSeccionDesdeURL(){
   // Solo secciones conocidas — evita llamar showSection con basura
   var validas = ['dashboard','alumnos','pagos','asistencias','profesores','recaudos',
                  'rifas','ingresos','gastos','finanzas','presentaciones',
-                 'preinscripciones','planificador','archivo','config'];
+                 'preinscripciones','planificador','archivo','config','encuestas'];
   if(validas.indexOf(destino) === -1) return;
 
   var intentos = 0;
