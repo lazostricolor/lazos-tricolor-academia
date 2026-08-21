@@ -61,6 +61,12 @@
                  text-transform:uppercase;letter-spacing:.6px;padding:8px 13px}
   .sud-link{font-size:11px;color:#3a57e8;cursor:pointer;text-decoration:underline;
             background:none;border:none;padding:0}
+  .sud-prod{display:inline-block;background:#f3e8ff;color:#7e22ce;font-weight:600;
+            padding:1px 7px;border-radius:6px;font-size:10.5px;margin-left:4px}
+  .sud-afavor{font-size:10.5px;color:#16a34a;font-weight:700;margin-top:2px}
+  .sud-aviso{background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:9px;
+             padding:9px 12px;font-size:12.5px;margin:10px 0}
+  .sud-hint{font-size:11.5px;color:var(--muted);margin:-4px 0 10px}
 
   /* Botones propios — no usan .btn de styles.css para evitar choques */
   .sud-btn{background:#3a57e8;color:#fff;border:none;padding:8px 13px;border-radius:9px;
@@ -174,6 +180,7 @@
           <div class="section-title">👕 Sudaderas 2026</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="sud-btn sud-ghost sud-sm" id="sud-btnNueva">+ Asignar talla</button>
+            <button class="sud-btn sud-ghost sud-sm" id="sud-btnExtra">🧥 + Pieza extra</button>
             <button class="sud-btn sud-ghost sud-sm" id="sud-btnParticular">+ Particular</button>
           </div>
         </div>
@@ -230,10 +237,7 @@
   <h3 id="sud-verTit">Abonos</h3>
   <div id="sud-verResumen" style="font-size:13px;color:var(--muted);margin-bottom:10px"></div>
   <div id="sud-verLista" style="max-height:60vh;overflow:auto;text-align:left"></div>
-  <div class="sud-actions">
-    <button class="sud-btn sud-sm" id="sud-btnManual" style="margin-right:auto">📎 Registrar soporte manual</button>
-    <button class="sud-btn sud-ghost sud-sm" data-sud-close>Cerrar</button>
-  </div>
+  <div class="sud-actions"><button class="sud-btn sud-ghost sud-sm" data-sud-close>Cerrar</button></div>
 </div></div>
 
 <div class="sud-ov" id="sud-ovImg"><div class="sud-modal" style="max-width:460px">
@@ -283,25 +287,80 @@
   <div id="sud-ptErr" style="color:#dc2626;font-size:12.5px;margin-top:8px"></div>
 </div></div>
 
-<div class="sud-ov" id="sud-ovManual"><div class="sud-modal" style="text-align:left;max-width:460px">
-  <h3>📎 Registrar soporte manual</h3>
-  <div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">
-    Para cuando el representante te envió el comprobante por WhatsApp. Eliges la talla, subes la imagen y queda aprobado directamente.
-  </div>
-  <div id="sud-mnNombre" style="font-weight:700;font-size:15px;margin-bottom:10px"></div>
+<!-- CAMBIAR TALLA / VALOR -->
+<div class="sud-ov" id="sud-ovTalla"><div class="sud-modal" style="text-align:left">
+  <h3>Cambiar talla o valor</h3>
+  <div id="sud-tlQuien" style="font-size:13px;color:var(--muted);margin-bottom:12px"></div>
+  <div id="sud-tlAviso"></div>
+
   <label style="font-size:12px;color:var(--muted)">Talla</label>
-  <select id="sud-mnTalla" class="sud-input"></select>
-  <label style="font-size:12px;color:var(--muted)">Monto abonado ($)</label>
-  <input id="sud-mnMonto" class="sud-input" type="number" min="0" step="1000" placeholder="Ej: 50000">
-  <div id="sud-mnSugerencia" style="font-size:11.5px;color:var(--muted);margin:-4px 0 8px"></div>
-  <label style="font-size:12px;color:var(--muted)">Imagen del soporte (opcional)</label>
-  <input id="sud-mnFile" class="sud-input" type="file" accept="image/*">
-  <div id="sud-mnPreview" style="margin:8px 0;text-align:center"></div>
+  <select id="sud-tlTalla" class="sud-input"></select>
+
+  <label style="font-size:12px;color:var(--muted)">Valor total de la pieza</label>
+  <input id="sud-tlValor" class="sud-input" type="tel" inputmode="numeric" placeholder="0">
+  <div class="sud-hint" id="sud-tlHint"></div>
+
   <div class="sud-actions" style="justify-content:flex-end">
     <button class="sud-btn sud-ghost sud-sm" data-sud-close>Cancelar</button>
-    <button class="sud-btn sud-sm" id="sud-mnGuardar">💾 Registrar pago</button>
+    <button class="sud-btn sud-sm" id="sud-tlGuardar">Guardar cambio</button>
+  </div>
+  <div id="sud-tlErr" style="color:#dc2626;font-size:12.5px;margin-top:8px"></div>
+</div></div>
+
+<!-- REGISTRAR ABONO POR EL ACUDIENTE -->
+<div class="sud-ov" id="sud-ovManual"><div class="sud-modal" style="text-align:left">
+  <h3>💵 Registrar pago</h3>
+  <div id="sud-mnQuien" style="font-size:13px;color:var(--muted);margin-bottom:12px"></div>
+  <div class="sud-aviso">
+    Este pago queda <b>aprobado de inmediato</b> y marcado como registrado por la academia.
+  </div>
+
+  <div id="sud-mnTallaWrap" style="display:none">
+    <label style="font-size:12px;color:var(--muted)">Talla (este registro aún no tiene)</label>
+    <select id="sud-mnTalla" class="sud-input"></select>
+  </div>
+
+  <label style="font-size:12px;color:var(--muted)">Monto recibido</label>
+  <input id="sud-mnMonto" class="sud-input" type="tel" inputmode="numeric" placeholder="0">
+  <div class="sud-hint" id="sud-mnHint"></div>
+
+  <label style="font-size:12px;color:var(--muted)">Foto del comprobante (opcional)</label>
+  <input id="sud-mnFoto" class="sud-input" type="file" accept="image/*">
+  <img id="sud-mnPrev" style="max-width:100%;border-radius:10px;display:none;margin-bottom:10px">
+
+  <div class="sud-actions" style="justify-content:flex-end">
+    <button class="sud-btn sud-ghost sud-sm" data-sud-close>Cancelar</button>
+    <button class="sud-btn sud-sm" id="sud-mnGuardar">Registrar pago</button>
   </div>
   <div id="sud-mnErr" style="color:#dc2626;font-size:12.5px;margin-top:8px"></div>
+</div></div>
+
+<!-- PIEZA EXTRA -->
+<div class="sud-ov" id="sud-ovExtra"><div class="sud-modal" style="text-align:left">
+  <h3>🧥 Agregar pieza extra</h3>
+  <div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">
+    Chaqueta, camiseta o una segunda sudadera. Se crea como registro aparte,
+    con su propio QR y su propio saldo.
+  </div>
+
+  <label style="font-size:12px;color:var(--muted)">¿Para quién?</label>
+  <select id="sud-exAlumna" class="sud-input"></select>
+
+  <label style="font-size:12px;color:var(--muted)">Pieza</label>
+  <select id="sud-exProducto" class="sud-input"></select>
+
+  <label style="font-size:12px;color:var(--muted)">Talla</label>
+  <select id="sud-exTalla" class="sud-input"></select>
+
+  <label style="font-size:12px;color:var(--muted)">Valor total</label>
+  <input id="sud-exValor" class="sud-input" type="tel" inputmode="numeric" placeholder="0">
+  <div class="sud-hint" id="sud-exHint"></div>
+
+  <div class="sud-actions" style="justify-content:flex-end">
+    <button class="sud-btn sud-ghost sud-sm" data-sud-close>Cancelar</button>
+    <button class="sud-btn sud-sm" id="sud-exCrear">Crear y generar QR</button>
+  </div>
+  <div id="sud-exErr" style="color:#dc2626;font-size:12.5px;margin-top:8px"></div>
 </div></div>
 
 <div class="sud-toast" id="sud-toast"></div>
@@ -312,6 +371,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <!-- sudaderas.js vive en la RAÍZ del repositorio, no en js/ — igual que antes -->
 <script src="sudaderas.js"></script>
+<!-- Extensiones que SOLO usa el panel. Debe ir después de sudaderas.js -->
+<script src="sudaderas-admin.js"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════
    Config de Firebase — idéntica a la anterior, sin cambios.
@@ -389,36 +450,54 @@ const ESTADO_BADGE = {
 
 function fila(alumna, r){
   const nombre = alumna ? alumna.nombre : (r ? r.nombre : '');
-  const cat    = alumna ? (alumna.categoria || '—') : (r && r.particular ? 'Particular' : 'sin alumna activa');
+  let cat;
+  if(alumna)                       cat = alumna.categoria || '—';
+  else if(r && r.particular)       cat = 'Particular';
+  else if(r && r.alumnaId != null){
+    // Pieza extra enlazada a una alumna: recupera su categoría
+    const a2 = alumnas.find(x=>String(x.id)===String(r.alumnaId));
+    cat = a2 ? (a2.categoria || 'Alumna') : 'Alumna';
+  }
+  else                             cat = 'sin alumna activa';
   const qrBtn  = r
     ? `<button class="sud-btn sud-ghost sud-sm" data-qr="${r.id}">QR</button>`
     : `<button class="sud-btn sud-ghost sud-sm" data-qr-alu="${alumna.id}">QR</button>`;
   const delBtn = r ? `<button class="sud-btn sud-ghost sud-sm" data-del="${r.id}" title="Eliminar registro" style="color:#dc2626">🗑</button>` : '';
 
+  // Botones de administración: cambiar talla/precio y registrar abono manual
+  const edBtn  = r ? `<button class="sud-btn sud-ghost sud-sm" data-talla="${r.id}" title="Cambiar talla o valor">✏️</button>` : '';
+  const manBtn = r ? `<button class="sud-btn sud-ghost sud-sm" data-manual="${r.id}" title="Registrar pago por el acudiente">💵</button>` : '';
+
+  // Etiqueta del producto — los registros viejos no traen el campo y salen como sudadera
+  const prodTag = r && !Sudaderas.esSudadera(r)
+    ? ` <span class="sud-prod">${Sudaderas.iconoProducto(r)} ${Sudaderas.nombreProducto(r)}</span>` : '';
+
   if(r && r.talla){
     const pagado = Sudaderas.pagado(r), saldo = Sudaderas.saldo(r);
+    const aFavor = Sudaderas.saldoAFavor(r);
     const est = Sudaderas.estadoGeneral(r);
     const [txt,cls] = ESTADO_BADGE[est] || ESTADO_BADGE.pendiente;
     const nAb = Object.keys(r.abonos||{}).length;
     const rev = Sudaderas.enRevision(r);
     const abBtn = nAb ? `<button class="sud-btn sud-ghost sud-sm" data-ab="${r.id}">Abonos (${nAb})${rev?' •':''}</button>` : '';
     return `<tr>
-      <td class="sud-alumna">${nombre}<small>${cat}</small></td>
+      <td class="sud-alumna">${nombre}<small>${cat}${prodTag}</small></td>
       <td><span class="sud-talla">${r.talla}</span></td>
       <td class="sud-money">${Sudaderas.formatoDinero(r.total)}</td>
       <td class="sud-money" style="color:#16a34a">${Sudaderas.formatoDinero(pagado)}</td>
-      <td class="sud-money">${Sudaderas.formatoDinero(saldo)}</td>
+      <td class="sud-money">${Sudaderas.formatoDinero(saldo)}
+        ${aFavor?`<div class="sud-afavor" title="Pagó más de lo que vale ahora">+${Sudaderas.formatoDinero(aFavor)} a favor</div>`:''}</td>
       <td><span class="sud-badge ${cls}">${txt}</span></td>
-      <td><div class="sud-rowact">${abBtn}${qrBtn}${delBtn}</div></td>
+      <td><div class="sud-rowact">${abBtn}${edBtn}${manBtn}${qrBtn}${delBtn}</div></td>
     </tr>`;
   }
   if(r){
     return `<tr>
-      <td class="sud-alumna">${nombre}<small>${cat}</small></td>
+      <td class="sud-alumna">${nombre}<small>${cat}${prodTag}</small></td>
       <td><span class="sud-badge sud-b-check">QR listo</span></td>
       <td colspan="3" style="color:#9aa1ad;font-size:12.5px">Esperando que el papá elija la talla</td>
       <td><span class="sud-badge sud-b-pend">Sin talla</span></td>
-      <td><div class="sud-rowact">${qrBtn}${delBtn}</div></td>
+      <td><div class="sud-rowact">${edBtn}${manBtn}${qrBtn}${delBtn}</div></td>
     </tr>`;
   }
   return `<tr style="opacity:.82">
@@ -433,8 +512,14 @@ function fila(alumna, r){
 const CATS_ORD = ['Infantil','Juvenil','Adulto','Adulto Mayor'];
 
 function pintar(){
+  /* Solo la SUDADERA ocupa la fila de la alumna. Las piezas extra
+     (chaqueta, camiseta, sudadera adicional) son registros aparte y
+     van en su propia sección; si se indexaran aquí, una alumna con
+     dos registros perdería el de la sudadera. */
   const porAlumna = {};
-  datos.forEach(r=>{ if(r.alumnaId!=null && r.alumnaId!=='') porAlumna[String(r.alumnaId)] = r; });
+  datos.forEach(r=>{
+    if(r.alumnaId!=null && r.alumnaId!=='' && Sudaderas.esSudadera(r)) porAlumna[String(r.alumnaId)] = r;
+  });
 
   let recaudado=0, porVerificar=0, saldoPend=0, metaTotal=0, sinRegistrar=0;
   const conteo = {pagado:0, en_revision:0, parcial:0, pendiente:0, sin_talla:0};
@@ -466,8 +551,15 @@ function pintar(){
   });
 
   const sueltos = datos.filter(r=>!usados.has(r.id));
-  const particulares = sueltos.filter(r=>r.particular);
-  const otros = sueltos.filter(r=>!r.particular);
+  const extras  = sueltos.filter(r=>!Sudaderas.esSudadera(r));
+  const resto   = sueltos.filter(r=>Sudaderas.esSudadera(r));
+  const particulares = resto.filter(r=>r.particular);
+  const otros = resto.filter(r=>!r.particular);
+
+  if(extras.length){
+    filas += `<tr class="sud-catrow"><td colspan="7">🧥 Piezas extra · ${extras.length}</td></tr>`;
+    filas += extras.map(r=>fila(null, r)).join('');
+  }
   if(particulares.length){
     filas += `<tr class="sud-catrow"><td colspan="7">Particulares · ${particulares.length}</td></tr>`;
     filas += particulares.map(r=>fila(null, r)).join('');
@@ -540,9 +632,13 @@ document.addEventListener('click', async e=>{
   const verImg = e.target.closest('[data-img]');
   const apr    = e.target.closest('[data-aprobar]');
   const rec    = e.target.closest('[data-rechazar]');
+  const tal    = e.target.closest('[data-talla]');
+  const man    = e.target.closest('[data-manual]');
 
   if(cl){ cl.closest('.sud-ov').style.display='none'; }
   if(ab){ abrirAbonos(ab.dataset.ab); }
+  if(tal){ abrirCambioTalla(tal.dataset.talla); }
+  if(man){ abrirAbonoManual(man.dataset.manual); }
   if(verImg){ $('#sud-imgFull').src = verImg.dataset.img; $('#sud-ovImg').style.display='flex'; }
   if(apr){
     try{ await Sudaderas.aprobarAbono(abActual, apr.dataset.aprobar); toast('Abono aprobado ✓'); await cargar(); abrirAbonos(abActual); }
@@ -580,7 +676,7 @@ function abrirAbonos(rid){
   const reg = datos.find(x=>x.id===rid);
   if(!reg){ $('#sud-ovVer').style.display='none'; return; }
   const pagado = Sudaderas.pagado(reg), saldo = Sudaderas.saldo(reg), rev = Sudaderas.enRevision(reg);
-  $('#sud-verTit').textContent = reg.talla ? `${reg.nombre} — Talla ${reg.talla}` : `${reg.nombre} — Sin talla`;
+  $('#sud-verTit').textContent = `${reg.nombre} — Talla ${reg.talla}`;
   $('#sud-verResumen').innerHTML =
     `Total ${Sudaderas.formatoDinero(reg.total)} · Pagado <b style="color:#16a34a">${Sudaderas.formatoDinero(pagado)}</b> · Saldo <b>${Sudaderas.formatoDinero(saldo)}</b>` +
     (rev?` · En revisión ${Sudaderas.formatoDinero(rev)}`:'');
@@ -593,85 +689,16 @@ function abrirAbonos(rid){
       : `<button class="sud-btn sud-ok sud-sm" data-aprobar="${a.id}">Aprobar</button>
          <button class="sud-btn sud-no sud-sm" data-rechazar="${a.id}">Rechazar</button>`;
     const verFoto = a.soporte ? `<button class="sud-link" data-img="${a.soporte.replace(/"/g,'&quot;')}">ver soporte</button>` : '';
-    const marcaManual = a.manual ? ` · <span style="color:#7c3aed">📎 manual</span>` : '';
     return `<div style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
         <div><b style="font-variant-numeric:tabular-nums">${Sudaderas.formatoDinero(a.monto)}</b>
-          <div style="font-size:11px;color:var(--muted)">${fs} · ${verFoto}${marcaManual}</div></div>
+          <div style="font-size:11px;color:var(--muted)">${fs} · ${verFoto}</div></div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">${acciones}</div>
       </div>
     </div>`;
   }).join('') : `<div style="color:var(--muted);font-size:13px;padding:8px 0">Aún no hay abonos.</div>`;
   $('#sud-ovVer').style.display='flex';
 }
-
-/* ---------- Registro manual de soporte (papá que pagó por WhatsApp) ---------- */
-let _mnFile = null;
-$('#sud-btnManual').onclick = ()=>{
-  const reg = datos.find(x=>x.id===abActual);
-  if(!reg) return;
-  $('#sud-mnErr').textContent = '';
-  $('#sud-mnNombre').textContent = reg.nombre;
-  _mnFile = null;
-  $('#sud-mnFile').value = '';
-  $('#sud-mnPreview').innerHTML = '';
-  $('#sud-mnMonto').value = '';
-  // Cargar tallas; preseleccionar la que ya tenga el registro
-  $('#sud-mnTalla').innerHTML = Object.keys(Sudaderas.TALLAS)
-    .map(t=>`<option value="${t}"${reg.talla===t?' selected':''}>Talla ${t} — ${Sudaderas.formatoDinero(Sudaderas.TALLAS[t].total)}</option>`).join('');
-  _mnActualizarSugerencia();
-  $('#sud-ovManual').style.display='flex';
-};
-
-// Sugerir el saldo pendiente o la cuota según la talla elegida
-function _mnActualizarSugerencia(){
-  const reg = datos.find(x=>x.id===abActual);
-  const t = $('#sud-mnTalla').value;
-  const precio = Sudaderas.TALLAS[t];
-  if(!precio){ $('#sud-mnSugerencia').textContent=''; return; }
-  const pagado = reg ? Sudaderas.pagado(reg) : 0;
-  const saldo = Math.max(0, precio.total - pagado);
-  $('#sud-mnSugerencia').innerHTML =
-    `Cuota sugerida: <b>${Sudaderas.formatoDinero(precio.cuota)}</b> · Saldo pendiente: <b>${Sudaderas.formatoDinero(saldo)}</b>`;
-}
-$('#sud-mnTalla').onchange = _mnActualizarSugerencia;
-
-// Vista previa de la imagen elegida
-$('#sud-mnFile').onchange = (e)=>{
-  const f = e.target.files && e.target.files[0];
-  _mnFile = f || null;
-  if(f){
-    const url = URL.createObjectURL(f);
-    $('#sud-mnPreview').innerHTML = `<img src="${url}" style="max-width:100%;max-height:180px;border-radius:8px;border:1px solid var(--border)">`;
-  } else {
-    $('#sud-mnPreview').innerHTML = '';
-  }
-};
-
-$('#sud-mnGuardar').onclick = async ()=>{
-  const reg = datos.find(x=>x.id===abActual);
-  if(!reg){ return; }
-  $('#sud-mnErr').textContent = '';
-  const talla = $('#sud-mnTalla').value;
-  const monto = Number($('#sud-mnMonto').value)||0;
-  if(!talla){ $('#sud-mnErr').textContent='Elige una talla.'; return; }
-  if(monto<=0){ $('#sud-mnErr').textContent='Escribe el monto abonado.'; return; }
-
-  const btn = $('#sud-mnGuardar');
-  const txt = btn.textContent;
-  btn.disabled = true; btn.textContent = '⏳ Guardando...';
-  try{
-    await Sudaderas.abonoManual(abActual, { talla, monto, soporte: _mnFile });
-    toast('✅ Soporte registrado');
-    $('#sud-ovManual').style.display='none';
-    await cargar();
-    abrirAbonos(abActual);   // refrescar el modal de abonos con el nuevo registro
-  }catch(err){
-    $('#sud-mnErr').textContent = err.message || 'No se pudo registrar';
-  }finally{
-    btn.disabled = false; btn.textContent = txt;
-  }
-};
 
 /* ---------- QR ---------- */
 function abrirQr(rid){
@@ -743,6 +770,228 @@ $('#sud-ptCrear').onclick = async ()=>{
     $('#sud-ovPart').style.display='none';
     await cargar(); abrirQr(rid);
   }catch(e){ $('#sud-ptErr').textContent = e.message || 'No se pudo crear.'; }
+};
+
+/* ═══════════════════════════════════════════════════════════
+   CAMBIAR TALLA O VALOR
+   Los abonos NO se tocan. Solo cambian talla y total; el saldo
+   se recalcula solo. Si quedó pagando de más, se avisa.
+═══════════════════════════════════════════════════════════ */
+let tlActual = null;
+
+function opcionesTalla(producto, seleccionada){
+  const lista = producto === 'sudadera'
+    ? Object.keys(Sudaderas.TALLAS)
+    : Sudaderas.TALLAS_EXTRA;
+  return lista.map(t=>{
+    const p = Sudaderas.precioSugerido(producto, t);
+    const etiqueta = p ? `Talla ${t} — ${Sudaderas.formatoDinero(p)}` : `Talla ${t}`;
+    return `<option value="${t}" ${String(t)===String(seleccionada)?'selected':''}>${etiqueta}</option>`;
+  }).join('');
+}
+
+function abrirCambioTalla(rid){
+  const reg = datos.find(x=>x.id===rid);
+  if(!reg) return;
+  tlActual = rid;
+  const producto = Sudaderas.productoDe(reg);
+  const pagado = Sudaderas.pagado(reg);
+
+  $('#sud-tlErr').textContent = '';
+  $('#sud-tlQuien').innerHTML =
+    `<b>${reg.nombre}</b> · ${Sudaderas.nombreProducto(reg)}` +
+    (reg.talla?` · talla actual <b>${reg.talla}</b>`:' · sin talla');
+
+  $('#sud-tlAviso').innerHTML = pagado > 0
+    ? `<div class="sud-aviso">Ya tiene <b>${Sudaderas.formatoDinero(pagado)}</b> abonados.
+       Los abonos no se tocan: solo se recalcula el saldo con el valor nuevo.</div>`
+    : '';
+
+  $('#sud-tlTalla').innerHTML = opcionesTalla(producto, reg.talla);
+  sincronizarValorTalla();
+  $('#sud-ovTalla').style.display = 'flex';
+}
+
+function sincronizarValorTalla(){
+  const reg = datos.find(x=>x.id===tlActual);
+  if(!reg) return;
+  const producto = Sudaderas.productoDe(reg);
+  const talla = $('#sud-tlTalla').value;
+  const sugerido = Sudaderas.precioSugerido(producto, talla);
+  if(sugerido > 0){
+    $('#sud-tlValor').value = sugerido.toLocaleString('es-CO');
+    $('#sud-tlHint').textContent = 'Valor tomado de la tabla de precios. Puedes cambiarlo si es un caso especial.';
+  } else {
+    $('#sud-tlValor').value = reg.total ? Number(reg.total).toLocaleString('es-CO') : '';
+    $('#sud-tlHint').textContent = 'Esta pieza aún no tiene precios cargados. Escribe el valor a mano.';
+  }
+}
+$('#sud-tlTalla').addEventListener('change', sincronizarValorTalla);
+$('#sud-tlValor').addEventListener('input', function(){
+  const v = parseInt(this.value.replace(/\D/g,'')) || 0;
+  this.value = v ? v.toLocaleString('es-CO') : '';
+});
+
+$('#sud-tlGuardar').onclick = async ()=>{
+  const reg = datos.find(x=>x.id===tlActual);
+  if(!reg) return;
+  const talla = $('#sud-tlTalla').value;
+  const valor = parseInt(($('#sud-tlValor').value||'').replace(/\D/g,'')) || 0;
+  if(!valor){ $('#sud-tlErr').textContent = 'Escribe el valor de la pieza.'; return; }
+
+  const pagado = Sudaderas.pagado(reg);
+  if(pagado > valor && !confirm(
+      `Ya abonó ${Sudaderas.formatoDinero(pagado)} y el valor nuevo es ${Sudaderas.formatoDinero(valor)}.\n\n` +
+      `Quedará un saldo a favor de ${Sudaderas.formatoDinero(pagado - valor)}. ¿Continuar?`)) return;
+
+  const btn = $('#sud-tlGuardar'); btn.disabled = true;
+  try{
+    await Sudaderas.fijarTallaYPrecio(tlActual, talla, valor);
+    $('#sud-ovTalla').style.display='none';
+    toast('Talla actualizada ✓');
+    await cargar();
+  }catch(e){
+    $('#sud-tlErr').textContent = e.message || 'No se pudo guardar.';
+  }finally{ btn.disabled = false; }
+};
+
+/* ═══════════════════════════════════════════════════════════
+   REGISTRAR PAGO POR EL ACUDIENTE
+   Usa Sudaderas.abonoManual(), que ya existe en sudaderas.js:
+   deja el abono aprobado y marcado como manual.
+═══════════════════════════════════════════════════════════ */
+let mnActual = null, mnArchivo = null;
+
+function abrirAbonoManual(rid){
+  const reg = datos.find(x=>x.id===rid);
+  if(!reg) return;
+  mnActual = rid; mnArchivo = null;
+
+  $('#sud-mnErr').textContent = '';
+  $('#sud-mnMonto').value = '';
+  $('#sud-mnFoto').value = '';
+  $('#sud-mnPrev').style.display = 'none';
+
+  const saldo = Sudaderas.saldo(reg);
+  $('#sud-mnQuien').innerHTML =
+    `<b>${reg.nombre}</b> · ${Sudaderas.nombreProducto(reg)}` +
+    (reg.talla?` · talla ${reg.talla}`:'');
+  $('#sud-mnHint').textContent = reg.talla
+    ? `Saldo actual: ${Sudaderas.formatoDinero(saldo)}`
+    : 'Primero elige la talla para poder calcular el saldo.';
+
+  // Si no tiene talla, abonoManual() la exige
+  const sinTalla = !reg.talla;
+  $('#sud-mnTallaWrap').style.display = sinTalla ? 'block' : 'none';
+  if(sinTalla){
+    $('#sud-mnTalla').innerHTML = opcionesTalla(Sudaderas.productoDe(reg), null);
+  }
+  $('#sud-ovManual').style.display = 'flex';
+}
+
+$('#sud-mnMonto').addEventListener('input', function(){
+  const v = parseInt(this.value.replace(/\D/g,'')) || 0;
+  this.value = v ? v.toLocaleString('es-CO') : '';
+});
+$('#sud-mnFoto').addEventListener('change', function(){
+  mnArchivo = this.files[0] || null;
+  const prev = $('#sud-mnPrev');
+  if(mnArchivo){ prev.src = URL.createObjectURL(mnArchivo); prev.style.display='block'; }
+  else { prev.style.display='none'; }
+});
+
+$('#sud-mnGuardar').onclick = async ()=>{
+  const reg = datos.find(x=>x.id===mnActual);
+  if(!reg) return;
+  const monto = parseInt(($('#sud-mnMonto').value||'').replace(/\D/g,'')) || 0;
+  if(monto <= 0){ $('#sud-mnErr').textContent = 'Escribe el monto recibido.'; return; }
+
+  const btn = $('#sud-mnGuardar'); btn.disabled = true;
+  $('#sud-mnErr').textContent = 'Guardando…';
+  try{
+    const opciones = { monto, soporte: mnArchivo || null };
+    if(!reg.talla) opciones.talla = $('#sud-mnTalla').value;
+    await Sudaderas.abonoManual(mnActual, opciones);
+    $('#sud-ovManual').style.display='none';
+    toast('Pago registrado y aprobado ✓');
+    await cargar();
+  }catch(e){
+    $('#sud-mnErr').textContent = e.message || 'No se pudo registrar.';
+  }finally{ btn.disabled = false; }
+};
+
+/* ═══════════════════════════════════════════════════════════
+   PIEZA EXTRA — registro aparte con su propio QR
+═══════════════════════════════════════════════════════════ */
+$('#sud-btnExtra').onclick = ()=>{
+  $('#sud-exErr').textContent = '';
+  $('#sud-exValor').value = '';
+
+  $('#sud-exAlumna').innerHTML =
+    `<option value="">— Particular (no es alumna) —</option>` +
+    alumnas.map(a=>`<option value="${a.id}">${a.nombre}${a.categoria?' — '+a.categoria:''}</option>`).join('');
+
+  $('#sud-exProducto').innerHTML = Object.keys(Sudaderas.PRODUCTOS)
+    .map(k=>{
+      const p = Sudaderas.PRODUCTOS[k];
+      const et = k==='sudadera' ? 'Sudadera adicional' : p.nombre;
+      return `<option value="${k}" ${k==='chaqueta'?'selected':''}>${p.icono} ${et}</option>`;
+    }).join('');
+
+  sincronizarExtra();
+  $('#sud-ovExtra').style.display='flex';
+};
+
+function sincronizarExtra(){
+  const producto = $('#sud-exProducto').value;
+  $('#sud-exTalla').innerHTML = opcionesTalla(producto, null);
+  const talla = $('#sud-exTalla').value;
+  const sugerido = Sudaderas.precioSugerido(producto, talla);
+  if(sugerido > 0){
+    $('#sud-exValor').value = sugerido.toLocaleString('es-CO');
+    $('#sud-exHint').textContent = 'Valor tomado de la tabla de precios.';
+  } else {
+    $('#sud-exValor').value = '';
+    $('#sud-exHint').textContent = 'Esta pieza aún no tiene precios cargados en sudaderas-admin.js. Escribe el valor a mano.';
+  }
+}
+$('#sud-exProducto').addEventListener('change', sincronizarExtra);
+$('#sud-exTalla').addEventListener('change', ()=>{
+  const producto = $('#sud-exProducto').value;
+  const sugerido = Sudaderas.precioSugerido(producto, $('#sud-exTalla').value);
+  if(sugerido > 0) $('#sud-exValor').value = sugerido.toLocaleString('es-CO');
+});
+$('#sud-exValor').addEventListener('input', function(){
+  const v = parseInt(this.value.replace(/\D/g,'')) || 0;
+  this.value = v ? v.toLocaleString('es-CO') : '';
+});
+
+$('#sud-exCrear').onclick = async ()=>{
+  const aid   = $('#sud-exAlumna').value;
+  const prod  = $('#sud-exProducto').value;
+  const talla = $('#sud-exTalla').value;
+  const valor = parseInt(($('#sud-exValor').value||'').replace(/\D/g,'')) || 0;
+
+  let nombre = '', alumnaId = null, particular = true;
+  if(aid){
+    const a = alumnas.find(x=>String(x.id)===String(aid));
+    if(!a){ $('#sud-exErr').textContent='Elige a quién pertenece.'; return; }
+    nombre = a.nombre; alumnaId = a.id; particular = false;
+  } else {
+    nombre = prompt('Nombre de la persona:') || '';
+    if(!nombre.trim()){ $('#sud-exErr').textContent='Falta el nombre.'; return; }
+  }
+  if(valor <= 0){ $('#sud-exErr').textContent='Escribe el valor de la pieza.'; return; }
+
+  const btn = $('#sud-exCrear'); btn.disabled = true;
+  try{
+    const rid = await Sudaderas.crearRegistroExtra(alumnaId, nombre, prod, talla, valor, particular);
+    $('#sud-ovExtra').style.display='none';
+    await cargar();
+    abrirQr(rid);
+  }catch(e){
+    $('#sud-exErr').textContent = e.message || 'No se pudo crear.';
+  }finally{ btn.disabled = false; }
 };
 
 /* ---------- Toast ---------- */
