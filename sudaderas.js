@@ -204,10 +204,12 @@ const Sudaderas = {
   async agregarAbono(registroId, monto, soporte) {
     const m = Math.round(Number(monto) || 0);
     if (m <= 0) throw new Error('El monto debe ser mayor a cero');
+    // El soporte es OPCIONAL: si no viene, se guarda null (Firestore no acepta undefined).
+    const sop = soporte ?? null;
     const abonoId = 'ab' + Date.now() + Math.floor(Math.random() * 1000);
     const db  = firebase.firestore();
     await db.collection('sudaderas').doc(registroId).update({
-      ['abonos.' + abonoId]: { monto: m, soporte, estado: 'por_verificar', fecha: Date.now() },
+      ['abonos.' + abonoId]: { monto: m, soporte: sop, estado: 'por_verificar', fecha: Date.now() },
       actualizadoEn: Date.now()
     });
     return abonoId;
