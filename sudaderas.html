@@ -180,7 +180,8 @@ function render(){
         </div>
         <input id="montoInput" type="tel" inputmode="numeric" placeholder="Escribe el monto" style="display:none">
 
-        <div class="step" style="margin-top:14px"><span class="stnum">2</span> Foto del comprobante</div>
+        <div class="step" style="margin-top:14px"><span class="stnum">2</span> Foto del comprobante <span style="font-weight:400;color:var(--muted)">(opcional)</span></div>
+        <div class="hint" style="margin-bottom:8px">Si aún no tienes el comprobante, puedes enviar el pago sin foto y adjuntarla después.</div>
         <label class="drop" id="drop">📷 Toca para elegir la foto
           <input type="file" accept="image/*" id="file" hidden>
         </label>
@@ -262,7 +263,9 @@ function renderTalla(){
     try{
       await Sudaderas.asignarTalla(id, sel.value);      // la nube confirma
       registro = await Sudaderas.obtenerRegistro(id);   // recargar con cuotas ya creadas
+      flashMsg = `✅ Talla ${sel.value} guardada. Ya puedes registrar tus pagos cuando quieras — no tienes que hacerlo ahora.`;
       render();
+      window.scrollTo({top:0, behavior:'smooth'});
     }catch(e){
       st.className='status err'; st.textContent = 'No se pudo guardar. Intenta de nuevo.';
       btn.disabled = false;
@@ -277,12 +280,14 @@ function conectarPago(saldoMax){
   let montoSel = null;
 
   function refrescar(){
-    const ok = montoSel>0 && archivo;
+    const ok = montoSel>0;                       // la foto ya NO es obligatoria
     btn.disabled = !ok;
     btn.textContent = montoSel>0 ? `Enviar pago de ${Sudaderas.formatoDinero(montoSel)}` : 'Enviar pago';
     if(ok){
       resumen.style.display='block';
-      resumen.innerHTML = `Vas a enviar un pago de <b>${Sudaderas.formatoDinero(montoSel)}</b>. Revisa el monto y la foto antes de enviar.`;
+      resumen.innerHTML = archivo
+        ? `Vas a enviar un pago de <b>${Sudaderas.formatoDinero(montoSel)}</b>. Revisa el monto y la foto antes de enviar.`
+        : `Vas a enviar un pago de <b>${Sudaderas.formatoDinero(montoSel)}</b> <b>sin comprobante</b>. La academia lo verificará y podrás adjuntar la foto más adelante.`;
     } else {
       resumen.style.display='none';
     }
@@ -327,16 +332,23 @@ function conectarPago(saldoMax){
   });
 
   btn.addEventListener('click', async ()=>{
-    if(!archivo || !montoSel) return;
+    if(!montoSel) return;
     if(montoSel > saldoMax) montoSel = saldoMax;
-    btn.disabled = true; st.className='status'; st.textContent='Comprimiendo y enviando…';
+    btn.disabled = true; st.className='status';
+    st.textContent = archivo ? 'Comprimiendo y enviando…' : 'Enviando…';
     try{
-      const soporte = USAR_CLOUDINARY
-        ? await Sudaderas.subirSoporteCloudinary(archivo)
-        : await Sudaderas.soporteComoBase64(archivo);
+      let soporte = null;
+      if(archivo){
+        soporte = USAR_CLOUDINARY
+          ? await Sudaderas.subirSoporteCloudinary(archivo)
+          : await Sudaderas.soporteComoBase64(archivo);
+      }
       await Sudaderas.agregarAbono(id, montoSel, soporte);   // la nube confirma
+      const huboFoto = !!archivo;
       archivo = null;
-      flashMsg = '✅ Pago enviado. Quedó en revisión. Si te equivocaste, puedes anularlo abajo mientras no lo aprueben.';
+      flashMsg = huboFoto
+        ? '✅ Pago enviado. Quedó en revisión. Si te equivocaste, puedes anularlo abajo mientras no lo aprueben.'
+        : '✅ Pago enviado sin comprobante. Quedó en revisión; envíale la foto a la academia cuando puedas.';
       registro = await Sudaderas.obtenerRegistro(id);
       render();
       window.scrollTo({top:0, behavior:'smooth'});

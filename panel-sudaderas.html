@@ -688,7 +688,9 @@ function abrirAbonos(rid){
       ? `<span class="sud-badge sud-b-paid">Aprobado ✓</span>`
       : `<button class="sud-btn sud-ok sud-sm" data-aprobar="${a.id}">Aprobar</button>
          <button class="sud-btn sud-no sud-sm" data-rechazar="${a.id}">Rechazar</button>`;
-    const verFoto = a.soporte ? `<button class="sud-link" data-img="${a.soporte.replace(/"/g,'&quot;')}">ver soporte</button>` : '';
+    const verFoto = a.soporte
+      ? `<button class="sud-link" data-img="${a.soporte.replace(/"/g,'&quot;')}">ver soporte</button>`
+      : `<span style="color:#b45309;font-weight:600">⚠ sin soporte</span>`;
     return `<div style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
         <div><b style="font-variant-numeric:tabular-nums">${Sudaderas.formatoDinero(a.monto)}</b>
