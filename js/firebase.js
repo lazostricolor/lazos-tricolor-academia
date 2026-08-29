@@ -285,8 +285,21 @@ async function _fbCargar(){
       // sino quien modificó cada sección más recientemente.
       // Esto resuelve el bug de multi-dispositivo donde el PC de casa
       // tenía _localVersion alto (timestamps locales) pero datos viejos.
+      // ── Detectar si ALGUNA sección local es más nueva que la de la nube ──
+      // Antes solo se miraba `_version` global. Cuando el snapshot local tenía
+      // más de 24 h, loadDB() ponía _localVersion = 0 a propósito, así que
+      // `localVersion > fbVersion` daba falso y los cambios locales — aunque
+      // mergeDB sí los conservaba — NUNCA se subían: se quedaban en ese equipo
+      // hasta el siguiente guardado manual. Ese era el bug de "trabajo en la
+      // academia, vuelvo días después y no está".
+      const _SECCIONES_TS = ['alumnos','alumnosRetirados','profesores','profesoresRetirados',
+        'pagos','asistencias','clases','gastos','extraDias','presentaciones','planificador',
+        'gastosV','otrosIngresos','recaudos','rifas','vestuarios','usosVestuario'];
+      const seccionesLocalesNuevas = _SECCIONES_TS.filter(s =>
+        (DB['_ts_'+s] || 0) > (parsed['_ts_'+s] || 0));
+
       const merged = mergeDB(DB, parsed);
-      const hayDifsLocal  = localVersion > fbVersion;
+      const hayDifsLocal  = localVersion > fbVersion || seccionesLocalesNuevas.length > 0;
       const hayDifsRemoto = fbVersion > localVersion;
 
       DB = merged;
@@ -299,6 +312,15 @@ async function _fbCargar(){
 
       if(hayDifsLocal){
         // Local tenía cambios que Firebase no tiene — subir
+        if(seccionesLocalesNuevas.length){
+          console.log('⬆️ Secciones locales más nuevas que la nube: '+seccionesLocalesNuevas.join(', '));
+          // Sellar con la hora actual para que la nube quede con versión nueva
+          // y los demás dispositivos se enteren de que hay cambios.
+          _localVersion = Date.now();
+          try{ localStorage.setItem('_db_version', String(_localVersion)); }catch(e){}
+          snapLocal();
+          toast('⬆️ Subiendo cambios pendientes de este equipo...','info');
+        }
         console.log('⬆️ Local más nuevo — subiendo a Firebase...');
         encolarGuardado();
         const ok = await _fbSave(DB);
@@ -455,6 +477,26 @@ if(typeof window !== 'undefined'){
   document.addEventListener('visibilitychange', function(){
     if(document.visibilityState==='visible') reintentarPendienteAhora('app visible');
   });
+
+  // ── Reintento AL ARRANCAR ──────────────────────────────────────────────
+  // 'visibilitychange' no se dispara al abrir la página con la pestaña ya
+  // visible, y el temporizador de programarReintento() muere al cerrar el
+  // navegador. Sin esto, un guardado que quedó pendiente ayer no se subía
+  // hasta que el usuario volviera a guardar algo a mano.
+  window.addEventListener('load', function(){
+    setTimeout(function(){
+      if(typeof DB!=='undefined' && DB && DB.alumnos) reintentarPendienteAhora('arranque');
+    }, 6000);
+  });
+
+  // ── Aviso al cerrar si quedó algo sin subir ────────────────────────────
+  window.addEventListener('beforeunload', function(e){
+    if(hayGuardadoPendiente()){
+      e.preventDefault();
+      e.returnValue = 'Hay cambios que aún no se han subido a la nube. Si cierras ahora, no los verás en otro computador.';
+      return e.returnValue;
+    }
+  });
 }
 
 function actualizarIndicadorGuardado(ok){
@@ -463,8 +505,10 @@ function actualizarIndicadorGuardado(ok){
   if(ok){
     btn.style.background=''; btn.innerHTML='💾 Guardar';
   } else {
-    btn.style.background='var(--warning)'; btn.innerHTML='⚠️ Pendiente';
-    setTimeout(()=>{ btn.style.background=''; btn.innerHTML='💾 Guardar'; }, 8000);
+    // El aviso NO se borra solo a los 8 s: queda visible mientras haya algo
+    // sin subir, para que nadie apague el equipo creyendo que ya se guardó.
+    btn.style.background='var(--warning)'; btn.innerHTML='⚠️ Sin subir';
+    btn.title='Hay cambios guardados solo en este equipo. No cierres hasta que diga 💾 Guardar.';
   }
 }
 
