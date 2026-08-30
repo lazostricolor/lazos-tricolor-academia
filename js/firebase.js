@@ -411,6 +411,19 @@ async function _fbSave(datos){
   const sinFotos = {...datos, alumnos: datos.alumnos?.map(a=>({...a,foto:null})), _version: _localVersion};
   const payload = JSON.stringify({fields:{data:{stringValue:JSON.stringify(sinFotos)}}});
 
+  // ── Límite de 64 KB de `keepalive` ────────────────────────────────────────
+  // Chrome rechaza cualquier fetch con keepalive:true cuyo cuerpo pase de
+  // 64 KB, y lo hace ANTES de salir a internet: el error que llega es un
+  // "Failed to fetch" idéntico al de estar sin señal. Cuando la base creció
+  // y el paquete pasó de 64 KB, TODOS los guardados empezaron a fallar en
+  // silencio mientras la lectura seguía funcionando. Por eso keepalive solo
+  // se usa cuando el cuerpo cabe; por encima, se envía sin él (sin límite).
+  const _bytesPayload = (typeof TextEncoder !== 'undefined')
+    ? new TextEncoder().encode(payload).length
+    : payload.length;
+  const _cabeKeepalive = _bytesPayload < 60000;   // margen de seguridad
+  if(!_cabeKeepalive) console.log('📦 Paquete de '+(_bytesPayload/1024).toFixed(1)+' KB — enviando sin keepalive');
+
   for(let intento=1; intento<=3; intento++){
     try{
       const ctrl = new AbortController();
@@ -422,7 +435,9 @@ async function _fbSave(datos){
         headers:{'Content-Type':'application/json'},
         body: payload,
         signal: ctrl.signal,
-        keepalive: true // crucial en mobile — sobrevive a cambios de pestaña
+        // keepalive ayuda en móvil (sobrevive a cambios de pestaña), pero solo
+        // es válido por debajo de 64 KB. Ver la nota de arriba.
+        keepalive: _cabeKeepalive
       };
       const r = await fetch(`${FB_URL}?key=${FB_KEY}&updateMask.fieldPaths=data`, fetchOpts);
       clearTimeout(tmout);
