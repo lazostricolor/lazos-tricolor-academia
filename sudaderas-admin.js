@@ -135,6 +135,80 @@ Object.assign(Sudaderas, {
      propio saldo, tal como se definió. Puede ir enlazada a una
      alumna (alumnaId) o ser de un particular.
      ───────────────────────────────────────────────────────── */
+  /* ─────────────────────────────────────────────────────────
+     EDITAR UN ABONO YA REGISTRADO — solo desde el panel
+
+     Hasta ahora un abono aprobado quedaba congelado: ni el monto
+     ni la fecha ni el soporte se podían corregir, y para quitarlo
+     había que borrar el registro completo. Esto lo arregla.
+
+     Funciona igual sobre abonos aprobados y por verificar, y NO
+     cambia el estado: editar el monto de un abono aprobado lo deja
+     aprobado. El saldo se recalcula solo, porque pagado() suma los
+     abonos en cada pintada.
+
+     Regla 2 del proyecto: se escriben SOLO los campos que llegan en
+     `cambios` (rutas con punto), nunca el objeto completo. Lo que no
+     mandes se queda exactamente como estaba.
+
+     cambios = {
+       monto:          número           → nuevo valor
+       fecha:          milisegundos     → nueva fecha del pago
+       soporte:        File | string    → reemplaza el comprobante
+       quitarSoporte:  true             → lo deja sin comprobante
+     }
+     ───────────────────────────────────────────────────────── */
+  async editarAbono(registroId, abonoId, cambios = {}) {
+    const db   = firebase.firestore();
+    const ref  = db.collection('sudaderas').doc(registroId);
+    const snap = await ref.get();
+    if (!snap.exists) throw new Error('Registro no encontrado');
+    const abono = (snap.data().abonos || {})[abonoId];
+    if (!abono) throw new Error('Ese abono ya no existe');
+
+    const campo  = 'abonos.' + abonoId + '.';
+    const update = {};
+
+    if (cambios.monto !== undefined && cambios.monto !== null) {
+      const m = Math.round(Number(cambios.monto) || 0);
+      if (m <= 0) throw new Error('El monto debe ser mayor a cero');
+      if (m !== Number(abono.monto)) update[campo + 'monto'] = m;
+    }
+
+    if (cambios.fecha !== undefined && cambios.fecha !== null) {
+      const f = Number(cambios.fecha);
+      if (!f || isNaN(f)) throw new Error('Fecha no válida');
+      if (f !== Number(abono.fecha)) update[campo + 'fecha'] = f;
+    }
+
+    if (cambios.quitarSoporte) {
+      if (abono.soporte) update[campo + 'soporte'] = null;
+    } else if (cambios.soporte) {
+      update[campo + 'soporte'] = (typeof cambios.soporte === 'string')
+        ? cambios.soporte
+        : await this.soporteComoBase64(cambios.soporte);
+    }
+
+    if (!Object.keys(update).length) return false;   // nada cambió: no se escribe
+
+    // Rastro de la corrección, para saber después que este abono se tocó a mano.
+    update[campo + 'editadoEn'] = Date.now();
+    update.actualizadoEn = Date.now();
+
+    await ref.update(update);
+    return true;
+  },
+
+  /* Elimina un abono cualquiera, aprobado o no.
+     Reutiliza rechazarAbono() de sudaderas.js — que ya hace exactamente
+     este borrado — para no tener dos implementaciones de lo mismo
+     (regla 1 del proyecto). El nombre distinto es a propósito: en el
+     panel "rechazar" es para un soporte que no sirve, y "eliminar" es
+     para corregir un error tuyo, como un pago cargado dos veces. */
+  async eliminarAbono(registroId, abonoId) {
+    return this.rechazarAbono(registroId, abonoId);
+  },
+
   async crearRegistroExtra(alumnaId, nombre, producto, talla, total, particular = false) {
     if (!this.PRODUCTOS[producto]) throw new Error('Producto no válido');
     if (!nombre || !String(nombre).trim()) throw new Error('Falta el nombre');

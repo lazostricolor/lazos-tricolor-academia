@@ -245,6 +245,29 @@
   <div class="sud-actions"><button class="sud-btn sud-ghost sud-sm" data-sud-close>Cerrar</button></div>
 </div></div>
 
+<!-- CORREGIR UN ABONO — monto, fecha y soporte, aprobado o no -->
+<div class="sud-ov" id="sud-ovEdit"><div class="sud-modal" style="text-align:left;max-width:460px">
+  <h3>✏️ Corregir abono</h3>
+  <div id="sud-edQuien" style="font-size:13px;color:var(--muted);margin-bottom:12px"></div>
+
+  <label style="font-size:12px;color:var(--muted)">Monto</label>
+  <input id="sud-edMonto" class="sud-input" type="tel" inputmode="numeric" placeholder="0">
+
+  <label style="font-size:12px;color:var(--muted)">Fecha del pago</label>
+  <input id="sud-edFecha" class="sud-input" type="date">
+
+  <label style="font-size:12px;color:var(--muted)">Soporte</label>
+  <div id="sud-edSopActual" style="font-size:12.5px;margin-bottom:8px"></div>
+  <input id="sud-edFoto" class="sud-input" type="file" accept="image/*">
+  <img id="sud-edPrev" style="max-width:100%;border-radius:10px;display:none;margin-bottom:10px">
+
+  <div class="sud-actions" style="justify-content:flex-end">
+    <button class="sud-btn sud-ghost sud-sm" data-sud-close>Cancelar</button>
+    <button class="sud-btn sud-sm" id="sud-edGuardar">Guardar cambios</button>
+  </div>
+  <div id="sud-edErr" style="color:#dc2626;font-size:12.5px;margin-top:8px"></div>
+</div></div>
+
 <div class="sud-ov" id="sud-ovQr"><div class="sud-modal">
   <h3>QR para el representante</h3>
   <div id="sud-qrNombre" style="font-weight:700;font-size:15px;margin-bottom:6px"></div>
@@ -634,6 +657,8 @@ document.addEventListener('click', async e=>{
   const rec    = e.target.closest('[data-rechazar]');
   const tal    = e.target.closest('[data-talla]');
   const man    = e.target.closest('[data-manual]');
+  const edt    = e.target.closest('[data-editar]');
+  const bor    = e.target.closest('[data-borrar]');
 
   if(cl){ cl.closest('.sud-ov').style.display='none'; }
   if(ab){ abrirAbonos(ab.dataset.ab); }
@@ -648,6 +673,19 @@ document.addEventListener('click', async e=>{
     if(confirm('¿Rechazar este abono? El papá podrá subir otro.')){
       try{ await Sudaderas.rechazarAbono(abActual, rec.dataset.rechazar); toast('Abono rechazado'); await cargar(); abrirAbonos(abActual); }
       catch(_){ toast('No se pudo rechazar'); }
+    }
+  }
+  if(edt){ abrirEdicionAbono(abActual, edt.dataset.editar); }
+  if(bor){
+    const reg = datos.find(x=>x.id===abActual);
+    const a   = reg && (reg.abonos||{})[bor.dataset.borrar];
+    const cuanto = a ? Sudaderas.formatoDinero(a.monto) : '';
+    if(confirm(`¿Eliminar el abono de ${cuanto}? El saldo se recalcula solo. Esta acción no se puede deshacer.`)){
+      try{
+        await Sudaderas.eliminarAbono(abActual, bor.dataset.borrar);
+        toast('Abono eliminado');
+        await cargar(); abrirAbonos(abActual);
+      }catch(_){ toast('No se pudo eliminar'); }
     }
   }
   if(qr){ abrirQr(qr.dataset.qr); }
@@ -684,17 +722,25 @@ function abrirAbonos(rid){
   $('#sud-verLista').innerHTML = lista.length ? lista.map(a=>{
     const fs = new Date(a.fecha||Date.now()).toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'});
     const aprobado = a.estado==='aprobado';
-    const acciones = aprobado
+    // Editar y eliminar están SIEMPRE disponibles, esté aprobado o no:
+    // son para corregir errores de la academia (un pago cargado dos veces,
+    // un monto mal digitado), no para el flujo del acudiente.
+    const acciones = (aprobado
       ? `<span class="sud-badge sud-b-paid">Aprobado ✓</span>`
       : `<button class="sud-btn sud-ok sud-sm" data-aprobar="${a.id}">Aprobar</button>
-         <button class="sud-btn sud-no sud-sm" data-rechazar="${a.id}">Rechazar</button>`;
+         <button class="sud-btn sud-no sud-sm" data-rechazar="${a.id}">Rechazar</button>`)
+      + `<button class="sud-btn sud-ghost sud-sm" data-editar="${a.id}" title="Corregir monto, fecha o soporte">✏️</button>
+         <button class="sud-btn sud-no sud-sm" data-borrar="${a.id}" title="Eliminar este abono">🗑</button>`;
+    const editado = a.editadoEn
+      ? ` · <span title="Corregido a mano el ${new Date(a.editadoEn).toLocaleDateString('es-CO')}" style="color:#7e22ce;font-weight:600">editado</span>`
+      : '';
     const verFoto = a.soporte
       ? `<button class="sud-link" data-img="${a.soporte.replace(/"/g,'&quot;')}">ver soporte</button>`
       : `<span style="color:#b45309;font-weight:600">⚠ sin soporte</span>`;
     return `<div style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
         <div><b style="font-variant-numeric:tabular-nums">${Sudaderas.formatoDinero(a.monto)}</b>
-          <div style="font-size:11px;color:var(--muted)">${fs} · ${verFoto}</div></div>
+          <div style="font-size:11px;color:var(--muted)">${fs} · ${verFoto}${editado}</div></div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">${acciones}</div>
       </div>
     </div>`;
@@ -919,6 +965,103 @@ $('#sud-mnGuardar').onclick = async ()=>{
     await cargar();
   }catch(e){
     $('#sud-mnErr').textContent = e.message || 'No se pudo registrar.';
+  }finally{ btn.disabled = false; }
+};
+
+/* ═══════════════════════════════════════════════════════════
+   CORREGIR UN ABONO — monto, fecha y soporte
+
+   Usa Sudaderas.editarAbono() de sudaderas-admin.js, que escribe
+   solo los campos que cambiaron y no toca el estado del abono.
+   Sirve igual para uno aprobado que para uno por verificar.
+═══════════════════════════════════════════════════════════ */
+let edReg = null, edAbono = null, edArchivo = null, edQuitarSoporte = false;
+
+function abrirEdicionAbono(rid, abonoId){
+  const reg = datos.find(x=>x.id===rid);
+  const a   = reg && (reg.abonos||{})[abonoId];
+  if(!a){ toast('Ese abono ya no existe'); return; }
+
+  edReg = rid; edAbono = abonoId; edArchivo = null; edQuitarSoporte = false;
+
+  $('#sud-edErr').textContent = '';
+  $('#sud-edQuien').innerHTML =
+    `<b>${reg.nombre}</b> · ${Sudaderas.nombreProducto(reg)}` +
+    (reg.talla?` · talla ${reg.talla}`:'') +
+    ` · <span class="sud-badge ${a.estado==='aprobado'?'sud-b-paid':'sud-b-check'}">` +
+    `${a.estado==='aprobado'?'Aprobado':'Por verificar'}</span>`;
+
+  $('#sud-edMonto').value = Number(a.monto||0).toLocaleString('es-CO');
+
+  // input type=date necesita AAAA-MM-DD en hora local, no el ISO en UTC
+  const d = new Date(a.fecha || Date.now());
+  const dosDig = n => String(n).padStart(2,'0');
+  $('#sud-edFecha').value = `${d.getFullYear()}-${dosDig(d.getMonth()+1)}-${dosDig(d.getDate())}`;
+
+  $('#sud-edFoto').value = '';
+  $('#sud-edPrev').style.display = 'none';
+  pintarSoporteActual(a.soporte);
+
+  $('#sud-ovEdit').style.display = 'flex';
+}
+
+function pintarSoporteActual(soporte){
+  const caja = $('#sud-edSopActual');
+  if(edQuitarSoporte){
+    caja.innerHTML = `<span style="color:#dc2626;font-weight:600">Se quitará el soporte al guardar.</span>
+      <button class="sud-link" id="sud-edDeshacer">deshacer</button>`;
+    $('#sud-edDeshacer').onclick = ()=>{ edQuitarSoporte=false; pintarSoporteActual(soporte); };
+    return;
+  }
+  if(soporte){
+    caja.innerHTML = `<button class="sud-link" id="sud-edVer">ver soporte actual</button>
+      &nbsp;·&nbsp; <button class="sud-link" id="sud-edQuitar" style="color:#dc2626">quitar</button>`;
+    $('#sud-edVer').onclick = ()=>{ $('#sud-imgFull').src = soporte; $('#sud-ovImg').style.display='flex'; };
+    $('#sud-edQuitar').onclick = ()=>{ edQuitarSoporte=true; pintarSoporteActual(soporte); };
+  } else {
+    caja.innerHTML = `<span style="color:#b45309;font-weight:600">⚠ Este abono no tiene soporte.</span>`;
+  }
+}
+
+$('#sud-edMonto').addEventListener('input', function(){
+  const v = parseInt(this.value.replace(/\D/g,'')) || 0;
+  this.value = v ? v.toLocaleString('es-CO') : '';
+});
+
+$('#sud-edFoto').addEventListener('change', function(){
+  edArchivo = this.files[0] || null;
+  const prev = $('#sud-edPrev');
+  if(edArchivo){
+    edQuitarSoporte = false;                 // subir una foto manda sobre "quitar"
+    prev.src = URL.createObjectURL(edArchivo);
+    prev.style.display = 'block';
+  } else { prev.style.display = 'none'; }
+});
+
+$('#sud-edGuardar').onclick = async ()=>{
+  const monto = parseInt(($('#sud-edMonto').value||'').replace(/\D/g,'')) || 0;
+  if(monto <= 0){ $('#sud-edErr').textContent = 'El monto debe ser mayor a cero.'; return; }
+
+  // La fecha se arma al mediodía local para que ningún cambio de huso
+  // la corra al día anterior.
+  const partes = ($('#sud-edFecha').value||'').split('-').map(Number);
+  if(partes.length !== 3 || !partes[0]){ $('#sud-edErr').textContent = 'Revisa la fecha.'; return; }
+  const fecha = new Date(partes[0], partes[1]-1, partes[2], 12, 0, 0).getTime();
+
+  const btn = $('#sud-edGuardar'); btn.disabled = true;
+  $('#sud-edErr').textContent = 'Guardando…';
+  try{
+    const hubo = await Sudaderas.editarAbono(edReg, edAbono, {
+      monto, fecha,
+      soporte: edArchivo || null,
+      quitarSoporte: edQuitarSoporte
+    });
+    $('#sud-ovEdit').style.display = 'none';
+    toast(hubo ? 'Abono corregido ✓' : 'No había nada que cambiar');
+    await cargar();
+    abrirAbonos(edReg);
+  }catch(e){
+    $('#sud-edErr').textContent = e.message || 'No se pudo guardar.';
   }finally{ btn.disabled = false; }
 };
 
