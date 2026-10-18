@@ -28,15 +28,25 @@ service cloud.firestore {
     }
 
     // ── Encuesta (encuesta.html) ──
-    // Respuestas: el público solo crea; leerlas es de la administración.
+    // Respuestas: el público solo crea (nunca con correo); leerlas es de la administración.
     match /respuestas/{id} {
-      allow create: if true;
+      allow create: if !('email' in request.resource.data)
+                    && request.resource.data.keys().hasAll(['timestamp', 'respondentType', 'answers']);
     }
     // Participantes: id = huella del correo. Se puede consultar UNO por su id
     // (control de duplicados) y crearlo una vez; nunca listar ni modificar.
     match /participantes/{huella} {
       allow get: if true;
       allow create: if true;
+    }
+
+    // ── Agenda: cualquiera con el link ve UN documento; nadie lista.
+    //    Editan solo estas dos cuentas. (Igual que en las reglas anteriores.)
+    match /agenda/{docId} {
+      allow get:  if true;
+      allow list: if false;
+      allow write: if request.auth != null
+                   && request.auth.token.email in ['alfredomariara@gmail.com', 'academialazostricolor@gmail.com'];
     }
 
     // ── Sudaderas: página del papá (sudaderas.html?id=...) ──
