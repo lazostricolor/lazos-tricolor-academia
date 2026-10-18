@@ -11,7 +11,7 @@ let _preinscripciones = [];
 async function cargarPreinscripciones() {
   try {
     setSyncStatus('syncing');
-    const r = await fetch(`${FB_PREINSC_URL}?key=${FB_KEY}&pageSize=200`);
+    const r = await fetch(`${FB_PREINSC_URL}?key=${FB_KEY}&pageSize=200`, { headers: await fbHeaders() });
     if (!r.ok) throw new Error('Error cargando preinscripciones');
     const j = await r.json();
     _preinscripciones = (j.documents || []).map(doc => {
@@ -132,7 +132,7 @@ async function eliminarPreinscripcion(docId) {
   if (!confirm('¿Eliminar esta preinscripción definitivamente? Esta acción no se puede deshacer.')) return;
   try {
     const url = `https://firestore.googleapis.com/v1/${docId}?key=${FB_KEY}`;
-    const r = await fetch(url, { method: 'DELETE' });
+    const r = await fetch(url, { method: 'DELETE', headers: await fbHeaders() });
     if (!r.ok) {
       const errBody = await r.json().catch(()=>({}));
       throw new Error(errBody?.error?.message || 'Error eliminando');
@@ -152,7 +152,7 @@ async function cambiarEstadoPreinsc(docId, nuevoEstado) {
     const url = `https://firestore.googleapis.com/v1/${docId}?key=${FB_KEY}&updateMask.fieldPaths=estado`;
     const r = await fetch(url, {
       method: 'PATCH',
-      headers: {'Content-Type': 'application/json'},
+      headers: await fbHeaders({'Content-Type': 'application/json'}),
       body: JSON.stringify({fields:{estado:{stringValue:nuevoEstado}}})
     });
     if (!r.ok) {

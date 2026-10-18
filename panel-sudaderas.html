@@ -442,6 +442,12 @@ $('#sud-btnGoogle').onclick = async ()=>{
   }
 };
 firebase.auth().onAuthStateChanged(u=>{
+  // Solo la cuenta de la academia (las reglas de Firestore rechazan las demás)
+  if(u && (!u.emailVerified || (u.email||'').toLowerCase() !== 'academialazostricolor@gmail.com')){
+    firebase.auth().signOut().catch(()=>{});
+    $('#sud-loginErr').textContent = 'La cuenta '+(u.email||'')+' no está autorizada.';
+    u = null;
+  }
   $('#sud-login').style.display  = u ? 'none' : 'flex';
   $('#app').style.visibility     = u ? 'visible' : 'hidden';
   if(u) cargar();

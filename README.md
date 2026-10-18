@@ -10,7 +10,7 @@ styles.css          Todos los estilos
 js/
   state.js          Constantes (precios, categorías, URLs) y el objeto DB
   utils.js          Fechas, formato COP, toast, helpers de modales, reloj
-  auth.js           Login y sesión
+  auth.js           Login con Google (Firebase Auth) y token para Firestore
   firebase.js       ⚠️ NÚCLEO CRÍTICO — sync, mergeDB, guardado, snapshots
   navegacion.js     Cambio de sección y navegación de meses
   dashboard.js      Dashboard
@@ -64,6 +64,13 @@ Para probar en local: `python3 -m http.server 8000` y abrir `http://localhost:80
    (`elemento.onclick = ...`, no `addEventListener`, que se acumula en cada render).
 
 6. **Exporta el JSON desde Configuración antes de cualquier cambio grande.**
+
+## Seguridad
+
+Solo entra la cuenta de Google `ADMIN_EMAIL`. Toda petición a Firestore lleva
+`headers: await fbHeaders()` (o `fbHeadersSync()` en pagehide): **sin ese encabezado
+la petición falla**, porque `firestore.rules` solo deja leer/escribir a esa cuenta.
+Si cambias las reglas, pégalas en Firebase → Firestore Database → Reglas.
 
 ## Datos
 

@@ -8,6 +8,14 @@
 const FB_URL = 'https://firestore.googleapis.com/v1/projects/lazos-tricolor-academia/databases/(default)/documents/academias/lazos-tricolor/datos/principal';
 const FB_KEY = 'AIzaSyCIj32zyCreKyCGJSMo6T5yTDhMeqctpG4';
 const ADMIN_EMAIL = 'academialazostricolor@gmail.com';
+// Config pública de Firebase (la misma de panel-sudaderas.html). Solo se usa para el login;
+// los datos se siguen leyendo y guardando por REST, ahora con el token de la sesión.
+const FB_CONFIG = {
+  apiKey: FB_KEY,
+  authDomain: 'lazos-tricolor-academia.firebaseapp.com',
+  projectId: 'lazos-tricolor-academia',
+  appId: '1:284048193120:web:96cacf134a537c9ad57505'
+};
 const PRECIO_BASE = 70000, PRECIO_FAMI = 50000, PRECIO_MEDIO = 35000;
 const HONOR_POR_CLASE = 50000;
 const DIAS_CLASE = {

@@ -268,7 +268,7 @@ async function _fbCargar(){
   }
   setSyncStatus('syncing');
   try{
-    const r = await fetch(`${FB_URL}?key=${FB_KEY}`);
+    const r = await fetch(`${FB_URL}?key=${FB_KEY}`, { headers: await fbHeaders() });
     if(!r.ok) throw new Error('FB error '+r.status);
     const j = await r.json();
     const raw = j.fields?.data?.stringValue;
@@ -432,7 +432,7 @@ async function _fbSave(datos){
       const tmout = setTimeout(()=>ctrl.abort(), timeoutMs);
       const fetchOpts = {
         method:'PATCH',
-        headers:{'Content-Type':'application/json'},
+        headers: await fbHeaders({'Content-Type':'application/json'}),
         body: payload,
         signal: ctrl.signal,
         // keepalive ayuda en móvil (sobrevive a cambios de pestaña), pero solo

@@ -1,0 +1,59 @@
+rules_version = '2';
+
+// ═══════════════════════════════════════════════════════════
+//  Reglas de Firestore — Academia de Danzas Lazos Tricolor
+//  Se pegan en: Firebase → Firestore Database → Reglas → Publicar
+//
+//  Regla general: TODO cerrado, salvo lo que se abre abajo.
+//  El panel (index.html y panel-sudaderas.html) entra con la
+//  cuenta de Google de la academia y puede hacer todo.
+// ═══════════════════════════════════════════════════════════
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function esAdmin() {
+      return request.auth != null
+        && request.auth.token.email == 'academialazostricolor@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
+
+    // Por defecto: solo la administración
+    match /{document=**} {
+      allow read, write: if esAdmin();
+    }
+
+    // ── Preinscripciones: el formulario público solo puede CREAR ──
+    match /inscripciones/{id} {
+      allow create: if true;
+    }
+
+    // ── Encuesta (encuesta.html) ──
+    // Respuestas: el público solo crea; leerlas es de la administración.
+    match /respuestas/{id} {
+      allow create: if true;
+    }
+    // Participantes: id = huella del correo. Se puede consultar UNO por su id
+    // (control de duplicados) y crearlo una vez; nunca listar ni modificar.
+    match /participantes/{huella} {
+      allow get: if true;
+      allow create: if true;
+    }
+
+    // ── Sudaderas: página del papá (sudaderas.html?id=...) ──
+    // Puede abrir SU registro por el id del enlace (no listar todos),
+    // elegir talla si aún no tiene, y agregar / anular abonos.
+    // No puede editar abonos existentes (así no se auto-aprueba uno ya enviado).
+    match /sudaderas/{id} {
+      allow get: if true;
+      allow update: if
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['talla', 'total', 'abonos', 'actualizadoEn'])
+        // talla y total solo cambian si todavía no había talla
+        && (resource.data.talla == null
+            || (request.resource.data.talla == resource.data.talla
+                && request.resource.data.total == resource.data.total))
+        // abonos: se pueden agregar o quitar, nunca modificar uno existente
+        && request.resource.data.abonos.diff(resource.data.abonos).changedKeys().size() == 0;
+    }
+  }
+}

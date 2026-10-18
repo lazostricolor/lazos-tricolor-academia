@@ -236,7 +236,7 @@ async function cargarEncuestas(){
     do{
       var url = base + '/' + ENC_COLECCION + '?key=' + FB_KEY + '&pageSize=' + ENC_PAGINA +
                 (token ? '&pageToken=' + encodeURIComponent(token) : '');
-      var r = await fetch(url);
+      var r = await fetch(url, { headers: await fbHeaders() });
       if(!r.ok) throw new Error('HTTP ' + r.status);
       var j = await r.json();
       (j.documents || []).forEach(function(d){

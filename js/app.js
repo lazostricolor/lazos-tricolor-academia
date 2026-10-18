@@ -52,7 +52,7 @@ async function init(){
       // Pausar si guardamos hace menos de 90 segundos — dar tiempo a Firebase de propagar
       if(_ultimoGuardado && (Date.now()-_ultimoGuardado) < 90000){ return; }
       try {
-        const r = await fetch(`${FB_URL}?key=${FB_KEY}`);
+        const r = await fetch(`${FB_URL}?key=${FB_KEY}`, { headers: await fbHeaders() });
         if (!r.ok) return;
         const j = await r.json();
         const raw = j.fields?.data?.stringValue;
@@ -154,7 +154,7 @@ window.addEventListener('pagehide', function(){
       const payload = JSON.stringify({fields:{data:{stringValue:JSON.stringify(sinFotos)}}});
       navigator.sendBeacon
         ? fetch(`${FB_URL}?key=${FB_KEY}&updateMask.fieldPaths=data`, {
-            method:'PATCH', headers:{'Content-Type':'application/json'},
+            method:'PATCH', headers: fbHeadersSync({'Content-Type':'application/json'}),
             body: payload, keepalive: true
           }).catch(()=>{})
         : null;
@@ -167,13 +167,21 @@ window.addEventListener('beforeunload', function(){
   if(_localVersion > 0) snapLocal();
 });
 
-// Arrancar
-if(checkSession()){
-  document.getElementById('login-screen').style.display='none';
-  document.getElementById('app').style.visibility='visible';
-  init();
-} else {
+// Arrancar — Firebase Auth recuerda la sesión; init() corre una sola vez
+localStorage.removeItem('_session'); // sesión del login anterior (solo correo), ya no se usa
+let _iniciado = false;
+fbAuth.onAuthStateChanged(async u => {
+  if(esAdmin(u)){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app').style.visibility='visible';
+    if(!_iniciado){ _iniciado = true; init(); }
+    return;
+  }
+  if(u){
+    // Entró con otra cuenta de Google: no tiene permiso
+    try{ await fbAuth.signOut(); }catch(_){}
+    mostrarLoginError('La cuenta '+(u.email||'')+' no está autorizada.');
+  }
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('app').style.visibility='hidden';
-  document.getElementById('login-email').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
-}
+});
