@@ -27,6 +27,7 @@ const Sudaderas = {
     'S':  { total: 143850, cuota: 47950 },
     'M':  { total: 148050, cuota: 49350 },
     'L':  { total: 152250, cuota: 50750 },
+    'XL': { total: 156450, cuota: 52150 },
   },
 
   FECHAS_CUOTAS: ['2026-08-15', '2026-09-15', '2026-10-15'],
@@ -367,6 +368,25 @@ const Sudaderas = {
     return Object.entries(registro.abonos || {})
       .map(([id, a]) => ({ id, ...a }))
       .sort((x, y) => (x.fecha || 0) - (y.fecha || 0));
+  },
+
+  /* Conteo de sudaderas por talla, para saber cuántas mandar a confeccionar.
+     Recorre todos los registros y agrupa por talla (ignora los que aún no la tienen).
+     Devuelve { porTalla: {talla: {total, entregadas, pagadas, pendientes}}, orden, sinTalla, totalGeneral }
+     en el orden de la tabla TALLAS. */
+  conteoPorTalla(registros) {
+    const orden = Object.keys(this.TALLAS);
+    const porTalla = {};
+    orden.forEach(t => { porTalla[t] = { total: 0, entregadas: 0, pagadas: 0, pendientes: 0 }; });
+    let sinTalla = 0, totalGeneral = 0;
+    (registros || []).forEach(r => {
+      if (!r.talla || !porTalla[r.talla]) { if (!r.talla) sinTalla++; return; }
+      const c = porTalla[r.talla];
+      c.total++; totalGeneral++;
+      if (r.entregada) c.entregadas++;
+      if (this.saldo(r) <= 0) c.pagadas++; else c.pendientes++;
+    });
+    return { porTalla, orden, sinTalla, totalGeneral };
   },
 
   /* Estado general del registro para mostrar de un vistazo. */

@@ -205,6 +205,17 @@
           </div>
         </div>
 
+        <!-- Tallas totales para confección -->
+        <div class="sud-box" style="margin-top:18px">
+          <div class="sud-boxhead">
+            <h3>📏 Tallas totales <span style="font-weight:400;color:var(--muted);font-size:13px">— cuántas mandar a confeccionar</span></h3>
+            <span style="font-size:12px;color:var(--muted)" id="sud-tallas-total"></span>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="sud-table" id="sud-tallas-tabla"></table>
+          </div>
+        </div>
+
         <!-- Tarjetas resumen -->
         <div class="sud-cards" id="sud-cards"></div>
 
@@ -605,6 +616,7 @@ function pintar(){
     <div class="sud-card"><div class="sud-lbl">Alumnas activas</div><div class="sud-val">${alumnas.length}</div></div>`;
 
   pintarProgreso(recaudado, metaTotal, saldoPend, conteo, sinRegistrar);
+  pintarTallas();
 
   if(!alumnas.length && !datos.length){
     $('#sud-filas').innerHTML = `<tr><td colspan="7" style="padding:22px;color:var(--muted)">No se encontraron alumnas activas. Revisa que la base haya cargado.</td></tr>`;
@@ -612,6 +624,36 @@ function pintar(){
   }
   $('#sud-filas').innerHTML = filas || `<tr><td colspan="7" style="padding:22px;color:var(--muted)">Sin datos.</td></tr>`;
   $('#sud-conteo').textContent = `${alumnas.length} activas`;
+}
+
+/* ---------- Apartado de tallas totales ---------- */
+function pintarTallas(){
+  const { porTalla, orden, sinTalla, totalGeneral } = Sudaderas.conteoPorTalla(datos);
+  let filas = orden.filter(t => porTalla[t].total > 0).map(t=>{
+    const c = porTalla[t];
+    return `<tr>
+      <td><span class="sud-talla">${t}</span></td>
+      <td style="font-weight:800;font-variant-numeric:tabular-nums;font-size:16px">${c.total}</td>
+      <td class="sud-money" style="color:#16a34a">${c.pagadas}</td>
+      <td class="sud-money">${c.pendientes}</td>
+      <td class="sud-money">${c.entregadas}</td>
+    </tr>`;
+  }).join('');
+  if(!filas){
+    filas = `<tr><td colspan="5" style="padding:18px;color:var(--muted)">Aún no hay tallas asignadas.</td></tr>`;
+  } else {
+    filas += `<tr style="border-top:2px solid var(--border);font-weight:800">
+      <td>TOTAL</td>
+      <td style="font-variant-numeric:tabular-nums;font-size:16px">${totalGeneral}</td>
+      <td colspan="3" style="color:var(--muted);font-weight:400;font-size:12.5px">
+        ${sinTalla ? sinTalla+' sin talla asignada todavía' : 'Todas con talla'}
+      </td>
+    </tr>`;
+  }
+  $('#sud-tallas-tabla').innerHTML =
+    `<thead><tr><th>Talla</th><th>Total a confeccionar</th><th>Pagadas</th><th>Pendientes</th><th>Entregadas</th></tr></thead>
+     <tbody>${filas}</tbody>`;
+  $('#sud-tallas-total').textContent = totalGeneral + ' sudadera' + (totalGeneral===1?'':'s');
 }
 
 /* ---------- Gráfico de progreso ---------- */
