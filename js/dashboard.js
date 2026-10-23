@@ -196,6 +196,9 @@ function renderDashboard(){
 
   // Pagos del mes con paginación
   renderDashPagos(mk,activas);
+
+  // Bloque de Rumba (solo lectura, colecciones rumba_*)
+  if(typeof renderRumbaDash==='function') renderRumbaDash(mk);
 }
 function buildDonut(id,pct,color){
   const canvas=document.getElementById(id);
