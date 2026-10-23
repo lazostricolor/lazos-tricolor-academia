@@ -11,12 +11,12 @@
 :root{
   --banda:#16224F; --fondo:#F3F5FA; --sup:#FFFFFF; --tinta:#16224F; --suave:#5B6585; --linea:#DCE0EC;
   --sol:#F4B400; --solTinta:#3A2A00; --rojo:#C62839; --verde:#1F8A4D; --gris:#7A829C;
-  --r:14px;
+  --serie:#16224F; --r:14px;
   font-family:'Atkinson Hyperlegible',system-ui,sans-serif; color-scheme:light;
 }
 @media (prefers-color-scheme:dark){
   :root{ --fondo:#0E1430; --sup:#18204A; --tinta:#EEF1FA; --suave:#A8B0CC; --linea:#2C3668;
-    --rojo:#F06272; --verde:#4CC27E; --gris:#9AA2BE; color-scheme:dark; }
+    --rojo:#F06272; --verde:#4CC27E; --gris:#9AA2BE; --serie:#8FA2F0; color-scheme:dark; }
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--fondo);color:var(--tinta);font-size:16px;line-height:1.45}
@@ -46,8 +46,8 @@ main,.login{max-width:880px;margin:0 auto;padding:16px}
 .aviso{color:var(--rojo);font-weight:700}
 
 /* Pestañas */
-.tabs{display:flex;gap:4px;border-bottom:2px solid var(--linea);margin-bottom:16px}
-.tab{background:none;border:0;padding:10px 14px;font-weight:700;color:var(--suave);border-bottom:3px solid transparent;margin-bottom:-2px}
+.tabs{display:flex;gap:2px;border-bottom:2px solid var(--linea);margin-bottom:16px;overflow-x:auto;scrollbar-width:none}
+.tab{background:none;border:0;padding:10px 12px;white-space:nowrap;font-weight:700;color:var(--suave);border-bottom:3px solid transparent;margin-bottom:-2px}
 .tab[aria-selected="true"]{color:var(--tinta);border-color:var(--sol)}
 
 .barra{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
@@ -123,6 +123,18 @@ dialog::backdrop{background:rgba(10,15,40,.55)}
 #toast.ver{opacity:1}
 #toast.mal{background:var(--rojo)}
 .offline{background:var(--rojo);color:#fff;text-align:center;padding:6px;font-weight:700;font-size:.9rem}
+/* Resumen */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:14px}
+.kpi{background:var(--sup);border-radius:var(--r);padding:12px 14px}
+.kpi span{display:block;color:var(--suave);font-size:.85rem}
+.kpi strong{font-family:'Bricolage Grotesque';font-weight:800;font-size:1.6rem;line-height:1.1}
+.kpi strong.rojo{color:var(--rojo)} .kpi strong.verde{color:var(--verde)}
+.kpi small{display:block;color:var(--suave);font-size:.8rem}
+.graficos{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:6px}
+.grafico{background:var(--sup);border-radius:var(--r);padding:14px}
+.grafico h2{font-size:1.05rem;margin-bottom:8px}
+.lienzo{position:relative;height:240px}
+@media (max-width:700px){ .graficos{grid-template-columns:1fr} }
 @media (max-width:520px){ .totales{grid-template-columns:1fr 1fr} .totales .total:last-child{grid-column:span 2} }
 @media (prefers-reduced-motion:reduce){ #toast{transition:none} }
 </style>
@@ -159,6 +171,7 @@ dialog::backdrop{background:rgba(10,15,40,.55)}
 
 <main id="app" hidden>
   <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="resumen" aria-selected="false">Resumen</button>
     <button class="tab" role="tab" data-tab="alumnas" aria-selected="true">Alumnas</button>
     <button class="tab" role="tab" data-tab="pagos" aria-selected="false">Pagos</button>
     <button class="tab" role="tab" data-tab="cuentas" aria-selected="false">Cuentas</button>
@@ -188,6 +201,26 @@ dialog::backdrop{background:rgba(10,15,40,.55)}
       <div class="total"><span>Total</span><strong id="tTotal"></strong></div>
     </div>
     <ul id="listaPagos" class="lista"></ul>
+  </section>
+
+  <section id="tab-resumen" hidden>
+    <div class="kpis">
+      <div class="kpi"><span>Alumnas activas</span><strong id="kActivas"></strong><small id="kNuevas"></small></div>
+      <div class="kpi"><span>Al día</span><strong class="verde" id="kAlDia"></strong></div>
+      <div class="kpi"><span>Pendientes de pago</span><strong class="rojo" id="kPend"></strong></div>
+      <div class="kpi"><span>Ingresos del mes</span><strong id="kIngMes"></strong><small id="kIngDet"></small></div>
+      <div class="kpi"><span>Resultado del mes</span><strong id="kResMes"></strong><small id="kResDet"></small></div>
+    </div>
+    <div class="graficos">
+      <div class="grafico"><h2>Ingresos por semana</h2><div class="lienzo"><canvas id="gSemanas" aria-label="Ingresos de las últimas 8 semanas frente al honorario semanal" role="img"></canvas></div></div>
+      <div class="grafico"><h2>Alumnas por plan</h2><div class="lienzo"><canvas id="gPlanes" aria-label="Alumnas activas por plan de pago" role="img"></canvas></div></div>
+    </div>
+    <div class="grafico" style="margin-top:12px"><h2>Alumnas activas mes a mes</h2><div class="lienzo"><canvas id="gMeses" aria-label="Alumnas activas y nuevas en los últimos 6 meses" role="img"></canvas></div></div>
+    <div class="barra" style="margin-top:20px;justify-content:space-between">
+      <h3 class="seccion" style="margin:0">Seguimiento de cobros</h3>
+      <button class="btn peq" type="button" id="btnCopiarPend">Copiar lista para WhatsApp</button>
+    </div>
+    <ul id="listaPend" class="lista"></ul>
   </section>
 
   <section id="tab-cuentas" hidden>
@@ -276,6 +309,7 @@ dialog::backdrop{background:rgba(10,15,40,.55)}
 
 <div id="toast" role="status" aria-live="polite"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
@@ -433,7 +467,7 @@ const RUI = {
   },
   render() {
     if (!RS.rol) return;
-    RUI.alumnas(); RUI.pagos(); RUI.cuentas();
+    RUI.alumnas(); RUI.pagos(); RUI.cuentas(); RG.pintar();
     if (RS.historialId) RA.pintarHistorial();
   },
   alumnas() {
@@ -531,6 +565,114 @@ const RUI = {
 };
 
 /* ==========================================================================
+   RG — resumen, gráficos y seguimiento de cobros
+   ========================================================================== */
+const RG = {
+  graficos: {},
+  color(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); },
+  porCobrar() {
+    const hoy = RU.hoy();
+    return RS.alumnas.filter(a => a.activa !== false).map(a => ({ a, e: RP.estado(a), u: RP.ultimo(a.id) }))
+      .filter(x => x.e.clase === 'rojo')
+      .map(x => ({ ...x, dias: x.u ? RU.diasEntre(RU.sumarDias(x.u.cubreHasta, 1), hoy) + 1 : RU.diasEntre(x.a.fechaIngreso || hoy, hoy) + 1 }))
+      .sort((p, q) => q.dias - p.dias);
+  },
+  lunesDelMes(hoy) {
+    let n = 0;
+    for (let d = hoy.slice(0, 8) + '01'; d <= hoy; d = RU.sumarDias(d, 1)) if (RU.aFecha(d).getDay() === 1) n++;
+    return n;
+  },
+  datos() {
+    const hoy = RU.hoy(), validos = RS.pagos.filter(p => !p.anulado);
+    const activas = RS.alumnas.filter(a => a.activa !== false);
+    const semanas = [];
+    for (let i = 7; i >= 0; i--) {
+      const ini = RU.sumarDias(RU.inicioSemana(hoy), -7 * i), fin = RU.sumarDias(ini, 6);
+      semanas.push({ etiqueta: RU.fecha(ini, true), ...RP.sumar(validos.filter(p => p.fecha >= ini && p.fecha <= fin)) });
+    }
+    const meses = [];
+    const [y, m] = hoy.split('-').map(Number);
+    for (let i = 5; i >= 0; i--) {
+      const f = new Date(y, m - 1 - i, 1), pref = RU.iso(f).slice(0, 7), finMes = RU.iso(new Date(f.getFullYear(), f.getMonth() + 1, 0));
+      meses.push({
+        etiqueta: f.toLocaleDateString('es-CO', { month: 'short', year: '2-digit' }),
+        activas: RS.alumnas.filter(a => (a.fechaIngreso || '') <= finMes && (a.activa !== false || (a._retiroFecha || '9999') > finMes)).length,
+        nuevas: RS.alumnas.filter(a => (a.fechaIngreso || '').startsWith(pref)).length
+      });
+    }
+    const mes = RP.sumar(validos.filter(p => (p.fecha || '').startsWith(hoy.slice(0, 7))));
+    const nSem = RG.lunesDelMes(hoy);
+    return {
+      semanas, meses, mes, nSem, honorMes: nSem * RUMBA_CONFIG.honorarioSemanal,
+      activas: activas.length,
+      alDia: activas.filter(a => RP.estado(a).clase === 'verde').length,
+      nuevasMes: RS.alumnas.filter(a => (a.fechaIngreso || '').startsWith(hoy.slice(0, 7))).length,
+      planes: Object.keys(PLANES).map(k => activas.filter(a => a.frecuencia === k).length)
+    };
+  },
+  pintar() {
+    const d = RG.datos(), pend = RG.porCobrar();
+    $('kActivas').textContent = d.activas;
+    $('kNuevas').textContent = d.nuevasMes ? d.nuevasMes + (d.nuevasMes === 1 ? ' nueva este mes' : ' nuevas este mes') : '';
+    $('kAlDia').textContent = d.alDia;
+    $('kPend').textContent = pend.length;
+    $('kIngMes').textContent = RU.dinero(d.mes.total);
+    $('kIngDet').textContent = 'Efectivo ' + RU.dinero(d.mes.efectivo) + ', transf. ' + RU.dinero(d.mes.transferencia);
+    const res = d.mes.total - d.honorMes;
+    $('kResMes').textContent = (res < 0 ? '− ' : '') + RU.dinero(Math.abs(res));
+    $('kResMes').className = res < 0 ? 'rojo' : 'verde';
+    $('kResDet').textContent = 'Ingresos menos honorarios (' + d.nSem + (d.nSem === 1 ? ' semana' : ' semanas') + ')';
+
+    $('listaPend').innerHTML = pend.length ? pend.map(x => `
+      <li class="alumna rojo">
+        <div class="al-fila"><span class="al-nombre">${RU.esc(x.a.nombre)}</span><span class="al-meta">${PLANES[x.a.frecuencia]?.nombre || ''}</span></div>
+        <div class="estado rojo">${RU.esc(x.e.texto)} · ${x.dias} ${x.dias === 1 ? 'día' : 'días'}</div>
+        <div class="acciones"><button class="btn prim peq" data-accion="pago" data-id="${x.a.id}">Registrar pago</button></div>
+      </li>`).join('') : '<li class="vacio">Todas las alumnas activas están al día.</li>';
+
+    if (!window.Chart || $('tab-resumen').hidden) return;
+    const tinta = RG.color('--tinta'), suave = RG.color('--suave'), linea = RG.color('--linea');
+    Chart.defaults.color = suave; Chart.defaults.borderColor = linea;
+    Chart.defaults.font.family = "'Atkinson Hyperlegible', system-ui, sans-serif";
+    const plata = v => '$' + Math.round(v / 1000) + 'k';
+    RG.dibujar('gSemanas', {
+      type: 'bar',
+      data: { labels: d.semanas.map(s => s.etiqueta), datasets: [
+        { label: 'Efectivo', data: d.semanas.map(s => s.efectivo), backgroundColor: RG.color('--sol'), stack: 'i' },
+        { label: 'Transferencia', data: d.semanas.map(s => s.transferencia), backgroundColor: RG.color('--serie'), stack: 'i' },
+        { label: 'Honorario semanal', data: d.semanas.map(() => RUMBA_CONFIG.honorarioSemanal), type: 'line', borderColor: RG.color('--rojo'), borderDash: [6, 4], pointRadius: 0, borderWidth: 2 }
+      ] },
+      options: { maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { callback: plata } } },
+        plugins: { tooltip: { callbacks: { label: c => c.dataset.label + ': ' + RU.dinero(c.raw) } } } }
+    });
+    RG.dibujar('gPlanes', {
+      type: 'doughnut',
+      data: { labels: Object.values(PLANES).map(p => p.nombre), datasets: [{ data: d.planes, backgroundColor: [RG.color('--rojo'), RG.color('--sol'), RG.color('--serie')], borderColor: RG.color('--sup') }] },
+      options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+    });
+    RG.dibujar('gMeses', {
+      type: 'bar',
+      data: { labels: d.meses.map(x => x.etiqueta), datasets: [
+        { label: 'Activas', data: d.meses.map(x => x.activas), backgroundColor: RG.color('--serie') },
+        { label: 'Nuevas', data: d.meses.map(x => x.nuevas), backgroundColor: RG.color('--sol') }
+      ] },
+      options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+    });
+  },
+  dibujar(id, cfg) {
+    if (RG.graficos[id]) RG.graficos[id].destroy();
+    RG.graficos[id] = new Chart($(id), cfg);
+  },
+  textoPendientes() {
+    const pend = RG.porCobrar();
+    if (!pend.length) return '💃 *Rumba · Lazos Tricolor*\n✅ Todas las alumnas están al día. ¡Gracias!';
+    return '💃 *Rumba · Lazos Tricolor*\n⏰ Pagos pendientes al ' + RU.fecha(RU.hoy(), true) + ':\n\n' +
+      pend.map(x => '• ' + x.a.nombre + ' (' + (PLANES[x.a.frecuencia]?.nombre || '') + ')').join('\n') +
+      '\n\n🙏 Puedes pagar en efectivo al profe o por transferencia. ¡Nos vemos en clase!';
+  }
+};
+
+/* ==========================================================================
    RD — lectura y escritura en Firestore (solo colecciones rumba_*)
    ========================================================================== */
 const RD = {
@@ -581,7 +723,8 @@ const RA = {
   tab(nombre) {
     RS.tab = nombre;
     document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === nombre)));
-    ['alumnas', 'pagos', 'cuentas'].forEach(t => { $('tab-' + t).hidden = t !== nombre; });
+    ['resumen', 'alumnas', 'pagos', 'cuentas'].forEach(t => { $('tab-' + t).hidden = t !== nombre; });
+    if (nombre === 'resumen' && RS.rol) RG.pintar();
   },
 
   /* Alumnas */
@@ -618,6 +761,7 @@ const RA = {
         const nuevos = { nombre, edad, frecuencia, fechaIngreso, activa: $('alActiva').checked };
         const cambios = {};
         Object.keys(nuevos).forEach(k => { if ((a[k] ?? null) !== nuevos[k]) cambios[k] = nuevos[k]; });
+        if ('activa' in cambios) cambios._retiroFecha = cambios.activa ? null : RU.hoy();
         if (!Object.keys(cambios).length) { $('dlgAlumna').close(); return; }
         await updateDoc(doc(db, COL.alumnas, RS.editandoId), { ...cambios, ...RD.sello() });
         RUI.toast('Alumna actualizada');
@@ -756,6 +900,7 @@ $('pgDesde').addEventListener('change', RA.cubrePago);
 ['corteDesde', 'corteHasta'].forEach(id => $(id).addEventListener('change', RUI.semanasSugeridas));
 $('corteSemanas').addEventListener('input', RUI.pintarCorte);
 $('btnCorte').addEventListener('click', RA.registrarCorte);
+$('btnCopiarPend').addEventListener('click', () => RU.copiar(RG.textoPendientes()));
 $('dlgHistorial').addEventListener('close', () => { RS.historialId = null; });
 document.querySelectorAll('[data-cerrar]').forEach(b => b.addEventListener('click', () => $(b.dataset.cerrar).close()));
 
