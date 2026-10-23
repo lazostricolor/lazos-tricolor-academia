@@ -8,269 +8,372 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap" rel="stylesheet">
 <style>
+/* ── Tokens: los mismos colores del panel principal ── */
 :root{
-  --banda:#16224F; --fondo:#F3F5FA; --sup:#FFFFFF; --tinta:#16224F; --suave:#5B6585; --linea:#DCE0EC;
-  --sol:#F4B400; --solTinta:#3A2A00; --rojo:#C62839; --verde:#1F8A4D; --gris:#7A829C;
-  --serie:#16224F; --r:14px;
+  --primary:#3a57e8; --primary-lt:#eef0fd; --primary-dk:#2a42c2;
+  --banda:#3a57e8; --fondo:#f0f2f5; --sup:#ffffff; --sup2:#f8f9fb; --tinta:#232d42; --suave:#6b7489; --linea:#e6e9ef;
+  --sol:#F4B400; --solTinta:#3A2A00; --rojo:#c03221; --rojo-lt:#fbeae8; --verde:#1aa053; --verde-lt:#e8f5ee; --gris:#8a92a6;
+  --serie:#3a57e8; --sombra:0 0 20px rgba(58,87,232,.08); --r:12px;
   font-family:'Atkinson Hyperlegible',system-ui,sans-serif; color-scheme:light;
 }
 @media (prefers-color-scheme:dark){
-  :root{ --fondo:#0E1430; --sup:#18204A; --tinta:#EEF1FA; --suave:#A8B0CC; --linea:#2C3668;
-    --rojo:#F06272; --verde:#4CC27E; --gris:#9AA2BE; --serie:#8FA2F0; color-scheme:dark; }
+  :root{ --primary:#7d93ff; --primary-lt:#252f63; --primary-dk:#9aabff; --banda:#5b74f5;
+    --fondo:#0f1324; --sup:#171c33; --sup2:#1d2340; --tinta:#eef1fa; --suave:#a7aec6; --linea:#2a3150;
+    --rojo:#f06272; --rojo-lt:#3a1d27; --verde:#4cc27e; --verde-lt:#173326; --gris:#9aa2be;
+    --serie:#8fa2f0; --sombra:none; color-scheme:dark; }
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--fondo);color:var(--tinta);font-size:16px;line-height:1.45}
+body{margin:0;background:var(--fondo);color:var(--tinta);font-size:15px;line-height:1.45}
 h1,h2,h3{font-family:'Bricolage Grotesque',system-ui,sans-serif;margin:0;line-height:1.1}
 button,input,select{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:3px solid var(--sol);outline-offset:2px}
 [hidden]{display:none!important}
 
-/* Banda superior */
-.banda{background:var(--banda);color:#fff;padding:18px 18px 22px}
-.banda-top{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:880px;margin:0 auto}
-.banda img.logo{height:46px;width:auto;background:#fff;border-radius:10px;padding:4px 8px}
-.usuario{font-size:.85rem;text-align:right;opacity:.85}
-.usuario button{background:none;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:999px;padding:3px 12px;margin-top:4px;font-size:.8rem}
-.banda-titulo{max-width:880px;margin:18px auto 0;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
-.banda h1{font-size:clamp(2.6rem,9vw,3.6rem);font-weight:800;letter-spacing:-.02em}
-.banda .sub{color:#C9D0EC;font-size:.95rem;margin-top:4px}
-.dias{display:flex;gap:8px}
-.dia{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;border:2px solid rgba(255,255,255,.35);font-family:'Bricolage Grotesque';font-weight:800;font-size:1.1rem}
+/* ── Estructura ── */
+.shell{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:100vh}
+.lateral{background:var(--sup);border-right:1px solid var(--linea);position:sticky;top:0;height:100vh;display:flex;flex-direction:column}
+.lat-logo{padding:18px 20px 14px;border-bottom:1px solid var(--linea)}
+.lat-logo img{display:block;width:100%;max-width:190px;margin:0 auto}
+.menu{padding:14px 10px;display:flex;flex-direction:column;gap:2px;flex:1}
+.menu-sec{font-size:.72rem;font-weight:700;color:var(--gris);letter-spacing:.08em;padding:6px 12px 8px}
+.menu .tab{display:flex;align-items:center;gap:12px;width:100%;background:none;border:0;border-radius:8px;padding:11px 12px;text-align:left;color:var(--suave);font-weight:700;position:relative}
+.menu .tab:hover{background:var(--primary-lt);color:var(--primary)}
+.menu .tab[aria-selected="true"]{background:var(--primary-lt);color:var(--primary)}
+.menu .tab[aria-selected="true"]::before{content:"";position:absolute;left:-10px;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--primary)}
+.ico{width:22px;text-align:center;font-size:1.05rem}
+.lat-pie{padding:12px 10px 16px;border-top:1px solid var(--linea);display:grid;gap:8px}
+.lat-link{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--primary);font-weight:700;text-decoration:none;background:var(--primary-lt)}
+.lat-salir{width:100%;border:0;border-radius:8px;padding:10px 12px;font-weight:700;background:var(--rojo-lt);color:var(--rojo)}
+
+.cuerpo{min-width:0;display:flex;flex-direction:column}
+.barra-sup{position:sticky;top:0;z-index:5;background:var(--sup);border-bottom:1px solid var(--linea);padding:12px 28px;display:flex;align-items:center;gap:20px}
+.sup-logo{display:none}
+.sup-titulo{min-width:0}
+.sup-titulo h1{font-size:1.5rem;font-weight:800}
+.sub{color:var(--suave);font-size:.88rem;margin-top:2px}
+.clase{margin-left:auto;display:flex;align-items:center;gap:12px;background:var(--sup2);border:1px solid var(--linea);border-radius:999px;padding:5px 14px 5px 6px}
+.dias{display:flex;gap:5px}
+.dia{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;border:1.5px solid var(--linea);font-family:'Bricolage Grotesque';font-weight:800;font-size:.9rem;color:var(--suave);background:var(--sup)}
 .dia.hoy{background:var(--sol);border-color:var(--sol);color:var(--solTinta)}
-.horario{font-size:.9rem;color:#C9D0EC;margin-top:6px;text-align:right}
+.horario{font-size:.88rem;font-weight:700;white-space:nowrap}
+.usuario{font-size:.82rem;color:var(--suave);text-align:right;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.usuario button{display:none}
 
-main,.login{max-width:880px;margin:0 auto;padding:16px}
-.login{text-align:center;padding-top:48px}
-.login p{color:var(--suave);max-width:420px;margin:12px auto}
-.aviso{color:var(--rojo);font-weight:700}
+main{padding:24px 28px 40px;width:100%;max-width:1480px}
+.menu-movil{display:none}
 
-/* Pestañas */
-.tabs{display:flex;gap:2px;border-bottom:2px solid var(--linea);margin-bottom:16px;overflow-x:auto;scrollbar-width:none}
-.tab{background:none;border:0;padding:10px 12px;white-space:nowrap;font-weight:700;color:var(--suave);border-bottom:3px solid transparent;margin-bottom:-2px}
-.tab[aria-selected="true"]{color:var(--tinta);border-color:var(--sol)}
-
-.barra{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
-.barra input[type=search]{flex:1;min-width:180px}
+/* ── Controles ── */
+.herr{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.herr .crece{flex:1;min-width:200px}
+.herr .der{margin-left:auto}
 input,select{background:var(--sup);border:1.5px solid var(--linea);border-radius:10px;padding:10px 12px;width:100%}
-.btn{border:0;border-radius:999px;padding:10px 18px;font-weight:700;background:var(--sup);border:1.5px solid var(--linea)}
-.btn.prim{background:var(--banda);color:#fff;border-color:var(--banda)}
-@media (prefers-color-scheme:dark){ .btn.prim{background:var(--sol);color:var(--solTinta);border-color:var(--sol)} }
-.btn.peq{padding:6px 12px;font-size:.88rem}
+.herr input,.herr select{width:auto}
+.herr input.crece{width:100%}
+.btn{border-radius:999px;padding:10px 18px;font-weight:700;background:var(--sup);border:1.5px solid var(--linea);white-space:nowrap}
+.btn.prim{background:var(--primary);color:#fff;border-color:var(--primary)}
+.btn.prim:hover{background:var(--primary-dk);border-color:var(--primary-dk)}
+@media (prefers-color-scheme:dark){ .btn.prim{background:var(--banda);border-color:var(--banda)} }
+.btn.peq{padding:6px 12px;font-size:.86rem}
 .btn:disabled{opacity:.55;cursor:wait}
-label.chk{display:flex;gap:6px;align-items:center;font-size:.9rem;color:var(--suave)}
+label.chk{display:flex;gap:6px;align-items:center;font-size:.9rem;color:var(--suave);white-space:nowrap}
 label.chk input{width:auto}
 
-/* Lista de alumnas */
-.lista{list-style:none;margin:0;padding:0;display:grid;gap:10px}
-.alumna{background:var(--sup);border-radius:var(--r);padding:14px 16px;border-left:5px solid var(--gris)}
+/* ── Tarjetas ── */
+.lista{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.rejilla{grid-template-columns:repeat(auto-fill,minmax(310px,1fr))}
+.rejilla.ancha{grid-template-columns:repeat(auto-fill,minmax(400px,1fr))}
+.rejilla.chica{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.alumna{background:var(--sup);border-radius:var(--r);padding:14px 16px;border:1px solid var(--linea);border-left:5px solid var(--gris);box-shadow:var(--sombra);display:flex;flex-direction:column}
 .alumna.rojo{border-left-color:var(--rojo)} .alumna.verde{border-left-color:var(--verde)}
 .alumna.retirada{opacity:.6}
 .al-fila{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
-.al-nombre{font-weight:700;font-size:1.08rem}
-.al-meta{color:var(--suave);font-size:.9rem}
-.estado{font-size:.9rem;font-weight:700;margin-top:4px}
+.al-nombre{font-weight:700;font-size:1.05rem}
+.al-meta{color:var(--suave);font-size:.88rem}
+.estado{font-size:.88rem;font-weight:700;margin-top:4px}
 .estado.rojo{color:var(--rojo)} .estado.verde{color:var(--verde)} .estado.gris{color:var(--gris)}
-.acciones{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
-.vacio{background:var(--sup);border-radius:var(--r);padding:28px;text-align:center;color:var(--suave)}
+.acciones{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;padding-top:12px}
+.vacio{background:var(--sup);border:1px dashed var(--linea);border-radius:var(--r);padding:28px;text-align:center;color:var(--suave);grid-column:1/-1}
+
+/* Asistencia */
+.asis{background:var(--sup);border-radius:var(--r);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;border:2px solid var(--linea);text-align:left;font-weight:700;min-height:62px}
+.asis small{display:block;font-weight:400;color:var(--suave)}
+.asis .marca{width:32px;height:32px;border-radius:50%;border:2px solid var(--linea);display:grid;place-items:center;flex:none;font-size:1rem}
+.asis[aria-pressed="true"]{border-color:var(--verde);background:var(--verde-lt)}
+.asis[aria-pressed="true"] .marca{background:var(--verde);border-color:var(--verde);color:#fff}
+.guardar-fijo{position:sticky;bottom:16px;display:flex;justify-content:flex-end;margin-top:16px;pointer-events:none}
+.guardar-fijo .btn{pointer-events:auto;box-shadow:0 6px 18px rgba(58,87,232,.3);padding:12px 24px}
 
 /* Pagos */
-.totales{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
-.total{background:var(--sup);border-radius:var(--r);padding:12px}
+.totales{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.total{background:var(--sup);border:1px solid var(--linea);border-radius:var(--r);padding:14px 16px;box-shadow:var(--sombra)}
 .total span{display:block;color:var(--suave);font-size:.85rem}
-.total strong{font-size:1.15rem}
-.pago{background:var(--sup);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;gap:10px;align-items:center}
+.total strong{font-family:'Bricolage Grotesque';font-weight:800;font-size:1.45rem}
+.total.efe{border-top:4px solid var(--sol)} .total.tra{border-top:4px solid var(--serie)}
+.pago{background:var(--sup);border:1px solid var(--linea);border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;gap:10px;align-items:center;box-shadow:var(--sombra)}
 .pago.anulado .p-monto,.pago.anulado .p-nom{text-decoration:line-through;color:var(--gris)}
+.pago .btn{margin-top:8px}
 .p-nom{font-weight:700}
-.p-det{color:var(--suave);font-size:.85rem}
+.p-det{color:var(--suave);font-size:.84rem}
 .p-monto{font-weight:700;text-align:right;white-space:nowrap}
-.metodo{display:inline-block;font-size:.75rem;font-weight:700;border-radius:999px;padding:1px 8px;margin-top:2px}
+.metodo{display:inline-block;font-size:.74rem;font-weight:700;border-radius:999px;padding:1px 8px;margin-top:3px}
 .metodo.efectivo{background:var(--sol);color:var(--solTinta)}
-.metodo.transferencia{background:var(--linea);color:var(--tinta)}
+.metodo.transferencia{background:var(--primary-lt);color:var(--primary)}
+
+/* Resumen */
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--sup);border:1px solid var(--linea);border-radius:var(--r);padding:16px;box-shadow:var(--sombra)}
+.kpi span{display:block;color:var(--suave);font-size:.84rem;font-weight:700}
+.kpi strong{display:block;font-family:'Bricolage Grotesque';font-weight:800;font-size:1.75rem;line-height:1.15;margin-top:4px}
+.kpi strong.rojo{color:var(--rojo)} .kpi strong.verde{color:var(--verde)}
+.kpi small{display:block;color:var(--suave);font-size:.78rem;margin-top:2px}
+.graficos{display:grid;grid-template-columns:2fr 1fr;gap:12px}
+.grafico{background:var(--sup);border:1px solid var(--linea);border-radius:var(--r);padding:16px;box-shadow:var(--sombra)}
+.grafico h2{font-size:1rem;margin-bottom:10px}
+.lienzo{position:relative;height:280px}
+.cabecera-sec{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:24px 0 12px}
+h3.seccion{font-size:1.15rem;margin:0}
 
 /* Cuentas */
-.mano{background:var(--sol);color:var(--solTinta);border-radius:var(--r);padding:18px 20px;margin-bottom:18px}
+.cuentas-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:20px;align-items:start}
+.mano{background:var(--sol);color:var(--solTinta);border-radius:var(--r);padding:18px 22px;margin-bottom:16px}
 .mano span{font-size:.95rem}
-.mano strong{display:block;font-family:'Bricolage Grotesque';font-weight:800;font-size:clamp(2.2rem,8vw,3rem);line-height:1.05;margin-top:2px}
-.caja{background:var(--sup);border-radius:var(--r);padding:16px;margin-bottom:18px}
-.caja h2{font-size:1.3rem;margin-bottom:12px}
+.mano strong{display:block;font-family:'Bricolage Grotesque';font-weight:800;font-size:clamp(2.2rem,5vw,3rem);line-height:1.05;margin-top:2px}
+.caja{background:var(--sup);border:1px solid var(--linea);border-radius:var(--r);padding:18px;box-shadow:var(--sombra)}
+.caja h2{font-size:1.25rem;margin-bottom:14px}
 .campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
-.campo label{display:block;font-size:.85rem;color:var(--suave);margin-bottom:4px}
-.resumen{margin:14px 0 0;display:grid;grid-template-columns:1fr auto;gap:6px 12px}
+.campo label{display:block;font-size:.84rem;color:var(--suave);margin-bottom:4px}
+.resumen{margin:16px 0 0;display:grid;grid-template-columns:1fr auto;gap:8px 12px}
 .resumen dt{color:var(--suave)} .resumen dd{margin:0;text-align:right;font-weight:700}
-.resultado{margin-top:12px;padding:12px;border-radius:10px;background:var(--fondo);font-weight:700;font-size:1.05rem}
-h3.seccion{font-size:1.1rem;margin:20px 0 10px}
+.resultado{margin-top:14px;padding:12px 14px;border-radius:10px;background:var(--primary-lt);color:var(--primary);font-weight:700;font-size:1.05rem}
+.pie{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.cuentas-grid h3.seccion{margin-bottom:12px}
 
 /* Diálogos */
-dialog{border:0;border-radius:18px;padding:0;width:min(520px,94vw);background:var(--sup);color:var(--tinta)}
-dialog::backdrop{background:rgba(10,15,40,.55)}
-.dlg{padding:20px;display:grid;gap:12px}
+dialog{border:0;border-radius:18px;padding:0;width:min(540px,94vw);background:var(--sup);color:var(--tinta)}
+dialog::backdrop{background:rgba(15,20,45,.55)}
+.dlg{padding:22px;display:grid;gap:12px}
 .dlg h2{font-size:1.4rem}
 .dlg .quien{color:var(--suave);margin-top:-6px}
+.dlg .pie{margin-top:4px}
 .opciones{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
 .opcion{position:relative}
 .opcion input{position:absolute;opacity:0;inset:0}
 .opcion span{display:block;border:2px solid var(--linea);border-radius:12px;padding:10px;text-align:center;font-weight:700}
 .opcion small{display:block;font-weight:400;color:var(--suave)}
-.opcion input:checked + span{border-color:var(--sol);background:color-mix(in srgb,var(--sol) 18%,transparent)}
+.opcion input:checked + span{border-color:var(--primary);background:var(--primary-lt)}
 .opcion input:focus-visible + span{outline:3px solid var(--sol);outline-offset:2px}
 .cubre{font-size:.95rem;color:var(--suave)}
 .cubre b{color:var(--tinta)}
-.pie{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
 .error{color:var(--rojo);font-weight:700;font-size:.92rem;min-height:1.2em}
 
-#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--banda);color:#fff;padding:12px 18px;border-radius:999px;font-weight:700;max-width:92vw;opacity:0;pointer-events:none;transition:opacity .2s}
+/* Login */
+.login{min-height:100vh;display:grid;place-items:center;padding:20px}
+.login-card{background:var(--sup);border:1px solid var(--linea);border-radius:18px;box-shadow:var(--sombra);padding:32px 28px;max-width:420px;width:100%;text-align:center}
+.login-card img{width:210px;max-width:80%;margin-bottom:18px}
+.login-card h1{font-size:2.4rem;font-weight:800}
+.login-card p{color:var(--suave);margin:10px auto 18px}
+.aviso{color:var(--rojo)!important;font-weight:700}
+
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--tinta);color:var(--sup);padding:12px 18px;border-radius:999px;font-weight:700;max-width:92vw;opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}
 #toast.ver{opacity:1}
-#toast.mal{background:var(--rojo)}
-.offline{background:var(--rojo);color:#fff;text-align:center;padding:6px;font-weight:700;font-size:.9rem}
-/* Asistencia */
-.asis{background:var(--sup);border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;border:2px solid transparent;text-align:left;font-weight:700}
-.asis small{display:block;font-weight:400;color:var(--suave)}
-.asis .marca{width:30px;height:30px;border-radius:50%;border:2px solid var(--linea);display:grid;place-items:center;flex:none;font-size:1rem}
-.asis[aria-pressed="true"]{border-color:var(--verde)}
-.asis[aria-pressed="true"] .marca{background:var(--verde);border-color:var(--verde);color:#fff}
-.enlace-panel{color:#fff;font-size:.8rem;text-decoration:none;border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:3px 12px;display:inline-block;margin-top:4px;margin-right:4px}
-/* Resumen */
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:14px}
-.kpi{background:var(--sup);border-radius:var(--r);padding:12px 14px}
-.kpi span{display:block;color:var(--suave);font-size:.85rem}
-.kpi strong{font-family:'Bricolage Grotesque';font-weight:800;font-size:1.6rem;line-height:1.1}
-.kpi strong.rojo{color:var(--rojo)} .kpi strong.verde{color:var(--verde)}
-.kpi small{display:block;color:var(--suave);font-size:.8rem}
-.graficos{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:6px}
-.grafico{background:var(--sup);border-radius:var(--r);padding:14px}
-.grafico h2{font-size:1.05rem;margin-bottom:8px}
-.lienzo{position:relative;height:240px}
-@media (max-width:700px){ .graficos{grid-template-columns:1fr} }
-@media (max-width:520px){ .totales{grid-template-columns:1fr 1fr} .totales .total:last-child{grid-column:span 2} }
+#toast.mal{background:var(--rojo);color:#fff}
+.offline{background:var(--rojo);color:#fff;text-align:center;padding:6px;font-weight:700;font-size:.9rem;position:sticky;top:0;z-index:30}
+
+/* ── Pantallas medianas ── */
+@media (max-width:1250px){
+  .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .cuentas-grid{grid-template-columns:1fr}
+}
+
+/* ── Celular y tablet ── */
+@media (max-width:900px){
+  body{font-size:16px}
+  .shell{display:block}
+  .lateral{display:none}
+  .barra-sup{position:static;flex-wrap:wrap;gap:8px 12px;padding:10px 16px 12px}
+  .sup-logo{display:block;height:34px;width:auto}
+  .usuario{margin-left:auto;display:flex;align-items:center;gap:8px;max-width:60%}
+  .usuario #usuarioEmail{overflow:hidden;text-overflow:ellipsis}
+  .usuario button{display:inline-block;border:1px solid var(--linea);background:var(--sup2);border-radius:999px;padding:4px 10px;font-size:.78rem;font-weight:700;color:var(--rojo);flex:none}
+  .sup-titulo{order:3;flex:1 1 100%}
+  .sup-titulo h1{font-size:1.6rem}
+  .clase{order:4;margin-left:0;padding:4px 10px 4px 4px;gap:8px}
+  .dia{width:28px;height:28px;font-size:.8rem}
+  .horario{font-size:.8rem}
+  main{padding:16px 14px calc(96px + env(safe-area-inset-bottom))}
+  .menu-movil{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--sup);border-top:1px solid var(--linea);padding:6px 4px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -4px 16px rgba(0,0,0,.06)}
+  .menu-movil .tab{background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;border-radius:10px;font-size:.72rem;font-weight:700;color:var(--suave)}
+  .menu-movil .tab .ico{font-size:1.25rem;width:auto}
+  .menu-movil .tab[aria-selected="true"]{color:var(--primary);background:var(--primary-lt)}
+  .rejilla,.rejilla.ancha,.rejilla.chica{grid-template-columns:1fr}
+  .herr .der{margin-left:0}
+  .herr .btn.prim{flex:1}
+  .graficos{grid-template-columns:1fr}
+  .lienzo{height:230px}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .kpi{padding:12px}
+  .kpi strong{font-size:1.45rem}
+  .guardar-fijo{bottom:calc(84px + env(safe-area-inset-bottom))}
+  .guardar-fijo .btn{width:100%}
+  #toast{bottom:calc(88px + env(safe-area-inset-bottom))}
+}
+@media (max-width:520px){
+  .totales{grid-template-columns:1fr 1fr}
+  .totales .total:last-child{grid-column:span 2}
+  .total strong{font-size:1.2rem}
+  .usuario #usuarioEmail{display:none}
+}
 @media (prefers-reduced-motion:reduce){ #toast{transition:none} }
 </style>
 </head>
 <body>
 <div id="offline" class="offline" hidden>Sin conexión: los cambios se guardarán cuando vuelva el internet.</div>
 
-<header class="banda">
-  <div class="banda-top">
-    <img src="logo.png" alt="Academia de Danzas Lazos Tricolor" class="logo">
-    <div id="usuario" class="usuario" hidden>
-      <div id="usuarioEmail"></div>
-      <a id="lnkPanel" class="enlace-panel" href="index.html" hidden>Panel principal</a>
-      <button id="btnSalir" type="button">Cerrar sesión</button>
-    </div>
-  </div>
-  <div class="banda-titulo">
-    <div>
-      <h1>Rumba</h1>
-      <div class="sub" id="subProfe"></div>
-    </div>
-    <div>
-      <div class="dias" id="dias"></div>
-      <div class="horario" id="horario"></div>
-    </div>
-  </div>
-</header>
-
 <section id="vistaLogin" class="login" hidden>
-  <h2>Entra con tu cuenta de Google</h2>
-  <p>Solo los correos autorizados por la academia pueden ver y registrar las alumnas y los pagos de rumba.</p>
-  <p id="loginAviso" class="aviso"></p>
-  <button id="btnEntrar" class="btn prim" type="button">Entrar con Google</button>
+  <div class="login-card">
+    <img src="logo.png" alt="Academia de Danzas Lazos Tricolor">
+    <h1>Rumba</h1>
+    <p>Entra con tu cuenta de Google. Solo los correos autorizados por la academia pueden ver y registrar las alumnas y los pagos de rumba.</p>
+    <p id="loginAviso" class="aviso"></p>
+    <button id="btnEntrar" class="btn prim" type="button">Entrar con Google</button>
+  </div>
 </section>
 
-<main id="app" hidden>
-  <nav class="tabs" role="tablist">
-    <button class="tab" role="tab" data-tab="resumen" aria-selected="false">Resumen</button>
-    <button class="tab" role="tab" data-tab="alumnas" aria-selected="true">Alumnas</button>
-    <button class="tab" role="tab" data-tab="asistencia" aria-selected="false">Asistencia</button>
-    <button class="tab" role="tab" data-tab="pagos" aria-selected="false">Pagos</button>
-    <button class="tab" role="tab" data-tab="cuentas" aria-selected="false">Cuentas</button>
-  </nav>
+<div id="app" class="shell" hidden>
+  <aside class="lateral">
+    <div class="lat-logo"><img src="logo.png" alt="Academia de Danzas Lazos Tricolor"></div>
+    <nav class="menu" role="tablist" aria-label="Secciones de rumba">
+      <div class="menu-sec">RUMBA</div>
+      <button class="tab" role="tab" data-tab="resumen" aria-selected="false"><span class="ico">📊</span>Resumen</button>
+      <button class="tab" role="tab" data-tab="alumnas" aria-selected="true"><span class="ico">💃</span>Alumnas</button>
+      <button class="tab" role="tab" data-tab="asistencia" aria-selected="false"><span class="ico">📋</span>Asistencia</button>
+      <button class="tab" role="tab" data-tab="pagos" aria-selected="false"><span class="ico">💳</span>Pagos</button>
+      <button class="tab" role="tab" data-tab="cuentas" aria-selected="false"><span class="ico">🤝</span>Cuentas</button>
+    </nav>
+    <div class="lat-pie">
+      <a id="lnkPanel" class="lat-link" href="index.html" hidden><span class="ico">🏠</span>Panel principal</a>
+      <button class="lat-salir" type="button" onclick="document.getElementById('btnSalir').click()">Cerrar sesión</button>
+    </div>
+  </aside>
 
-  <section id="tab-alumnas">
-    <div class="barra">
-      <input type="search" id="buscar" placeholder="Buscar alumna" aria-label="Buscar alumna">
-      <button id="btnNuevaAlumna" class="btn prim" type="button">Agregar alumna</button>
-    </div>
-    <div class="barra"><label class="chk"><input type="checkbox" id="verRetiradas"> Ver retiradas</label></div>
-    <ul id="listaAlumnas" class="lista"></ul>
-  </section>
-
-  <section id="tab-asistencia" hidden>
-    <div class="barra">
-      <input type="date" id="asFecha" aria-label="Fecha de la clase" style="max-width:210px">
-      <span id="asResumen" class="al-meta"></span>
-    </div>
-    <div id="asAviso" class="estado gris" style="margin-bottom:10px"></div>
-    <ul id="listaAsistencia" class="lista"></ul>
-    <div class="pie" style="margin-top:14px"><button id="btnGuardarAsis" class="btn prim" type="button">Guardar asistencia</button></div>
-  </section>
-
-  <section id="tab-pagos" hidden>
-    <div class="barra">
-      <select id="rangoPagos" aria-label="Periodo">
-        <option value="semana">Esta semana</option>
-        <option value="mes">Este mes</option>
-        <option value="pendientes">Sin cruzar</option>
-        <option value="todos">Todos</option>
-      </select>
-    </div>
-    <div class="totales">
-      <div class="total"><span>Efectivo</span><strong id="tEfectivo"></strong></div>
-      <div class="total"><span>Transferencia</span><strong id="tTransfer"></strong></div>
-      <div class="total"><span>Total</span><strong id="tTotal"></strong></div>
-    </div>
-    <ul id="listaPagos" class="lista"></ul>
-  </section>
-
-  <section id="tab-resumen" hidden>
-    <div class="kpis">
-      <div class="kpi"><span>Alumnas activas</span><strong id="kActivas"></strong><small id="kNuevas"></small></div>
-      <div class="kpi"><span>Al día</span><strong class="verde" id="kAlDia"></strong></div>
-      <div class="kpi"><span>Pendientes de pago</span><strong class="rojo" id="kPend"></strong></div>
-      <div class="kpi"><span>Asistencia del mes</span><strong id="kAsis"></strong><small id="kAsisDet"></small></div>
-      <div class="kpi"><span>Ingresos del mes</span><strong id="kIngMes"></strong><small id="kIngDet"></small></div>
-      <div class="kpi"><span>Resultado del mes</span><strong id="kResMes"></strong><small id="kResDet"></small></div>
-    </div>
-    <div class="graficos">
-      <div class="grafico"><h2>Ingresos por semana</h2><div class="lienzo"><canvas id="gSemanas" aria-label="Ingresos de las últimas 8 semanas frente al honorario semanal" role="img"></canvas></div></div>
-      <div class="grafico"><h2>Alumnas por plan</h2><div class="lienzo"><canvas id="gPlanes" aria-label="Alumnas activas por plan de pago" role="img"></canvas></div></div>
-    </div>
-    <div class="grafico" style="margin-top:12px"><h2>Alumnas activas mes a mes</h2><div class="lienzo"><canvas id="gMeses" aria-label="Alumnas activas y nuevas en los últimos 6 meses" role="img"></canvas></div></div>
-    <div class="barra" style="margin-top:20px;justify-content:space-between">
-      <h3 class="seccion" style="margin:0">Seguimiento de cobros</h3>
-      <button class="btn peq" type="button" id="btnCopiarPend">Copiar lista para WhatsApp</button>
-    </div>
-    <ul id="listaPend" class="lista"></ul>
-  </section>
-
-  <section id="tab-cuentas" hidden>
-    <div class="mano">
-      <span id="manoTexto"></span>
-      <strong id="manoValor"></strong>
-    </div>
-
-    <div id="cajaCorte" class="caja" hidden>
-      <h2>Cruzar cuentas</h2>
-      <div class="campos">
-        <div class="campo"><label for="corteDesde">Desde</label><input type="date" id="corteDesde"></div>
-        <div class="campo"><label for="corteHasta">Hasta</label><input type="date" id="corteHasta"></div>
-        <div class="campo"><label for="corteSemanas">Semanas a pagar</label><input type="number" id="corteSemanas" min="0" step="1"></div>
+  <div class="cuerpo">
+    <header class="barra-sup">
+      <img class="sup-logo" src="logo.png" alt="Lazos Tricolor">
+      <div class="sup-titulo">
+        <h1 id="tituloSec">Alumnas</h1>
+        <div class="sub" id="subProfe"></div>
       </div>
-      <div class="campo" style="margin-top:10px"><label for="corteNotas">Nota (opcional)</label><input type="text" id="corteNotas" maxlength="200"></div>
-      <dl class="resumen">
-        <dt>Pagos incluidos</dt><dd id="rCant"></dd>
-        <dt>Efectivo que recibió el profesor</dt><dd id="rEfectivo"></dd>
-        <dt>Transferencias a la academia</dt><dd id="rTransfer"></dd>
-        <dt id="rHonLabel">Honorarios</dt><dd id="rHonor"></dd>
-      </dl>
-      <div class="resultado" id="rResultado"></div>
-      <div class="pie"><button id="btnCorte" class="btn prim" type="button">Registrar cruce</button></div>
-    </div>
+      <div class="clase" aria-label="Días y horario de clase">
+        <div class="dias" id="dias"></div>
+        <div class="horario" id="horario"></div>
+      </div>
+      <div id="usuario" class="usuario" hidden>
+        <span id="usuarioEmail"></span>
+        <button id="btnSalir" type="button">Salir</button>
+      </div>
+    </header>
 
-    <h3 class="seccion">Cruces registrados</h3>
-    <ul id="listaCortes" class="lista"></ul>
-  </section>
-</main>
+    <main>
+      <section id="tab-alumnas">
+        <div class="herr">
+          <input type="search" id="buscar" class="crece" placeholder="Buscar alumna" aria-label="Buscar alumna">
+          <label class="chk"><input type="checkbox" id="verRetiradas"> Ver retiradas</label>
+          <button id="btnNuevaAlumna" class="btn prim der" type="button">＋ Agregar alumna</button>
+        </div>
+        <ul id="listaAlumnas" class="lista rejilla"></ul>
+      </section>
+
+      <section id="tab-asistencia" hidden>
+        <div class="herr">
+          <input type="date" id="asFecha" aria-label="Fecha de la clase">
+          <span id="asResumen" class="al-meta"></span>
+        </div>
+        <div id="asAviso" class="estado gris" style="margin-bottom:12px"></div>
+        <ul id="listaAsistencia" class="lista rejilla chica"></ul>
+        <div class="guardar-fijo"><button id="btnGuardarAsis" class="btn prim" type="button">Guardar asistencia</button></div>
+      </section>
+
+      <section id="tab-pagos" hidden>
+        <div class="herr">
+          <select id="rangoPagos" aria-label="Periodo">
+            <option value="semana">Esta semana</option>
+            <option value="mes">Este mes</option>
+            <option value="pendientes">Sin cruzar</option>
+            <option value="todos">Todos</option>
+          </select>
+        </div>
+        <div class="totales">
+          <div class="total efe"><span>Efectivo</span><strong id="tEfectivo"></strong></div>
+          <div class="total tra"><span>Transferencia</span><strong id="tTransfer"></strong></div>
+          <div class="total"><span>Total</span><strong id="tTotal"></strong></div>
+        </div>
+        <ul id="listaPagos" class="lista rejilla ancha"></ul>
+      </section>
+
+      <section id="tab-resumen" hidden>
+        <div class="kpis">
+          <div class="kpi"><span>Alumnas activas</span><strong id="kActivas"></strong><small id="kNuevas"></small></div>
+          <div class="kpi"><span>Al día</span><strong class="verde" id="kAlDia"></strong></div>
+          <div class="kpi"><span>Pendientes de pago</span><strong class="rojo" id="kPend"></strong></div>
+          <div class="kpi"><span>Asistencia del mes</span><strong id="kAsis"></strong><small id="kAsisDet"></small></div>
+          <div class="kpi"><span>Ingresos del mes</span><strong id="kIngMes"></strong><small id="kIngDet"></small></div>
+          <div class="kpi"><span>Resultado del mes</span><strong id="kResMes"></strong><small id="kResDet"></small></div>
+        </div>
+        <div class="graficos">
+          <div class="grafico"><h2>Ingresos por semana</h2><div class="lienzo"><canvas id="gSemanas" aria-label="Ingresos de las últimas 8 semanas frente al honorario semanal" role="img"></canvas></div></div>
+          <div class="grafico"><h2>Alumnas por plan</h2><div class="lienzo"><canvas id="gPlanes" aria-label="Alumnas activas por plan de pago" role="img"></canvas></div></div>
+        </div>
+        <div class="grafico" style="margin-top:12px"><h2>Alumnas activas mes a mes</h2><div class="lienzo"><canvas id="gMeses" aria-label="Alumnas activas y nuevas en los últimos 6 meses" role="img"></canvas></div></div>
+        <div class="cabecera-sec">
+          <h3 class="seccion">Seguimiento de cobros</h3>
+          <button class="btn peq" type="button" id="btnCopiarPend">Copiar lista para WhatsApp</button>
+        </div>
+        <ul id="listaPend" class="lista rejilla"></ul>
+      </section>
+
+      <section id="tab-cuentas" hidden>
+        <div class="cuentas-grid">
+          <div>
+            <div class="mano">
+              <span id="manoTexto"></span>
+              <strong id="manoValor"></strong>
+            </div>
+            <div id="cajaCorte" class="caja" hidden>
+              <h2>Cruzar cuentas</h2>
+              <div class="campos">
+                <div class="campo"><label for="corteDesde">Desde</label><input type="date" id="corteDesde"></div>
+                <div class="campo"><label for="corteHasta">Hasta</label><input type="date" id="corteHasta"></div>
+                <div class="campo"><label for="corteSemanas">Semanas a pagar</label><input type="number" id="corteSemanas" min="0" step="1"></div>
+              </div>
+              <div class="campo" style="margin-top:10px"><label for="corteNotas">Nota (opcional)</label><input type="text" id="corteNotas" maxlength="200"></div>
+              <dl class="resumen">
+                <dt>Pagos incluidos</dt><dd id="rCant"></dd>
+                <dt>Efectivo que recibió el profesor</dt><dd id="rEfectivo"></dd>
+                <dt>Transferencias a la academia</dt><dd id="rTransfer"></dd>
+                <dt id="rHonLabel">Honorarios</dt><dd id="rHonor"></dd>
+              </dl>
+              <div class="resultado" id="rResultado"></div>
+              <div class="pie"><button id="btnCorte" class="btn prim" type="button">Registrar cruce</button></div>
+            </div>
+          </div>
+          <div>
+            <h3 class="seccion">Cruces registrados</h3>
+            <ul id="listaCortes" class="lista"></ul>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <nav class="menu-movil" role="tablist" aria-label="Secciones de rumba">
+    <button class="tab" role="tab" data-tab="resumen" aria-selected="false"><span class="ico">📊</span>Resumen</button>
+    <button class="tab" role="tab" data-tab="alumnas" aria-selected="true"><span class="ico">💃</span>Alumnas</button>
+    <button class="tab" role="tab" data-tab="asistencia" aria-selected="false"><span class="ico">📋</span>Asistencia</button>
+    <button class="tab" role="tab" data-tab="pagos" aria-selected="false"><span class="ico">💳</span>Pagos</button>
+    <button class="tab" role="tab" data-tab="cuentas" aria-selected="false"><span class="ico">🤝</span>Cuentas</button>
+  </nav>
+</div>
 
 <!-- Alumna -->
 <dialog id="dlgAlumna" aria-labelledby="dlgAlumnaTitulo">
@@ -812,6 +915,8 @@ const RA = {
     RS.tab = nombre;
     document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === nombre)));
     ['resumen', 'alumnas', 'asistencia', 'pagos', 'cuentas'].forEach(t => { $('tab-' + t).hidden = t !== nombre; });
+    $('tituloSec').textContent = { resumen: 'Resumen', alumnas: 'Alumnas', asistencia: 'Asistencia', pagos: 'Pagos', cuentas: 'Cuentas' }[nombre];
+    window.scrollTo(0, 0);
     if (nombre === 'resumen' && RS.rol) RG.pintar();
   },
 
