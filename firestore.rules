@@ -65,5 +65,48 @@ service cloud.firestore {
         // abonos: se pueden agregar o quitar, nunca modificar uno existente
         && request.resource.data.abonos.diff(resource.data.abonos).changedKeys().size() == 0;
     }
+
+    // ── Rumba (rumba.html) ──
+    // Administración: las dos cuentas de Alfredo. Profesor: Sebastián Mora (solo rumba).
+    function esAdminRumba() {
+      return request.auth != null && request.auth.token.email_verified == true
+        && request.auth.token.email in ['alfredomariara@gmail.com', 'academialazostricolor@gmail.com'];
+    }
+    function esProfeRumba() {
+      return request.auth != null && request.auth.token.email_verified == true
+        && request.auth.token.email in ['zmora0211@gmail.com'];
+    }
+    function equipoRumba() { return esAdminRumba() || esProfeRumba(); }
+
+    match /rumba_alumnas/{id} {
+      allow read, create, update: if equipoRumba();
+      allow delete: if esAdminRumba();
+    }
+    match /rumba_asistencias/{fecha} {
+      allow read, create, update: if equipoRumba();
+      allow delete: if esAdminRumba();
+    }
+    // Pagos: quien registra queda firmado; el profesor solo puede ANULAR
+    // (con motivo) un pago aún no cruzado, nunca cambiar valor, fecha ni método.
+    match /rumba_pagos/{id} {
+      allow read: if equipoRumba();
+      allow create: if equipoRumba()
+                    && request.resource.data.recibidoPor == request.auth.token.email
+                    && request.resource.data.metodo in ['efectivo', 'transferencia']
+                    && request.resource.data.monto is number
+                    && request.resource.data.monto > 0
+                    && !('corteId' in request.resource.data);
+      allow update: if esAdminRumba()
+                    || (esProfeRumba()
+                        && !('corteId' in resource.data)
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['anulado', 'motivoAnulacion', '_editTs', '_editPor']));
+      allow delete: if esAdminRumba();
+    }
+    // Cruces de cuentas: los ve el equipo, los registra solo la administración.
+    match /rumba_cortes/{id} {
+      allow read: if equipoRumba();
+      allow write: if esAdminRumba();
+    }
   }
 }
