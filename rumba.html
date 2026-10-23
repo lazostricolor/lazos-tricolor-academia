@@ -88,7 +88,9 @@ label.chk input{width:auto}
 .rejilla.chica{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
 .alumna{background:var(--sup);border-radius:var(--r);padding:14px 16px;border:1px solid var(--linea);border-left:5px solid var(--gris);box-shadow:var(--sombra);display:flex;flex-direction:column}
 .alumna.rojo{border-left-color:var(--rojo)} .alumna.verde{border-left-color:var(--verde)}
-.alumna.retirada{opacity:.6}
+.alumna.retirada{border-left-color:var(--gris);border-style:dashed;border-left-style:solid;background:var(--sup2)}
+.alumna.retirada .al-nombre{color:var(--suave)}
+.btn.activar{color:var(--verde);border-color:var(--verde)}
 .al-fila{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
 .al-nombre{font-weight:700;font-size:1.05rem}
 .al-meta{color:var(--suave);font-size:.88rem}
@@ -290,7 +292,7 @@ dialog::backdrop{background:rgba(15,20,45,.55)}
       <section id="tab-alumnas">
         <div class="herr">
           <input type="search" id="buscar" class="crece" placeholder="Buscar alumna" aria-label="Buscar alumna">
-          <label class="chk"><input type="checkbox" id="verRetiradas"> Ver retiradas</label>
+          <label class="chk"><input type="checkbox" id="verRetiradas"> Ver inactivas <span id="nInactivas"></span></label>
           <button id="btnLinkInsc" class="btn der" type="button">🔗 Link de inscripción</button>
           <button id="btnNuevaAlumna" class="btn prim" type="button">＋ Agregar alumna</button>
         </div>
@@ -404,7 +406,7 @@ dialog::backdrop{background:rgba(15,20,45,.55)}
     <div class="campo"><label for="alCelular">Celular / WhatsApp</label><input type="tel" id="alCelular" maxlength="20" inputmode="tel"></div>
     <div class="campo"><label>Frecuencia de pago</label><div class="opciones" id="alFrecuencia"></div></div>
     <div class="campo"><label for="alSalud">Condición de salud (opcional)</label><textarea id="alSalud" maxlength="300"></textarea></div>
-    <label class="chk" id="alActivaWrap"><input type="checkbox" id="alActiva"> Alumna activa</label>
+    <label class="chk" id="alActivaWrap"><input type="checkbox" id="alActiva"> Alumna activa (desmárcala si deja de venir por un tiempo)</label>
     <div class="error" id="alError"></div>
     <div class="pie">
       <button class="btn peligro" type="button" id="btnEliminarAlumna" hidden>Eliminar</button>
@@ -615,12 +617,14 @@ const RUI = {
   },
   alumnas() {
     const q = RU.norm($('buscar').value), verRet = $('verRetiradas').checked;
+    const nInac = RS.alumnas.filter(a => a.activa === false).length;
+    $('nInactivas').textContent = nInac ? '(' + nInac + ')' : '';
     const lista = RS.alumnas
       .filter(a => (verRet || a.activa !== false) && (!q || RU.norm(a.nombre).includes(q)))
       .map(a => ({ a, e: RP.estado(a) }))
       .sort((x, y) => (x.a.activa === false) - (y.a.activa === false) || x.e.orden - y.e.orden || RU.norm(x.a.nombre).localeCompare(RU.norm(y.a.nombre)));
     if (!lista.length) {
-      $('listaAlumnas').innerHTML = `<li class="vacio">${RS.alumnas.length ? 'Ninguna alumna coincide con la búsqueda.' : 'Todavía no hay alumnas. Usa “Agregar alumna” para registrar la primera.'}</li>`;
+      $('listaAlumnas').innerHTML = `<li class="vacio">${!RS.alumnas.length ? 'Todavía no hay alumnas. Usa “Agregar alumna” para registrar la primera.' : q ? 'Ninguna alumna coincide con la búsqueda.' : 'No hay alumnas activas. Marca “Ver inactivas” para activar a alguna.'}</li>`;
       return;
     }
     $('listaAlumnas').innerHTML = lista.map(({ a, e }) => `
@@ -629,13 +633,16 @@ const RUI = {
           <span class="al-nombre">${RU.esc(a.nombre)}</span>
           <span class="al-meta">${a.edad ? a.edad + ' años · ' : ''}${PLANES[a.frecuencia]?.nombre || ''}</span>
         </div>
-        <div class="estado ${e.clase}">${a.activa === false ? 'Retirada' : RU.esc(e.texto)}</div>
+        <div class="estado ${a.activa === false ? 'gris' : e.clase}">${a.activa === false ? 'Inactiva' + (a._retiroFecha ? ' desde el ' + RU.fecha(a._retiroFecha, true) : '') : RU.esc(e.texto)}</div>
         ${a.celular ? `<div class="contacto">📱 <a href="${RSOL.wa(a.celular)}" target="_blank" rel="noopener">${RU.esc(a.celular)}</a></div>` : ''}
         ${a.salud ? `<div class="salud">⚕️ ${RU.esc(a.salud)}</div>` : ''}
         <div class="acciones">
           ${a.activa === false ? '' : `<button class="btn prim peq" data-accion="pago" data-id="${a.id}">Registrar pago</button>`}
           <button class="btn peq" data-accion="historial" data-id="${a.id}">Historial</button>
           <button class="btn peq" data-accion="editar" data-id="${a.id}">Editar</button>
+          ${a.activa === false
+            ? `<button class="btn peq activar" data-accion="activar" data-id="${a.id}">Activar</button>`
+            : `<button class="btn peq" data-accion="desactivar" data-id="${a.id}">Desactivar</button>`}
         </div>
       </li>`).join('');
   },
@@ -909,7 +916,18 @@ const RSOL = {
   async aprobarSol(id) {
     const s = RS.solicitudes.find(x => x.id === id); if (!s || s.estado !== 'pendiente') return;
     const igual = RS.alumnas.find(a => RU.norm(a.nombre) === RU.norm(s.nombre));
-    if (igual && !confirm('Ya existe una alumna llamada ' + igual.nombre + '. ¿Agregarla de todas formas?')) return;
+    if (igual && igual.activa === false && confirm(igual.nombre + ' ya está registrada pero inactiva. ¿Activarla de nuevo en vez de crear otra?')) {
+      try {
+        const lote = writeBatch(db);
+        lote.update(doc(db, COL.alumnas, igual.id), { activa: true, _retiroFecha: null, frecuencia: s.frecuencia,
+          ...(s.celular ? { celular: s.celular } : {}), ...(s.salud ? { salud: s.salud } : {}), ...RD.sello() });
+        lote.update(doc(db, COL.solicitudes, s.id), { estado: 'aprobada', alumnaId: igual.id, ...RD.sello() });
+        await lote.commit();
+        RUI.toast(igual.nombre + ' está activa de nuevo');
+      } catch (e) { RUI.toast(RD.errorTexto(e), true); }
+      return;
+    }
+    if (igual && igual.activa !== false && !confirm('Ya existe una alumna llamada ' + igual.nombre + '. ¿Agregarla de todas formas?')) return;
     try {
       const ref = doc(collection(db, COL.alumnas));
       const lote = writeBatch(db);
@@ -1048,14 +1066,24 @@ const RA = {
     finally { btn.disabled = false; btn.textContent = 'Guardar alumna'; }
   },
 
+  async cambiarActiva(id, activa) {
+    const a = RS.alumnas.find(x => x.id === id); if (!a || (a.activa !== false) === activa) return;
+    try {
+      await updateDoc(doc(db, COL.alumnas, id), { activa, _retiroFecha: activa ? null : RU.hoy(), ...RD.sello() });
+      RUI.toast(a.nombre + (activa ? ' está activa de nuevo' : ' quedó inactiva'));
+    } catch (e) { RUI.toast(RD.errorTexto(e), true); }
+  },
   async eliminarAlumna() {
     if (RS.rol !== 'admin' || !RS.editandoId) return;
     const a = RS.alumnas.find(x => x.id === RS.editandoId); if (!a) return;
     const suyos = RS.pagos.filter(p => p.alumnaId === a.id);
     const vivos = suyos.filter(p => !p.anulado || p.corteId);
     if (vivos.length) return void ($('alError').textContent = a.nombre + ' tiene ' + vivos.length + (vivos.length === 1 ? ' pago registrado' : ' pagos registrados') +
-      '. Para no descuadrar las cuentas, anula esos pagos primero o desmarca "Alumna activa" para retirarla.');
-    if (!confirm('¿Eliminar a ' + a.nombre + ' definitivamente? Esto no se puede deshacer.')) return;
+      '. Para no descuadrar las cuentas, mejor desactívala; si de verdad quieres borrarla, anula esos pagos primero.');
+    if (!confirm('¿Eliminar a ' + a.nombre + ' definitivamente? Esto no se puede deshacer.\n\nSi solo deja de venir por un tiempo, usa Desactivar.')) return;
+    const clave = prompt('Para confirmar, escribe ELIMINAR');
+    if (clave === null) return;
+    if (clave.trim().toUpperCase() !== 'ELIMINAR') return void ($('alError').textContent = 'No se eliminó: la palabra de confirmación no coincide.');
     const btn = $('btnEliminarAlumna'); btn.disabled = true; btn.textContent = 'Eliminando…';
     try {
       const lote = writeBatch(db);
@@ -1214,6 +1242,8 @@ document.addEventListener('click', e => {
     editar: () => RA.abrirAlumna(id),
     anular: () => RA.anular(id),
     marcar: () => RAS.marcar(id),
+    activar: () => RA.cambiarActiva(id, true),
+    desactivar: () => RA.cambiarActiva(id, false),
     aprobarSol: () => RSOL.aprobarSol(id),
     rechazarSol: () => RSOL.rechazarSol(id),
     copiarCorte: () => { const c = RS.cortes.find(x => x.id === id); if (c) RU.copiar(RP.whatsappCorte(c)); }
