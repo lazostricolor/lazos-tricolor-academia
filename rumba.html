@@ -94,6 +94,14 @@ label.chk input{width:auto}
 .estado.rojo{color:var(--rojo)} .estado.verde{color:var(--verde)} .estado.gris{color:var(--gris)}
 .acciones{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;padding-top:12px}
 .vacio{background:var(--sup);border:1px dashed var(--linea);border-radius:var(--r);padding:28px;text-align:center;color:var(--suave);grid-column:1/-1}
+.contacto{font-size:.88rem;color:var(--suave);margin-top:4px}
+.contacto a{color:var(--primary);font-weight:700;text-decoration:none}
+.salud{font-size:.84rem;background:var(--rojo-lt);color:var(--rojo);border-radius:8px;padding:5px 9px;margin-top:8px}
+.caja-sol{border:2px solid var(--sol);background:var(--sup);border-radius:var(--r);padding:16px;margin-bottom:18px}
+.caja-sol .cabecera-sec{margin:0 0 12px}
+.alumna.sol{border-left-color:var(--sol)}
+.badge{margin-left:auto;background:var(--rojo);color:#fff;border-radius:999px;font-size:.72rem;font-weight:700;padding:1px 7px;line-height:1.5}
+textarea{background:var(--sup);border:1.5px solid var(--linea);border-radius:10px;padding:10px 12px;width:100%;font:inherit;color:inherit;min-height:64px;resize:vertical}
 
 /* Asistencia */
 .asis{background:var(--sup);border-radius:var(--r);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;border:2px solid var(--linea);text-align:left;font-weight:700;min-height:62px}
@@ -205,6 +213,8 @@ dialog::backdrop{background:rgba(15,20,45,.55)}
   .menu-movil{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--sup);border-top:1px solid var(--linea);padding:6px 4px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -4px 16px rgba(0,0,0,.06)}
   .menu-movil .tab{background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;border-radius:10px;font-size:.72rem;font-weight:700;color:var(--suave)}
   .menu-movil .tab .ico{font-size:1.25rem;width:auto}
+  .menu-movil .tab{position:relative}
+  .menu-movil .badge{position:absolute;top:2px;right:16%;margin:0}
   .menu-movil .tab[aria-selected="true"]{color:var(--primary);background:var(--primary-lt)}
   .rejilla,.rejilla.ancha,.rejilla.chica{grid-template-columns:1fr}
   .herr .der{margin-left:0}
@@ -246,7 +256,7 @@ dialog::backdrop{background:rgba(15,20,45,.55)}
     <nav class="menu" role="tablist" aria-label="Secciones de rumba">
       <div class="menu-sec">RUMBA</div>
       <button class="tab" role="tab" data-tab="resumen" aria-selected="false"><span class="ico">📊</span>Resumen</button>
-      <button class="tab" role="tab" data-tab="alumnas" aria-selected="true"><span class="ico">💃</span>Alumnas</button>
+      <button class="tab" role="tab" data-tab="alumnas" aria-selected="true"><span class="ico">💃</span>Alumnas<span class="badge" data-badge-sol hidden></span></button>
       <button class="tab" role="tab" data-tab="asistencia" aria-selected="false"><span class="ico">📋</span>Asistencia</button>
       <button class="tab" role="tab" data-tab="pagos" aria-selected="false"><span class="ico">💳</span>Pagos</button>
       <button class="tab" role="tab" data-tab="cuentas" aria-selected="false"><span class="ico">🤝</span>Cuentas</button>
@@ -279,7 +289,12 @@ dialog::backdrop{background:rgba(15,20,45,.55)}
         <div class="herr">
           <input type="search" id="buscar" class="crece" placeholder="Buscar alumna" aria-label="Buscar alumna">
           <label class="chk"><input type="checkbox" id="verRetiradas"> Ver retiradas</label>
-          <button id="btnNuevaAlumna" class="btn prim der" type="button">＋ Agregar alumna</button>
+          <button id="btnLinkInsc" class="btn der" type="button">🔗 Link de inscripción</button>
+          <button id="btnNuevaAlumna" class="btn prim" type="button">＋ Agregar alumna</button>
+        </div>
+        <div id="cajaSol" class="caja-sol" hidden>
+          <div class="cabecera-sec"><h3 class="seccion" id="solTitulo">Solicitudes nuevas</h3></div>
+          <ul id="listaSol" class="lista rejilla"></ul>
         </div>
         <ul id="listaAlumnas" class="lista rejilla"></ul>
       </section>
@@ -368,7 +383,7 @@ dialog::backdrop{background:rgba(15,20,45,.55)}
 
   <nav class="menu-movil" role="tablist" aria-label="Secciones de rumba">
     <button class="tab" role="tab" data-tab="resumen" aria-selected="false"><span class="ico">📊</span>Resumen</button>
-    <button class="tab" role="tab" data-tab="alumnas" aria-selected="true"><span class="ico">💃</span>Alumnas</button>
+    <button class="tab" role="tab" data-tab="alumnas" aria-selected="true"><span class="ico">💃</span>Alumnas<span class="badge" data-badge-sol hidden></span></button>
     <button class="tab" role="tab" data-tab="asistencia" aria-selected="false"><span class="ico">📋</span>Asistencia</button>
     <button class="tab" role="tab" data-tab="pagos" aria-selected="false"><span class="ico">💳</span>Pagos</button>
     <button class="tab" role="tab" data-tab="cuentas" aria-selected="false"><span class="ico">🤝</span>Cuentas</button>
@@ -384,7 +399,9 @@ dialog::backdrop{background:rgba(15,20,45,.55)}
       <div class="campo"><label for="alEdad">Edad</label><input type="number" id="alEdad" min="1" max="110" inputmode="numeric"></div>
       <div class="campo"><label for="alIngreso">Fecha de ingreso</label><input type="date" id="alIngreso"></div>
     </div>
+    <div class="campo"><label for="alCelular">Celular / WhatsApp</label><input type="tel" id="alCelular" maxlength="20" inputmode="tel"></div>
     <div class="campo"><label>Frecuencia de pago</label><div class="opciones" id="alFrecuencia"></div></div>
+    <div class="campo"><label for="alSalud">Condición de salud (opcional)</label><textarea id="alSalud" maxlength="300"></textarea></div>
     <label class="chk" id="alActivaWrap"><input type="checkbox" id="alActiva"> Alumna activa</label>
     <div class="error" id="alError"></div>
     <div class="pie">
@@ -461,7 +478,7 @@ const PLANES = {
   semanal: { nombre: 'Semanal' },
   mensual: { nombre: 'Mensual' }
 };
-const COL = { alumnas: 'rumba_alumnas', pagos: 'rumba_pagos', cortes: 'rumba_cortes', asistencias: 'rumba_asistencias' };
+const COL = { alumnas: 'rumba_alumnas', pagos: 'rumba_pagos', cortes: 'rumba_cortes', asistencias: 'rumba_asistencias', solicitudes: 'rumba_solicitudes' };
 
 const app  = initializeApp(RUMBA_CONFIG.firebase);
 const auth = getAuth(app);
@@ -469,7 +486,7 @@ const db   = getFirestore(app);
 const $ = id => document.getElementById(id);
 
 /* Estado en memoria */
-const RS = { email: '', rol: null, alumnas: [], pagos: [], cortes: [], asistencias: [], tab: 'alumnas', editandoId: null, pagoAlumnaId: null, asisFecha: '', asisMarcas: new Set(), asisSucio: false };
+const RS = { email: '', rol: null, alumnas: [], pagos: [], cortes: [], asistencias: [], solicitudes: [], tab: 'alumnas', editandoId: null, pagoAlumnaId: null, asisFecha: '', asisMarcas: new Set(), asisSucio: false };
 
 /* ==========================================================================
    RU — utilidades de fecha, dinero y texto
@@ -590,7 +607,7 @@ const RUI = {
   },
   render() {
     if (!RS.rol) return;
-    RUI.alumnas(); RUI.pagos(); RUI.cuentas(); RAS.pintarLista(); RG.pintar();
+    RUI.alumnas(); RUI.pagos(); RUI.cuentas(); RAS.pintarLista(); RG.pintar(); RSOL.pintarSol();
     if (RS.historialId) RA.pintarHistorial();
   },
   alumnas() {
@@ -610,6 +627,8 @@ const RUI = {
           <span class="al-meta">${a.edad ? a.edad + ' años · ' : ''}${PLANES[a.frecuencia]?.nombre || ''}</span>
         </div>
         <div class="estado ${e.clase}">${a.activa === false ? 'Retirada' : RU.esc(e.texto)}</div>
+        ${a.celular ? `<div class="contacto">📱 <a href="${RSOL.wa(a.celular)}" target="_blank" rel="noopener">${RU.esc(a.celular)}</a></div>` : ''}
+        ${a.salud ? `<div class="salud">⚕️ ${RU.esc(a.salud)}</div>` : ''}
         <div class="acciones">
           ${a.activa === false ? '' : `<button class="btn prim peq" data-accion="pago" data-id="${a.id}">Registrar pago</button>`}
           <button class="btn peq" data-accion="historial" data-id="${a.id}">Historial</button>
@@ -862,6 +881,57 @@ const RG = {
 };
 
 /* ==========================================================================
+   RSOL — solicitudes que llegan desde inscripcion-rumba.html
+   ========================================================================== */
+const RSOL = {
+  link() { return location.origin + location.pathname.replace(/[^/]*$/, '') + 'inscripcion-rumba.html'; },
+  wa(cel) {
+    const d = String(cel || '').replace(/\D/g, '');
+    return d ? 'https://wa.me/' + (d.length === 10 ? '57' + d : d) : '#';
+  },
+  pendientesSol() { return RS.solicitudes.filter(s => s.estado === 'pendiente').sort((a, b) => (a.creadoTs || 0) - (b.creadoTs || 0)); },
+  pintarSol() {
+    const lista = RSOL.pendientesSol();
+    document.querySelectorAll('[data-badge-sol]').forEach(b => { b.hidden = !lista.length; b.textContent = lista.length; });
+    $('cajaSol').hidden = !lista.length;
+    $('solTitulo').textContent = lista.length === 1 ? '1 solicitud nueva' : lista.length + ' solicitudes nuevas';
+    $('listaSol').innerHTML = lista.map(s => `
+      <li class="alumna sol">
+        <div class="al-fila"><span class="al-nombre">${RU.esc(s.nombre)}</span><span class="al-meta">${s.edad ? s.edad + ' años · ' : ''}${PLANES[s.frecuencia]?.nombre || ''}</span></div>
+        <div class="contacto">📱 <a href="${RSOL.wa(s.celular)}" target="_blank" rel="noopener">${RU.esc(s.celular)}</a> · ${RU.fecha(s.fecha, true)}</div>
+        ${s.salud ? `<div class="salud">⚕️ ${RU.esc(s.salud)}</div>` : ''}
+        <div class="acciones"><button class="btn prim peq" data-accion="aprobarSol" data-id="${s.id}">Aprobar</button><button class="btn peq" data-accion="rechazarSol" data-id="${s.id}">Rechazar</button></div>
+      </li>`).join('');
+  },
+  async aprobarSol(id) {
+    const s = RS.solicitudes.find(x => x.id === id); if (!s || s.estado !== 'pendiente') return;
+    const igual = RS.alumnas.find(a => RU.norm(a.nombre) === RU.norm(s.nombre));
+    if (igual && !confirm('Ya existe una alumna llamada ' + igual.nombre + '. ¿Agregarla de todas formas?')) return;
+    try {
+      const ref = doc(collection(db, COL.alumnas));
+      const lote = writeBatch(db);
+      lote.set(ref, { nombre: s.nombre, edad: s.edad ?? null, frecuencia: s.frecuencia, fechaIngreso: RU.hoy(), activa: true,
+        celular: s.celular || '', salud: s.salud || '', solicitudId: s.id, creadoPor: RS.email, _creadoTs: serverTimestamp(), ...RD.sello() });
+      lote.update(doc(db, COL.solicitudes, s.id), { estado: 'aprobada', alumnaId: ref.id, ...RD.sello() });
+      await lote.commit();
+      RUI.toast(s.nombre + ' quedó inscrita');
+    } catch (e) { RUI.toast(RD.errorTexto(e), true); }
+  },
+  async rechazarSol(id) {
+    const s = RS.solicitudes.find(x => x.id === id); if (!s || s.estado !== 'pendiente') return;
+    if (!confirm('¿Rechazar la solicitud de ' + s.nombre + '?')) return;
+    try {
+      await updateDoc(doc(db, COL.solicitudes, s.id), { estado: 'rechazada', ...RD.sello() });
+      RUI.toast('Solicitud rechazada');
+    } catch (e) { RUI.toast(RD.errorTexto(e), true); }
+  },
+  copiarLink() {
+    RU.copiar('💃 *Rumba · Lazos Tricolor*\n🗓️ Lunes, miércoles y viernes\n⏰ ' + RUMBA_CONFIG.horario +
+      '\n💰 Clase $5.000 · Semana $12.000 · Mes $40.000\n\n📝 Inscríbete aquí:\n' + RSOL.link());
+  }
+};
+
+/* ==========================================================================
    RD — lectura y escritura en Firestore (solo colecciones rumba_*)
    ========================================================================== */
 const RD = {
@@ -872,6 +942,9 @@ const RD = {
       s => { RS[campo] = s.docs.map(d => ({ id: d.id, ...d.data() })); RUI.render(); },
       e => RUI.toast(e.code === 'permission-denied' ? 'Firestore rechazó la lectura: revisa que las reglas de rumba estén publicadas y que este correo esté en ellas.' : 'Error al leer datos: ' + e.message, true));
     RD.off = [leer(COL.alumnas, 'alumnas'), leer(COL.pagos, 'pagos'), leer(COL.cortes, 'cortes'), leer(COL.asistencias, 'asistencias')];
+    RD.off.push(onSnapshot(collection(db, COL.solicitudes),
+      s => { RS.solicitudes = s.docs.map(d => ({ id: d.id, ...d.data() })); RSOL.pintarSol(); },
+      e => console.warn('Solicitudes de rumba:', e.code)));
   },
   parar() { RD.off.forEach(f => f()); RD.off = []; },
   sello() { return { _editTs: Date.now(), _editPor: RS.email }; },
@@ -928,6 +1001,8 @@ const RA = {
     $('alNombre').value = a?.nombre || '';
     $('alEdad').value = a?.edad ?? '';
     $('alIngreso').value = a?.fechaIngreso || RU.hoy();
+    $('alCelular').value = a?.celular || '';
+    $('alSalud').value = a?.salud || '';
     const frec = a?.frecuencia || 'mensual';
     document.querySelectorAll('input[name="alFrec"]').forEach(r => { r.checked = r.value === frec; });
     $('alActivaWrap').hidden = !a; $('alActiva').checked = a ? a.activa !== false : true;
@@ -940,6 +1015,8 @@ const RA = {
     const edad = edadTxt === '' ? null : parseInt(edadTxt, 10);
     const frecuencia = document.querySelector('input[name="alFrec"]:checked')?.value;
     const fechaIngreso = $('alIngreso').value;
+    const celular = $('alCelular').value.trim().slice(0, 20);
+    const salud = $('alSalud').value.trim().slice(0, 300);
     if (nombre.length < 3) return void ($('alError').textContent = 'Escribe el nombre completo.');
     if (edad !== null && (isNaN(edad) || edad < 1 || edad > 110)) return void ($('alError').textContent = 'La edad no es válida.');
     if (!frecuencia) return void ($('alError').textContent = 'Elige la frecuencia de pago.');
@@ -951,7 +1028,7 @@ const RA = {
     try {
       if (RS.editandoId) {
         const a = RS.alumnas.find(x => x.id === RS.editandoId);
-        const nuevos = { nombre, edad, frecuencia, fechaIngreso, activa: $('alActiva').checked };
+        const nuevos = { nombre, edad, frecuencia, fechaIngreso, celular, salud, activa: $('alActiva').checked };
         const cambios = {};
         Object.keys(nuevos).forEach(k => { if ((a[k] ?? null) !== nuevos[k]) cambios[k] = nuevos[k]; });
         if ('activa' in cambios) cambios._retiroFecha = cambios.activa ? null : RU.hoy();
@@ -959,7 +1036,7 @@ const RA = {
         await updateDoc(doc(db, COL.alumnas, RS.editandoId), { ...cambios, ...RD.sello() });
         RUI.toast('Alumna actualizada');
       } else {
-        await addDoc(collection(db, COL.alumnas), { nombre, edad, frecuencia, fechaIngreso, activa: true, creadoPor: RS.email, _creadoTs: serverTimestamp(), ...RD.sello() });
+        await addDoc(collection(db, COL.alumnas), { nombre, edad, frecuencia, fechaIngreso, celular, salud, activa: true, creadoPor: RS.email, _creadoTs: serverTimestamp(), ...RD.sello() });
         RUI.toast('Alumna agregada');
       }
       $('dlgAlumna').close();
@@ -1094,6 +1171,7 @@ $('pgDesde').addEventListener('change', RA.cubrePago);
 $('corteSemanas').addEventListener('input', RUI.pintarCorte);
 $('btnCorte').addEventListener('click', RA.registrarCorte);
 $('btnCopiarPend').addEventListener('click', () => RU.copiar(RG.textoPendientes()));
+$('btnLinkInsc').addEventListener('click', RSOL.copiarLink);
 $('asFecha').addEventListener('change', () => {
   if (RS.asisSucio && !confirm('Tienes cambios de asistencia sin guardar. ¿Cambiar de fecha de todas formas?')) { $('asFecha').value = RS.asisFecha; return; }
   if ($('asFecha').value) RAS.cambiarFecha($('asFecha').value);
@@ -1111,6 +1189,8 @@ document.addEventListener('click', e => {
     editar: () => RA.abrirAlumna(id),
     anular: () => RA.anular(id),
     marcar: () => RAS.marcar(id),
+    aprobarSol: () => RSOL.aprobarSol(id),
+    rechazarSol: () => RSOL.rechazarSol(id),
     copiarCorte: () => { const c = RS.cortes.find(x => x.id === id); if (c) RU.copiar(RP.whatsappCorte(c)); }
   })[b.dataset.accion]?.();
 });

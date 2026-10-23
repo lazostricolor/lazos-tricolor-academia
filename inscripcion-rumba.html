@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inscripción Rumba · Lazos Tricolor</title>
+<meta name="description" content="Inscríbete a las clases de rumba de la Academia de Danzas Lazos Tricolor en Soacha.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --primary:#3a57e8; --primary-lt:#eef0fd; --primary-dk:#2a42c2;
+  --fondo:#f0f2f5; --sup:#ffffff; --tinta:#232d42; --suave:#6b7489; --linea:#e6e9ef;
+  --sol:#F4B400; --solTinta:#3A2A00; --rojo:#c03221; --verde:#1aa053; --verde-lt:#e8f5ee;
+  font-family:'Atkinson Hyperlegible',system-ui,sans-serif; color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root{ --primary:#7d93ff; --primary-lt:#252f63; --primary-dk:#9aabff;
+    --fondo:#0f1324; --sup:#171c33; --tinta:#eef1fa; --suave:#a7aec6; --linea:#2a3150;
+    --rojo:#f06272; --verde:#4cc27e; --verde-lt:#173326; color-scheme:dark; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--tinta);font-size:16px;line-height:1.5}
+h1,h2{font-family:'Bricolage Grotesque',system-ui,sans-serif;margin:0;line-height:1.05}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--sol);outline-offset:2px}
+[hidden]{display:none!important}
+
+.portada{background:linear-gradient(160deg,#2a42c2 0%,#3a57e8 60%,#5a74f0 100%);color:#fff;padding:22px 18px 84px;text-align:center}
+.portada img{background:#fff;border-radius:14px;padding:6px 12px;height:58px;width:auto}
+.portada h1{font-size:clamp(3rem,14vw,4.4rem);font-weight:800;letter-spacing:-.02em;margin-top:18px}
+.portada p{margin:6px 0 0;color:#dfe5ff}
+.horario{display:inline-flex;align-items:center;gap:10px;margin-top:16px;background:rgba(255,255,255,.14);border-radius:999px;padding:6px 14px 6px 6px}
+.dias{display:flex;gap:5px}
+.dia{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--sol);color:var(--solTinta);font-family:'Bricolage Grotesque';font-weight:800}
+.horario strong{font-size:.95rem}
+
+.tarjeta{background:var(--sup);border-radius:20px;box-shadow:0 10px 40px rgba(35,45,66,.12);width:calc(100% - 24px);max-width:520px;margin:-60px auto 32px;padding:24px 20px;position:relative}
+@media (min-width:560px){ .tarjeta{padding:30px 32px} }
+.tarjeta h2{font-size:1.5rem;margin-bottom:4px}
+.intro{color:var(--suave);margin:0 0 18px}
+.campo{margin-bottom:16px}
+.campo label,.etiqueta{display:block;font-weight:700;margin-bottom:6px}
+.campo small{display:block;color:var(--suave);font-weight:400;margin-top:4px}
+input,textarea{width:100%;background:var(--sup);border:1.5px solid var(--linea);border-radius:12px;padding:12px 14px}
+textarea{min-height:80px;resize:vertical}
+input:focus,textarea:focus{border-color:var(--primary);outline:none;box-shadow:0 0 0 3px var(--primary-lt)}
+.planes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.plan{position:relative}
+.plan input{position:absolute;opacity:0;inset:0}
+.plan span{display:block;border:2px solid var(--linea);border-radius:14px;padding:12px 6px;text-align:center;font-weight:700;cursor:pointer}
+.plan b{display:block;font-family:'Bricolage Grotesque';font-size:1.25rem;color:var(--primary)}
+.plan small{display:block;font-weight:400;color:var(--suave);font-size:.8rem}
+.plan input:checked + span{border-color:var(--primary);background:var(--primary-lt)}
+.plan input:focus-visible + span{outline:3px solid var(--sol);outline-offset:2px}
+.acepto{display:flex;gap:10px;align-items:flex-start;font-size:.88rem;color:var(--suave);margin:4px 0 18px}
+.acepto input{width:20px;height:20px;flex:none;margin-top:2px;accent-color:var(--primary)}
+.enviar{width:100%;border:0;border-radius:999px;background:var(--primary);color:#fff;font-weight:700;font-size:1.05rem;padding:15px;cursor:pointer}
+.enviar:hover{background:var(--primary-dk)}
+.enviar:disabled{opacity:.6;cursor:wait}
+.error{color:var(--rojo);font-weight:700;min-height:1.4em;margin:-6px 0 10px}
+
+.listo{text-align:center;padding:10px 0}
+.listo .ok{width:72px;height:72px;border-radius:50%;background:var(--verde-lt);color:var(--verde);display:grid;place-items:center;font-size:2.2rem;margin:0 auto 14px}
+.listo p{color:var(--suave)}
+.otra{background:none;border:1.5px solid var(--linea);border-radius:999px;padding:10px 18px;font-weight:700;cursor:pointer;margin-top:8px}
+.pie{text-align:center;color:var(--suave);font-size:.82rem;padding:0 16px 28px}
+</style>
+</head>
+<body>
+<header class="portada">
+  <img src="logo.png" alt="Academia de Danzas Lazos Tricolor">
+  <h1>Rumba</h1>
+  <p>Bailoterapia con el profe Sebastián Mora</p>
+  <div class="horario"><div class="dias"><span class="dia" title="Lunes">L</span><span class="dia" title="Miércoles">M</span><span class="dia" title="Viernes">V</span></div><strong>8:30 a 10:00 a. m.</strong></div>
+</header>
+
+<main class="tarjeta">
+  <form id="form" novalidate>
+    <h2>Inscríbete</h2>
+    <p class="intro">Llena tus datos y el profe te confirma por WhatsApp.</p>
+
+    <div class="campo"><label for="nombre">Nombre completo</label><input id="nombre" autocomplete="name" maxlength="80" required></div>
+    <div class="campo"><label for="celular">Celular / WhatsApp</label><input id="celular" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="300 123 4567" required></div>
+    <div class="campo"><label for="edad">Edad</label><input id="edad" type="number" inputmode="numeric" min="1" max="110"></div>
+
+    <div class="campo">
+      <span class="etiqueta" id="lblPlan">¿Cómo prefieres pagar?</span>
+      <div class="planes" role="radiogroup" aria-labelledby="lblPlan">
+        <label class="plan"><input type="radio" name="plan" value="diaria"><span>Por clase<b>$5.000</b><small>cada clase</small></span></label>
+        <label class="plan"><input type="radio" name="plan" value="semanal"><span>Semanal<b>$12.000</b><small>3 clases</small></span></label>
+        <label class="plan"><input type="radio" name="plan" value="mensual" checked><span>Mensual<b>$40.000</b><small>todo el mes</small></span></label>
+      </div>
+    </div>
+
+    <div class="campo"><label for="salud">¿Alguna condición de salud que el profe deba saber? <small>Opcional. Por ejemplo: problemas de rodilla, presión, embarazo.</small></label><textarea id="salud" maxlength="300"></textarea></div>
+
+    <label class="acepto"><input type="checkbox" id="autoriza"><span>Autorizo a la Academia de Danzas Lazos Tricolor a tratar mis datos, incluida la información de salud que comparta, solo para organizar las clases de rumba y contactarme (Ley 1581 de 2012).</span></label>
+
+    <p class="error" id="error" role="alert"></p>
+    <button class="enviar" id="btnEnviar" type="submit">Enviar inscripción</button>
+  </form>
+
+  <section class="listo" id="listo" hidden aria-live="polite">
+    <div class="ok" aria-hidden="true">✓</div>
+    <h2 id="listoTitulo">¡Listo!</h2>
+    <p>Recibimos tu inscripción. El profe Sebastián te escribirá por WhatsApp para confirmarte. ¡Nos vemos en clase!</p>
+    <button class="otra" id="btnOtra" type="button">Inscribir a otra persona</button>
+  </section>
+</main>
+<p class="pie">Academia de Danzas Lazos Tricolor · Soacha, Cundinamarca</p>
+
+<script>
+(function(){
+  var URL_SOL = 'https://firestore.googleapis.com/v1/projects/lazos-tricolor-academia/databases/(default)/documents/rumba_solicitudes?key=AIzaSyCIj32zyCreKyCGJSMo6T5yTDhMeqctpG4';
+  var $ = function(id){ return document.getElementById(id); };
+  function hoy(){ var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function error(msg, campo){ $('error').textContent = msg; if (campo) $(campo).focus(); }
+
+  $('form').addEventListener('submit', async function(e){
+    e.preventDefault();
+    error('');
+    var nombre = $('nombre').value.trim().replace(/\s+/g, ' ');
+    var celular = $('celular').value.trim();
+    var digitos = celular.replace(/\D/g, '');
+    var edadTxt = $('edad').value.trim();
+    var edad = edadTxt === '' ? null : parseInt(edadTxt, 10);
+    var plan = (document.querySelector('input[name="plan"]:checked') || {}).value;
+    var salud = $('salud').value.trim();
+    if (nombre.length < 3 || nombre.indexOf(' ') < 0) return error('Escribe tu nombre y apellido.', 'nombre');
+    if (digitos.length < 7 || digitos.length > 15) return error('Escribe un número de celular válido.', 'celular');
+    if (edad !== null && (isNaN(edad) || edad < 1 || edad > 110)) return error('La edad no es válida.', 'edad');
+    if (!plan) return error('Elige cómo prefieres pagar.');
+    if (!$('autoriza').checked) return error('Para inscribirte debes autorizar el uso de tus datos.', 'autoriza');
+
+    var campos = {
+      nombre: { stringValue: nombre },
+      celular: { stringValue: celular.slice(0, 20) },
+      frecuencia: { stringValue: plan },
+      autoriza: { booleanValue: true },
+      estado: { stringValue: 'pendiente' },
+      fecha: { stringValue: hoy() },
+      creadoTs: { integerValue: String(Date.now()) }
+    };
+    if (edad !== null) campos.edad = { integerValue: String(edad) };
+    if (salud) campos.salud = { stringValue: salud.slice(0, 300) };
+
+    var btn = $('btnEnviar'); btn.disabled = true; btn.textContent = 'Enviando…';
+    try {
+      var r = await fetch(URL_SOL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: campos }) });
+      if (!r.ok) throw new Error(r.status);
+      $('listoTitulo').textContent = '¡Listo, ' + nombre.split(' ')[0] + '!';
+      $('form').hidden = true; $('listo').hidden = false;
+      window.scrollTo(0, 0);
+    } catch (err) {
+      error(navigator.onLine ? 'No se pudo enviar. Intenta de nuevo en un momento.' : 'No tienes conexión. Revisa tu internet e intenta de nuevo.');
+    } finally { btn.disabled = false; btn.textContent = 'Enviar inscripción'; }
+  });
+
+  $('btnOtra').addEventListener('click', function(){
+    $('form').reset(); $('listo').hidden = true; $('form').hidden = false; $('nombre').focus();
+  });
+})();
+</script>
+</body>
+</html>

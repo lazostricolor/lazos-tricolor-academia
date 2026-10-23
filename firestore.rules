@@ -108,5 +108,26 @@ service cloud.firestore {
       allow read: if equipoRumba();
       allow write: if esAdminRumba();
     }
+    // Inscripción pública (inscripcion-rumba.html): cualquiera puede ENVIAR una
+    // solicitud con datos válidos; solo el equipo de rumba la ve y la aprueba.
+    match /rumba_solicitudes/{id} {
+      allow create: if request.resource.data.keys().hasAll(['nombre', 'celular', 'frecuencia', 'autoriza', 'estado', 'fecha', 'creadoTs'])
+                    && request.resource.data.keys().hasOnly(['nombre', 'edad', 'celular', 'frecuencia', 'salud', 'autoriza', 'estado', 'fecha', 'creadoTs'])
+                    && request.resource.data.nombre is string
+                    && request.resource.data.nombre.size() >= 3 && request.resource.data.nombre.size() <= 80
+                    && request.resource.data.celular is string
+                    && request.resource.data.celular.size() >= 7 && request.resource.data.celular.size() <= 20
+                    && request.resource.data.frecuencia in ['diaria', 'semanal', 'mensual']
+                    && request.resource.data.autoriza == true
+                    && request.resource.data.estado == 'pendiente'
+                    && request.resource.data.fecha is string && request.resource.data.fecha.size() == 10
+                    && request.resource.data.creadoTs is int
+                    && (!('edad' in request.resource.data)
+                        || (request.resource.data.edad is int && request.resource.data.edad >= 1 && request.resource.data.edad <= 110))
+                    && (!('salud' in request.resource.data)
+                        || (request.resource.data.salud is string && request.resource.data.salud.size() <= 300));
+      allow read, update: if equipoRumba();
+      allow delete: if esAdminRumba();
+    }
   }
 }
