@@ -75,6 +75,8 @@ input,select{background:var(--sup);border:1.5px solid var(--linea);border-radius
 .btn.prim:hover{background:var(--primary-dk);border-color:var(--primary-dk)}
 @media (prefers-color-scheme:dark){ .btn.prim{background:var(--banda);border-color:var(--banda)} }
 .btn.peq{padding:6px 12px;font-size:.86rem}
+.btn.peligro{color:var(--rojo);border-color:var(--rojo-lt);margin-right:auto}
+.btn.peligro:hover{background:var(--rojo-lt)}
 .btn:disabled{opacity:.55;cursor:wait}
 label.chk{display:flex;gap:6px;align-items:center;font-size:.9rem;color:var(--suave);white-space:nowrap}
 label.chk input{width:auto}
@@ -405,6 +407,7 @@ dialog::backdrop{background:rgba(15,20,45,.55)}
     <label class="chk" id="alActivaWrap"><input type="checkbox" id="alActiva"> Alumna activa</label>
     <div class="error" id="alError"></div>
     <div class="pie">
+      <button class="btn peligro" type="button" id="btnEliminarAlumna" hidden>Eliminar</button>
       <button class="btn" type="button" data-cerrar="dlgAlumna">Cancelar</button>
       <button class="btn prim" type="button" id="btnGuardarAlumna">Guardar alumna</button>
     </div>
@@ -1006,6 +1009,7 @@ const RA = {
     const frec = a?.frecuencia || 'mensual';
     document.querySelectorAll('input[name="alFrec"]').forEach(r => { r.checked = r.value === frec; });
     $('alActivaWrap').hidden = !a; $('alActiva').checked = a ? a.activa !== false : true;
+    $('btnEliminarAlumna').hidden = !a || RS.rol !== 'admin';
     $('alError').textContent = '';
     $('dlgAlumna').showModal(); $('alNombre').focus();
   },
@@ -1042,6 +1046,26 @@ const RA = {
       $('dlgAlumna').close();
     } catch (e) { $('alError').textContent = RD.errorTexto(e); }
     finally { btn.disabled = false; btn.textContent = 'Guardar alumna'; }
+  },
+
+  async eliminarAlumna() {
+    if (RS.rol !== 'admin' || !RS.editandoId) return;
+    const a = RS.alumnas.find(x => x.id === RS.editandoId); if (!a) return;
+    const suyos = RS.pagos.filter(p => p.alumnaId === a.id);
+    const vivos = suyos.filter(p => !p.anulado || p.corteId);
+    if (vivos.length) return void ($('alError').textContent = a.nombre + ' tiene ' + vivos.length + (vivos.length === 1 ? ' pago registrado' : ' pagos registrados') +
+      '. Para no descuadrar las cuentas, anula esos pagos primero o desmarca "Alumna activa" para retirarla.');
+    if (!confirm('¿Eliminar a ' + a.nombre + ' definitivamente? Esto no se puede deshacer.')) return;
+    const btn = $('btnEliminarAlumna'); btn.disabled = true; btn.textContent = 'Eliminando…';
+    try {
+      const lote = writeBatch(db);
+      lote.delete(doc(db, COL.alumnas, a.id));
+      suyos.forEach(p => lote.delete(doc(db, COL.pagos, p.id)));
+      await lote.commit();
+      $('dlgAlumna').close();
+      RUI.toast(a.nombre + ' fue eliminada');
+    } catch (e) { $('alError').textContent = RD.errorTexto(e); }
+    finally { btn.disabled = false; btn.textContent = 'Eliminar'; }
   },
 
   /* Pagos */
@@ -1164,6 +1188,7 @@ $('verRetiradas').addEventListener('change', RUI.alumnas);
 $('rangoPagos').addEventListener('change', RUI.pagos);
 $('btnNuevaAlumna').addEventListener('click', () => RA.abrirAlumna());
 $('btnGuardarAlumna').addEventListener('click', RA.guardarAlumna);
+$('btnEliminarAlumna').addEventListener('click', RA.eliminarAlumna);
 $('btnGuardarPago').addEventListener('click', RA.guardarPago);
 $('pgPlan').addEventListener('change', RA.cambiarPlan);
 $('pgDesde').addEventListener('change', RA.cubrePago);
