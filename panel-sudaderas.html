@@ -49,6 +49,13 @@
   .sud-table td{padding:11px 13px;border-bottom:1px solid #f1f2f5;vertical-align:middle}
   .sud-alumna{font-weight:600}
   .sud-alumna small{display:block;color:var(--muted);font-weight:400;font-size:11px}
+  /* Centro de costos */
+  .sud-cc-cols{display:grid;grid-template-columns:1.35fr 1fr;gap:18px;padding:4px 15px 16px}
+  @media (max-width:860px){ .sud-cc-cols{grid-template-columns:1fr} }
+  .sud-cc-tit{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);
+              margin:12px 0 6px}
+  .sud-cc-saldo{background:#fafbfc;border:1px solid var(--border);border-radius:10px;
+                padding:11px 13px;font-size:13px;line-height:1.7;margin-bottom:10px}
   .sud-talla{background:#eef2ff;color:#4338ca;font-weight:600;padding:2px 8px;border-radius:6px}
   .sud-money{font-variant-numeric:tabular-nums;white-space:nowrap}
   .sud-badge{font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;
@@ -214,6 +221,18 @@
           <div style="overflow-x:auto">
             <table class="sud-table" id="sud-tallas-tabla"></table>
           </div>
+        </div>
+
+        <!-- Centro de costos -->
+        <div class="sud-box" style="margin-top:18px">
+          <div class="sud-boxhead">
+            <h3>💰 Centro de costos <span style="font-weight:400;color:var(--muted);font-size:13px">— qué se debe y qué margen queda</span></h3>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="sud-btn sud-ghost sud-sm" id="sud-btnMicro">+ Microgasto</button>
+              <button class="sud-btn sud-ghost sud-sm" id="sud-btnAbCost">💵 Abono a la costurera</button>
+            </div>
+          </div>
+          <div id="sud-cc"><div style="padding:18px;color:var(--muted);font-size:13px">Cargando…</div></div>
         </div>
 
         <!-- Tarjetas resumen -->
@@ -397,6 +416,51 @@
   <div id="sud-exErr" style="color:#dc2626;font-size:12.5px;margin-top:8px"></div>
 </div></div>
 
+<!-- MICROGASTO -->
+<div class="sud-ov" id="sud-ovMicro"><div class="sud-modal" style="text-align:left;max-width:420px">
+  <h3>🧾 Agregar microgasto</h3>
+  <div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">
+    Gastos pequeños que no son tela ni confección: transporte, hilos,
+    marquillas, cremalleras, bordado…
+  </div>
+
+  <label style="font-size:12px;color:var(--muted)">¿De qué es?</label>
+  <input id="sud-mgConcepto" class="sud-input" placeholder="Ej. Transporte a la costurera" maxlength="80">
+
+  <label style="font-size:12px;color:var(--muted)">Valor</label>
+  <input id="sud-mgValor" class="sud-input" type="tel" inputmode="numeric" placeholder="0">
+
+  <label style="font-size:12px;color:var(--muted)">Fecha</label>
+  <input id="sud-mgFecha" class="sud-input" type="date">
+
+  <div class="sud-actions" style="justify-content:flex-end">
+    <button class="sud-btn sud-ghost sud-sm" data-sud-close>Cancelar</button>
+    <button class="sud-btn sud-sm" id="sud-mgGuardar">Guardar gasto</button>
+  </div>
+  <div id="sud-mgErr" style="color:#dc2626;font-size:12.5px;margin-top:8px"></div>
+</div></div>
+
+<!-- ABONO A LA COSTURERA -->
+<div class="sud-ov" id="sud-ovAbCost"><div class="sud-modal" style="text-align:left;max-width:420px">
+  <h3>💵 Abono a la costurera</h3>
+  <div id="sud-acSaldo" style="font-size:12.5px;color:var(--muted);margin-bottom:12px"></div>
+
+  <label style="font-size:12px;color:var(--muted)">Monto que le entregaste</label>
+  <input id="sud-acMonto" class="sud-input" type="tel" inputmode="numeric" placeholder="0">
+
+  <label style="font-size:12px;color:var(--muted)">Fecha</label>
+  <input id="sud-acFecha" class="sud-input" type="date">
+
+  <label style="font-size:12px;color:var(--muted)">Nota (opcional)</label>
+  <input id="sud-acNota" class="sud-input" placeholder="Ej. efectivo / Nequi" maxlength="60">
+
+  <div class="sud-actions" style="justify-content:flex-end">
+    <button class="sud-btn sud-ghost sud-sm" data-sud-close>Cancelar</button>
+    <button class="sud-btn sud-sm" id="sud-acGuardar">Registrar abono</button>
+  </div>
+  <div id="sud-acErr" style="color:#dc2626;font-size:12.5px;margin-top:8px"></div>
+</div></div>
+
 <div class="sud-toast" id="sud-toast"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -424,6 +488,12 @@ firebase.initializeApp(firebaseConfig);
 
 const $ = s => document.querySelector(s);
 let datos = [], alumnas = [], chEstados = null;
+/* Microgastos y abonos a la costurera (centro de costos). Vienen de Firestore. */
+let costosExtra = { microgastos: {}, abonosCosturera: {} };
+/* Los conceptos y notas los escribe la administración, pero igual se escapan
+   antes de inyectarlos como HTML. */
+const esc = s => String(s ?? '').replace(/[&<>"']/g, m =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
 /* ---------- Navegación del menú ---------- */
 function sudIr(seccion){ location.href = 'index.html#' + seccion; }
@@ -468,11 +538,13 @@ firebase.auth().onAuthStateChanged(u=>{
 async function cargar(){
   $('#sud-filas').innerHTML = `<tr><td colspan="7" style="padding:20px;color:var(--muted)">Cargando…</td></tr>`;
   try{
-    const [regs, alu] = await Promise.all([
+    const [regs, alu, cost] = await Promise.all([
       Sudaderas.listarRegistros(),
-      Sudaderas.listarAlumnasActivas()
+      Sudaderas.listarAlumnasActivas(),
+      // Si el documento de costos falla, la lista de pagos no se cae por eso.
+      Sudaderas.leerCostos().catch(()=>({ microgastos:{}, abonosCosturera:{} }))
     ]);
-    datos = regs; alumnas = alu;
+    datos = regs; alumnas = alu; costosExtra = cost;
   }catch(e){
     $('#sud-filas').innerHTML = `<tr><td colspan="7" style="padding:20px;color:#dc2626">No se pudo cargar la lista. ${e.message||''}</td></tr>`;
     return;
@@ -617,6 +689,7 @@ function pintar(){
 
   pintarProgreso(recaudado, metaTotal, saldoPend, conteo, sinRegistrar);
   pintarTallas();
+  pintarCostos();
 
   if(!alumnas.length && !datos.length){
     $('#sud-filas').innerHTML = `<tr><td colspan="7" style="padding:22px;color:var(--muted)">No se encontraron alumnas activas. Revisa que la base haya cargado.</td></tr>`;
@@ -654,6 +727,112 @@ function pintarTallas(){
     `<thead><tr><th>Talla</th><th>Total a confeccionar</th><th>Pagadas</th><th>Pendientes</th><th>Entregadas</th></tr></thead>
      <tbody>${filas}</tbody>`;
   $('#sud-tallas-total').textContent = totalGeneral + ' sudadera' + (totalGeneral===1?'':'s');
+}
+
+/* ---------- Centro de costos ----------
+   Telas y mano de obra salen fijas de sudaderas-admin.js; los microgastos
+   y los abonos a la costurera viven en Firestore y se agregan desde aquí. */
+function pintarCostos(){
+  const c = Sudaderas.resumenCostos(datos, costosExtra);
+  const $$ = Sudaderas.formatoDinero;
+
+  if(!c.manoObra.unidades){
+    $('#sud-cc').innerHTML = `<div style="padding:18px;color:var(--muted);font-size:13px">
+      Todavía no hay sudaderas con talla asignada, así que no se puede calcular la confección.
+      Las telas van en ${$$(c.telas)}.</div>`;
+    return;
+  }
+
+  const signo = n => (n < 0 ? '−' : '') + $$(Math.abs(n));
+  const colorMargen = n => n < 0 ? '#dc2626' : '#16a34a';
+
+  // ── Costos ──
+  const filasTela = Sudaderas.COSTOS.TELAS.map(t=>
+    `<tr><td>${t.concepto}</td><td class="sud-money">—</td><td class="sud-money">${$$(t.valor)}</td></tr>`).join('');
+
+  const filasMO = c.manoObra.lineas.map(l=>
+    `<tr><td>Confección talla <span class="sud-talla">${l.talla}</span></td>
+         <td class="sud-money">${l.cantidad} × ${$$(l.unitario)}</td>
+         <td class="sud-money">${$$(l.subtotal)}</td></tr>`).join('');
+
+  const filasMicro = c.micro.length
+    ? c.micro.map(m=>{
+        const f = m.fecha ? new Date(m.fecha).toLocaleDateString('es-CO',{day:'2-digit',month:'short'}) : '';
+        return `<tr><td>${esc(m.concepto)}</td>
+          <td class="sud-money" style="color:var(--muted);font-size:12px">${f}</td>
+          <td class="sud-money">${$$(m.valor)}
+            <button class="sud-btn sud-ghost sud-sm" data-delmg="${m.id}" title="Quitar" style="color:#dc2626;margin-left:6px">🗑</button></td></tr>`;
+      }).join('')
+    : `<tr><td colspan="3" style="color:var(--muted);font-size:12.5px">Sin microgastos registrados.</td></tr>`;
+
+  // ── Abonos a la costurera ──
+  const filasAb = c.abonos.length
+    ? c.abonos.map(a=>{
+        const f = a.fecha ? new Date(a.fecha).toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'}) : '';
+        return `<tr><td>${f}${a.nota?` · <span style="color:var(--muted)">${esc(a.nota)}</span>`:''}</td>
+          <td class="sud-money">${$$(a.monto)}
+            <button class="sud-btn sud-ghost sud-sm" data-delac="${a.id}" title="Quitar" style="color:#dc2626;margin-left:6px">🗑</button></td></tr>`;
+      }).join('')
+    : `<tr><td colspan="2" style="color:var(--muted);font-size:12.5px">Todavía no le has abonado nada.</td></tr>`;
+
+  const saldoC = c.saldoCosturera;
+  const lineaSaldo = saldoC > 0
+    ? `<b style="color:#b45309">${$$(saldoC)}</b> por pagarle`
+    : (saldoC < 0 ? `<b style="color:#2563eb">${$$(-saldoC)}</b> pagado de más` : `<b style="color:#16a34a">Al día ✓</b>`);
+
+  $('#sud-cc').innerHTML = `
+    <div class="sud-cards" style="margin:0 0 4px">
+      <div class="sud-card"><div class="sud-lbl">Costo total</div><div class="sud-val">${$$(c.costoTotal)}</div>
+        <div style="font-size:11.5px;color:var(--muted)">${$$(c.costoUnitario)} por sudadera · ${c.manoObra.unidades} unidades</div></div>
+      <div class="sud-card"><div class="sud-lbl">Le debes a la costurera</div><div class="sud-val">${signo(saldoC)}</div>
+        <div style="font-size:11.5px;color:var(--muted)">de ${$$(c.manoObra.total)} · abonado ${$$(c.abonadoCosturera)}</div></div>
+      <div class="sud-card"><div class="sud-lbl">Margen proyectado</div>
+        <div class="sud-val" style="color:${colorMargen(c.margenProyectado)}">${signo(c.margenProyectado)}</div>
+        <div style="font-size:11.5px;color:var(--muted)">si todas pagan · ${c.margenPct.toFixed(1)}% de ${$$(c.ingresos.proyectado)}</div></div>
+      <div class="sud-card"><div class="sud-lbl">Margen a hoy</div>
+        <div class="sud-val" style="color:${colorMargen(c.margenRecaudado)}">${signo(c.margenRecaudado)}</div>
+        <div style="font-size:11.5px;color:var(--muted)">con ${$$(c.ingresos.recaudado)} recaudado</div></div>
+    </div>
+
+    <div class="sud-cc-cols">
+      <div>
+        <h4 class="sud-cc-tit">Costos</h4>
+        <div style="overflow-x:auto">
+        <table class="sud-table">
+          <thead><tr><th>Concepto</th><th class="sud-money">Detalle</th><th class="sud-money">Valor</th></tr></thead>
+          <tbody>
+            ${filasTela}
+            <tr style="background:#fafbfc"><td><b>Subtotal telas</b></td><td></td><td class="sud-money"><b>${$$(c.telas)}</b></td></tr>
+            ${filasMO}
+            <tr style="background:#fafbfc"><td><b>Subtotal confección</b></td><td class="sud-money">${c.manoObra.unidades} unidades</td><td class="sud-money"><b>${$$(c.manoObra.total)}</b></td></tr>
+            ${filasMicro}
+            <tr style="background:#fafbfc"><td><b>Subtotal microgastos</b></td><td></td><td class="sud-money"><b>${$$(c.microTotal)}</b></td></tr>
+            <tr style="border-top:2px solid var(--border)"><td><b>COSTO TOTAL</b></td><td></td>
+              <td class="sud-money"><b style="font-size:15px">${$$(c.costoTotal)}</b></td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+
+      <div>
+        <h4 class="sud-cc-tit">Cuenta de la costurera</h4>
+        <div class="sud-cc-saldo">
+          Confección: <b>${$$(c.manoObra.total)}</b><br>
+          Abonado: <b style="color:#16a34a">${$$(c.abonadoCosturera)}</b><br>
+          ${lineaSaldo}
+        </div>
+        <div style="overflow-x:auto">
+        <table class="sud-table">
+          <thead><tr><th>Abono</th><th class="sud-money">Monto</th></tr></thead>
+          <tbody>${filasAb}</tbody>
+        </table>
+        </div>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.5">
+          Tarifas: tallas 4–16 ${$$(Sudaderas.COSTOS.MANO_OBRA_INFANTIL)} · adultos ${$$(Sudaderas.COSTOS.MANO_OBRA_ADULTO)}.
+          Solo se cuentan sudaderas con talla; las piezas extra no entran aquí.
+        </div>
+      </div>
+    </div>`;
 }
 
 /* ---------- Gráfico de progreso ---------- */
@@ -707,8 +886,22 @@ document.addEventListener('click', async e=>{
   const man    = e.target.closest('[data-manual]');
   const edt    = e.target.closest('[data-editar]');
   const bor    = e.target.closest('[data-borrar]');
+  const delMg  = e.target.closest('[data-delmg]');
+  const delAc  = e.target.closest('[data-delac]');
 
   if(cl){ cl.closest('.sud-ov').style.display='none'; }
+  if(delMg){
+    if(confirm('¿Quitar este microgasto del centro de costos?')){
+      try{ await Sudaderas.eliminarMicrogasto(delMg.dataset.delmg); toast('Microgasto eliminado'); await cargar(); }
+      catch(_){ toast('No se pudo eliminar'); }
+    }
+  }
+  if(delAc){
+    if(confirm('¿Quitar este abono a la costurera? El saldo se recalcula solo.')){
+      try{ await Sudaderas.eliminarAbonoCosturera(delAc.dataset.delac); toast('Abono eliminado'); await cargar(); }
+      catch(_){ toast('No se pudo eliminar'); }
+    }
+  }
   if(ab){ abrirAbonos(ab.dataset.ab); }
   if(tal){ abrirCambioTalla(tal.dataset.talla); }
   if(man){ abrirAbonoManual(man.dataset.manual); }
@@ -1184,6 +1377,97 @@ $('#sud-exCrear').onclick = async ()=>{
     abrirQr(rid);
   }catch(e){
     $('#sud-exErr').textContent = e.message || 'No se pudo crear.';
+  }finally{ btn.disabled = false; }
+};
+
+/* ═══════════════════════════════════════════════════════════
+   CENTRO DE COSTOS — microgastos y abonos a la costurera
+═══════════════════════════════════════════════════════════ */
+const hoyISO = () => new Date(Date.now() - new Date().getTimezoneOffset()*60000)
+  .toISOString().slice(0,10);
+
+/* Convierte 'YYYY-MM-DD' del input date a milisegundos en hora local
+   (sin el corrimiento de un día que da new Date('2026-10-25')). */
+function fechaInputAMs(valor){
+  if(!valor) return Date.now();
+  const [a,m,d] = valor.split('-').map(Number);
+  if(!a || !m || !d) return Date.now();
+  return new Date(a, m-1, d, 12, 0, 0).getTime();
+}
+
+/* Formatea con puntos de mil mientras se escribe un monto. */
+function milesAlEscribir(input){
+  input.addEventListener('input', function(){
+    const v = parseInt(this.value.replace(/\D/g,'')) || 0;
+    this.value = v ? v.toLocaleString('es-CO') : '';
+  });
+}
+milesAlEscribir($('#sud-mgValor'));
+milesAlEscribir($('#sud-acMonto'));
+
+$('#sud-btnMicro').onclick = ()=>{
+  $('#sud-mgErr').textContent = '';
+  $('#sud-mgConcepto').value = '';
+  $('#sud-mgValor').value = '';
+  $('#sud-mgFecha').value = hoyISO();
+  $('#sud-ovMicro').style.display = 'flex';
+  $('#sud-mgConcepto').focus();
+};
+
+$('#sud-mgGuardar').onclick = async ()=>{
+  const concepto = $('#sud-mgConcepto').value.trim();
+  const valor    = parseInt(($('#sud-mgValor').value||'').replace(/\D/g,'')) || 0;
+  if(!concepto){ $('#sud-mgErr').textContent = 'Escribe de qué es el gasto.'; return; }
+  if(valor <= 0){ $('#sud-mgErr').textContent = 'Escribe un valor mayor a cero.'; return; }
+
+  const btn = $('#sud-mgGuardar'); btn.disabled = true;
+  try{
+    await Sudaderas.agregarMicrogasto(concepto, valor, fechaInputAMs($('#sud-mgFecha').value));
+    $('#sud-ovMicro').style.display = 'none';
+    toast('Microgasto guardado ✓');
+    await cargar();                       // solo después de que la nube confirma
+  }catch(e){
+    $('#sud-mgErr').textContent = e.message || 'No se pudo guardar.';
+  }finally{ btn.disabled = false; }
+};
+
+$('#sud-btnAbCost').onclick = ()=>{
+  const c = Sudaderas.resumenCostos(datos, costosExtra);
+  $('#sud-acErr').textContent = '';
+  $('#sud-acMonto').value = '';
+  $('#sud-acNota').value = '';
+  $('#sud-acFecha').value = hoyISO();
+  $('#sud-acSaldo').innerHTML = c.manoObra.unidades
+    ? `Confección: <b>${Sudaderas.formatoDinero(c.manoObra.total)}</b> · ` +
+      `abonado <b>${Sudaderas.formatoDinero(c.abonadoCosturera)}</b> · ` +
+      (c.saldoCosturera > 0
+        ? `falta <b style="color:#b45309">${Sudaderas.formatoDinero(c.saldoCosturera)}</b>`
+        : `<b style="color:#16a34a">cuenta al día</b>`)
+    : 'Todavía no hay sudaderas con talla, así que no hay confección calculada.';
+  $('#sud-ovAbCost').style.display = 'flex';
+  $('#sud-acMonto').focus();
+};
+
+$('#sud-acGuardar').onclick = async ()=>{
+  const monto = parseInt(($('#sud-acMonto').value||'').replace(/\D/g,'')) || 0;
+  if(monto <= 0){ $('#sud-acErr').textContent = 'Escribe el monto que le entregaste.'; return; }
+
+  const c = Sudaderas.resumenCostos(datos, costosExtra);
+  if(c.saldoCosturera > 0 && monto > c.saldoCosturera){
+    const ok = confirm(
+      `El saldo pendiente es ${Sudaderas.formatoDinero(c.saldoCosturera)} y estás registrando ` +
+      `${Sudaderas.formatoDinero(monto)}. Quedaría pagada de más. ¿Registrarlo así?`);
+    if(!ok) return;
+  }
+
+  const btn = $('#sud-acGuardar'); btn.disabled = true;
+  try{
+    await Sudaderas.agregarAbonoCosturera(monto, fechaInputAMs($('#sud-acFecha').value), $('#sud-acNota').value);
+    $('#sud-ovAbCost').style.display = 'none';
+    toast('Abono registrado ✓');
+    await cargar();
+  }catch(e){
+    $('#sud-acErr').textContent = e.message || 'No se pudo registrar.';
   }finally{ btn.disabled = false; }
 };
 

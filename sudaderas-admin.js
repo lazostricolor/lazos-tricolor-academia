@@ -209,6 +209,186 @@ Object.assign(Sudaderas, {
     return this.rechazarAbono(registroId, abonoId);
   },
 
+  /* ═════════════════════════════════════════════════════════
+     CENTRO DE COSTOS — SUDADERAS 2026
+
+     Sirve para responder dos preguntas:
+       · ¿cuánto le debemos a la costurera?
+       · ¿cuánto margen le queda a la academia?
+
+     QUÉ VA FIJO AQUÍ (lo escribes una vez)
+       TELAS            → las compras de tela ya hechas
+       MANO_OBRA_*      → lo que cobra la costurera por confección
+
+     QUÉ SE AGREGA DESDE EL PANEL (vive en Firestore)
+       microgastos      → transporte, hilos, marquillas, botones…
+       abonosCosturera  → cada pago que se le hace a la señora
+
+     La mano de obra NO se escribe: se calcula sola multiplicando
+     cuántas sudaderas van por talla × el valor de esa talla. Si una
+     mamá cambia de talla, el costo se recalcula en la siguiente
+     pintada sin tocar nada.
+
+     Solo cuenta SUDADERAS. Las piezas extra (chaqueta, camiseta)
+     tienen otro proveedor y no entran en este cálculo.
+     ───────────────────────────────────────────────────────── */
+  COSTOS: {
+    // Documento en Firestore donde viven microgastos y abonos a la costurera.
+    DOC: 'sudaderas_costos/2026',
+
+    // ── Telas ya compradas. Para agregar otra compra, añade una línea. ──
+    TELAS: [
+      { concepto: 'Telas — primera compra',  valor: 493399 },
+      { concepto: 'Telas — segunda compra',  valor: 300000 }
+    ],
+
+    // ── Confección, por unidad ──
+    MANO_OBRA_INFANTIL: 75000,   // tallas 4 a 16
+    MANO_OBRA_ADULTO:   80000,   // XS, S, M, L, XL
+
+    // Qué tallas se cobran como adulto. El resto va como infantil.
+    TALLAS_ADULTO: ['XS', 'S', 'M', 'L', 'XL']
+  },
+
+  /* Cuánto cobra la costurera por UNA sudadera de esa talla. */
+  manoObraDe(talla) {
+    return this.COSTOS.TALLAS_ADULTO.includes(String(talla || ''))
+      ? this.COSTOS.MANO_OBRA_ADULTO
+      : this.COSTOS.MANO_OBRA_INFANTIL;
+  },
+
+  /* Total gastado en telas (suma de las líneas fijas de arriba). */
+  totalTelas() {
+    return this.COSTOS.TELAS.reduce((s, x) => s + (Number(x.valor) || 0), 0);
+  },
+
+  /* Solo las sudaderas que ya tienen talla: son las que se confeccionan. */
+  sudaderasEnConfeccion(registros) {
+    return (registros || []).filter(r => this.esSudadera(r) && r.talla);
+  },
+
+  /* Mano de obra desglosada por talla.
+     Reutiliza conteoPorTalla() de sudaderas.js (regla 1: no duplicar). */
+  manoObra(registros) {
+    const { porTalla, orden } = this.conteoPorTalla(this.sudaderasEnConfeccion(registros));
+    const lineas = orden
+      .filter(t => porTalla[t].total > 0)
+      .map(t => {
+        const cantidad  = porTalla[t].total;
+        const unitario  = this.manoObraDe(t);
+        return { talla: t, cantidad, unitario, subtotal: cantidad * unitario };
+      });
+    return {
+      lineas,
+      unidades: lineas.reduce((s, l) => s + l.cantidad, 0),
+      total:    lineas.reduce((s, l) => s + l.subtotal, 0)
+    };
+  },
+
+  /* Ingresos que entran al centro de costos: solo sudaderas con talla. */
+  ingresosSudaderas(registros) {
+    const sud = this.sudaderasEnConfeccion(registros);
+    return {
+      proyectado: sud.reduce((s, r) => s + (Number(r.total) || 0), 0),
+      recaudado:  sud.reduce((s, r) => s + this.pagado(r), 0),
+      enRevision: sud.reduce((s, r) => s + this.enRevision(r), 0)
+    };
+  },
+
+  /* ── Firestore: microgastos y abonos a la costurera ── */
+
+  _refCostos() {
+    const [col, doc] = this.COSTOS.DOC.split('/');
+    return firebase.firestore().collection(col).doc(doc);
+  },
+
+  /* Lee lo que se agregó desde el panel. Si el documento no existe
+     todavía, devuelve vacío (no es un error: es la primera vez). */
+  async leerCostos() {
+    const snap = await this._refCostos().get();
+    const d = snap.exists ? snap.data() : {};
+    return {
+      microgastos:     d.microgastos     || {},
+      abonosCosturera: d.abonosCosturera || {}
+    };
+  },
+
+  /* set con merge en vez de update: crea el documento la primera vez
+     y después solo agrega la clave nueva, sin reescribir las demás. */
+  async agregarMicrogasto(concepto, valor, fecha) {
+    const c = String(concepto || '').trim();
+    const v = Math.round(Number(valor) || 0);
+    if (!c)     throw new Error('Escribe de qué es el gasto');
+    if (v <= 0) throw new Error('El valor debe ser mayor a cero');
+    const id = 'mg' + Date.now() + Math.floor(Math.random() * 1000);
+    await this._refCostos().set({
+      microgastos: { [id]: { concepto: c, valor: v, fecha: fecha || Date.now() } },
+      actualizadoEn: Date.now()
+    }, { merge: true });
+    return id;
+  },
+
+  async eliminarMicrogasto(id) {
+    await this._refCostos().update({
+      ['microgastos.' + id]: firebase.firestore.FieldValue.delete(),
+      actualizadoEn: Date.now()
+    });
+  },
+
+  /* Un abono a la costurera. 'nota' es opcional (ej. "efectivo", "Nequi"). */
+  async agregarAbonoCosturera(monto, fecha, nota) {
+    const m = Math.round(Number(monto) || 0);
+    if (m <= 0) throw new Error('El monto debe ser mayor a cero');
+    const id = 'ac' + Date.now() + Math.floor(Math.random() * 1000);
+    await this._refCostos().set({
+      abonosCosturera: {
+        [id]: { monto: m, fecha: fecha || Date.now(), nota: String(nota || '').trim() || null }
+      },
+      actualizadoEn: Date.now()
+    }, { merge: true });
+    return id;
+  },
+
+  async eliminarAbonoCosturera(id) {
+    await this._refCostos().update({
+      ['abonosCosturera.' + id]: firebase.firestore.FieldValue.delete(),
+      actualizadoEn: Date.now()
+    });
+  },
+
+  /* Todo el centro de costos en un solo objeto, listo para pintar.
+     'extra' es lo que devolvió leerCostos(). */
+  resumenCostos(registros, extra = {}) {
+    const lista = (mapa) => Object.entries(mapa || {})
+      .map(([id, x]) => ({ id, ...x }))
+      .sort((a, b) => (a.fecha || 0) - (b.fecha || 0));
+
+    const telas = this.totalTelas();
+    const mo    = this.manoObra(registros);
+
+    const micro      = lista(extra.microgastos);
+    const microTotal = micro.reduce((s, m) => s + (Number(m.valor) || 0), 0);
+
+    const abonos   = lista(extra.abonosCosturera);
+    const abonado  = abonos.reduce((s, a) => s + (Number(a.monto) || 0), 0);
+
+    const costoTotal = telas + mo.total + microTotal;
+    const ing        = this.ingresosSudaderas(registros);
+
+    return {
+      telas, manoObra: mo, micro, microTotal,
+      abonos,
+      abonadoCosturera: abonado,
+      saldoCosturera:   mo.total - abonado,     // negativo = le pagaste de más
+      costoTotal,
+      costoUnitario:    mo.unidades ? Math.round(costoTotal / mo.unidades) : 0,
+      ingresos:         ing,
+      margenProyectado: ing.proyectado - costoTotal,
+      margenRecaudado:  ing.recaudado  - costoTotal,
+      margenPct:        ing.proyectado ? (ing.proyectado - costoTotal) / ing.proyectado * 100 : 0
+    };
+  },
+
   async crearRegistroExtra(alumnaId, nombre, producto, talla, total, particular = false) {
     if (!this.PRODUCTOS[producto]) throw new Error('Producto no válido');
     if (!nombre || !String(nombre).trim()) throw new Error('Falta el nombre');
