@@ -333,14 +333,6 @@ function copiarMensajeRanking(){
   texto=texto.replace(/&quot;/g,'"').replace(/&lt;/g,'<');
   if(navigator.clipboard){
     navigator.clipboard.writeText(texto).then(function(){ toast('📋 Mensaje copiado ✓'); })
-    .catch(function(){ _copiarFallback(texto); });
-  } else { _copiarFallback(texto); }
-}
-function _copiarFallback(texto){
-  var ta=document.createElement('textarea');
-  ta.value=texto; ta.style.position='fixed'; ta.style.opacity='0';
-  document.body.appendChild(ta); ta.select();
-  try{ document.execCommand('copy'); toast('📋 Mensaje copiado ✓'); }
-  catch(e){ toast('No se pudo copiar','err'); }
-  document.body.removeChild(ta);
+    .catch(function(){ _copiarFallback(texto, '📋 Mensaje copiado ✓'); });
+  } else { _copiarFallback(texto, '📋 Mensaje copiado ✓'); }
 }

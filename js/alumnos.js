@@ -209,16 +209,31 @@ function calcAntiguedad(){
   if(m<0){y--;m+=12;}
   document.getElementById('antiguedad-display').textContent=`🎓 ${y} año${y!==1?'s':''}, ${m} mes${m!==1?'es':''} en la academia`;
 }
+// La foto se reduce a 480 px y JPEG antes de guardarla: el original de un
+// celular pesa 4-10 MB en base64 y llenaba la cuota de localStorage (~5 MB),
+// lo que dejaba el panel sin poder guardar.
 function cargarFoto(input){
   const f=input.files[0];
   if(!f)return;
-  const r=new FileReader();
-  r.onload=e=>{
-    fotoTemp=e.target.result;
+  if(f.size>12*1024*1024){ toast('La foto pesa más de 12 MB. Elige otra.','err'); input.value=''; return; }
+  const url=URL.createObjectURL(f);
+  const img=new Image();
+  img.onload=()=>{
+    const MAX=480, k=Math.min(1, MAX/Math.max(img.width, img.height));
+    const cv=document.createElement('canvas');
+    cv.width=Math.round(img.width*k); cv.height=Math.round(img.height*k);
+    cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+    URL.revokeObjectURL(url);
+    fotoTemp=cv.toDataURL('image/jpeg', 0.72);
     const prev=document.getElementById('foto-preview');
     prev.innerHTML=`<img src="${fotoTemp}" style="width:100%;height:100%;object-fit:cover">`;
   };
-  r.readAsDataURL(f);
+  img.onerror=()=>{
+    URL.revokeObjectURL(url);
+    toast('No se pudo leer la imagen (¿formato HEIC del iPhone?). Usa JPG o PNG.','err');
+    input.value='';
+  };
+  img.src=url;
 }
 function abrirModalAlumna(id=null){
   editAlumnaId=id;

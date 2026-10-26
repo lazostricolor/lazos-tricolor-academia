@@ -365,14 +365,16 @@ function snapLocal(){
   }catch(e){ console.warn('snapLocal error:', e); }
 }
 
-function encolarGuardado(){ localStorage.setItem(COLA_KEY, String(Date.now())); }
+function encolarGuardado(){
+  try{ localStorage.setItem(COLA_KEY, String(Date.now())); }catch(e){ console.warn('Cola de guardado no cabe en localStorage:', e); }
+}
 function desencolarGuardado(){ localStorage.removeItem(COLA_KEY); }
 function hayGuardadoPendiente(){ return !!localStorage.getItem(COLA_KEY); }
 
 async function saveAll(){
   _localVersion = Date.now();
   snapLocal();                                         // 1. local al instante
-  localStorage.setItem('_db_version', String(_localVersion));
+  try{ localStorage.setItem('_db_version', String(_localVersion)); }catch(e){ console.warn('_db_version no cabe en localStorage:', e); }
   encolarGuardado();                                   // 2. marcar pendiente
   if(_bc){
     try{
@@ -405,9 +407,15 @@ function saveBackground(){
 async function _fbSave(datos){
   setSyncStatus('syncing');
   _guardandoAhora = true;
+  // try/finally: si algo lanza antes de terminar, _guardandoAhora se quedaba
+  // en true para siempre y el panel dejaba de guardar y sincronizar sin avisar.
+  try{
   const fotos = {};
   datos.alumnos?.forEach(a=>{ if(a.foto) fotos[a.id]=a.foto; });
-  localStorage.setItem('_fotos', JSON.stringify(fotos));
+  // Las fotos solo viven en este navegador. Si no caben, se sigue guardando
+  // la base en Firebase, que es lo importante.
+  try{ localStorage.setItem('_fotos', JSON.stringify(fotos)); }
+  catch(e){ console.warn('📷 Las fotos no caben en localStorage:', e); }
   const sinFotos = {...datos, alumnos: datos.alumnos?.map(a=>({...a,foto:null})), _version: _localVersion};
   const payload = JSON.stringify({fields:{data:{stringValue:JSON.stringify(sinFotos)}}});
 
@@ -445,7 +453,6 @@ async function _fbSave(datos){
         const eb = await r.json().catch(()=>({}));
         throw new Error('HTTP '+r.status+': '+(eb?.error?.message||''));
       }
-      _guardandoAhora = false;
       _ultimoGuardado = Date.now();
       setSyncStatus('ok');
       console.log('✅ Firebase verificado OK (intento '+intento+')');
@@ -456,10 +463,16 @@ async function _fbSave(datos){
     }
   }
 
-  _guardandoAhora = false;
   setSyncStatus('error');
   toast('⚠️ Sin conexión — datos seguros localmente, reintentando...','info');
   return false;
+  }catch(e){
+    console.error('❌ _fbSave falló antes de enviar:', e);
+    setSyncStatus('error');
+    return false;
+  }finally{
+    _guardandoAhora = false;
+  }
 }
 
 function programarReintento(){

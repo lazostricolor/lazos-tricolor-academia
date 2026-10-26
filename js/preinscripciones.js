@@ -16,7 +16,10 @@ async function cargarPreinscripciones() {
     const j = await r.json();
     _preinscripciones = (j.documents || []).map(doc => {
       const f = doc.fields || {};
-      const get = k => f[k]?.stringValue || '';
+      // Viene de un formulario PÚBLICO: se quitan < y > para que nada con
+      // forma de HTML llegue a DB.alumnos al "Convertir en alumna" (los otros
+      // módulos pintan nombres sin escapar). Además se escapa al pintar.
+      const get = k => String(f[k]?.stringValue || '').replace(/[<>]/g, '');
       return {
         _id:             doc.name,
         nombre:          get('nombre_estudiante'),
@@ -86,46 +89,65 @@ function renderPreinscripciones() {
     ? '<span class="badge badge-unpaid">❌ Rechazada</span>'
     : '<span class="badge badge-partial">⏳ Pendiente</span>';
 
-  document.getElementById('preinsc-tabla').innerHTML = `
+  const tabla = document.getElementById('preinsc-tabla');
+  tabla.innerHTML = `
     <table>
       <thead><tr>
         <th>Nombre</th><th>Edad</th><th>Categoría</th><th>Teléfono</th>
         <th>Barrio</th><th>Acudiente</th><th>Fecha</th><th>Estado</th><th>Acciones</th>
       </tr></thead>
       <tbody>
-        ${lista.map(p => `<tr>
+        ${lista.map((p, i) => `<tr>
           <td>
-            <div style="font-weight:600">${p.nombre}</div>
-            ${p.fecha_nacimiento?`<div style="font-size:11px;color:var(--text2)">${p.fecha_nacimiento}</div>`:''}
+            <div style="font-weight:600">${esc(p.nombre)}</div>
+            ${p.fecha_nacimiento?`<div style="font-size:11px;color:var(--text2)">${esc(p.fecha_nacimiento)}</div>`:''}
           </td>
-          <td>${p.edad?p.edad+' años':'—'}</td>
-          <td><span class="badge badge-inf" style="font-size:10px">${p.categoria||'—'}</span></td>
+          <td>${p.edad?esc(p.edad)+' años':'—'}</td>
+          <td><span class="badge badge-inf" style="font-size:10px">${esc(p.categoria||'—')}</span></td>
           <td>
             <a href="https://wa.me/57${p.telefono.replace(/\D/g,'')}" target="_blank"
-               style="color:var(--success);font-weight:600;text-decoration:none">📲 ${p.telefono}</a>
+               style="color:var(--success);font-weight:600;text-decoration:none">📲 ${esc(p.telefono)}</a>
           </td>
-          <td style="font-size:12px">${p.barrio||'—'}</td>
-          <td style="font-size:12px">${p.acudiente||'—'}</td>
-          <td style="font-size:11px;color:var(--text2)">${p.fecha_envio||'—'}</td>
+          <td style="font-size:12px">${esc(p.barrio||'—')}</td>
+          <td style="font-size:12px">${esc(p.acudiente||'—')}</td>
+          <td style="font-size:11px;color:var(--text2)">${esc(p.fecha_envio||'—')}</td>
           <td>${estadoBadge(p.estado)}</td>
           <td>
             <div style="display:flex;gap:4px;flex-wrap:wrap">
-              <button class="btn btn-ghost btn-sm btn-icon" title="Ver detalles" onclick="verDetallePreinsc(${lista.indexOf(p)})">👁️</button>
+              <button class="btn btn-ghost btn-sm btn-icon" title="Ver detalles" data-accion="ver" data-idx="${i}">👁️</button>
               ${p.estado==='pendiente'?`
-                <button class="btn btn-primary btn-sm" onclick="cambiarEstadoPreinsc('${p._id}','aprobada')" title="Aprobar">✅</button>
-                <button class="btn btn-danger btn-sm" onclick="cambiarEstadoPreinsc('${p._id}','rechazada')" title="Rechazar">❌</button>
+                <button class="btn btn-primary btn-sm" data-accion="aprobar" data-idx="${i}" title="Aprobar">✅</button>
+                <button class="btn btn-danger btn-sm" data-accion="rechazar" data-idx="${i}" title="Rechazar">❌</button>
               `:''}
               ${p.estado==='aprobada'?`
-                <button class="btn btn-primary btn-sm" onclick="convertirAAlumna(${lista.indexOf(p)})" title="Inscribir como nueva alumna">🎓 Nueva</button>
-                <button class="btn btn-ghost btn-sm" onclick="actualizarAlumnaExistente(${lista.indexOf(p)})" title="Actualizar alumna ya registrada">🔄 Actualizar</button>
+                <button class="btn btn-primary btn-sm" data-accion="convertir" data-idx="${i}" title="Inscribir como nueva alumna">🎓 Nueva</button>
+                <button class="btn btn-ghost btn-sm" data-accion="actualizar" data-idx="${i}" title="Actualizar alumna ya registrada">🔄 Actualizar</button>
               `:''}
-              <button class="btn btn-ghost btn-sm btn-icon" onclick="eliminarPreinscripcion('${p._id}')" title="Eliminar definitivamente" style="color:var(--danger)">🗑️</button>
+              <button class="btn btn-ghost btn-sm btn-icon" data-accion="eliminar" data-idx="${i}" title="Eliminar definitivamente" style="color:var(--danger)">🗑️</button>
             </div>
           </td>
         </tr>`).join('')}
       </tbody>
     </table>
   `;
+  // Un solo manejador para todos los botones (regla de oro 5: nada de ids
+  // interpolados en onclick). Se reasigna en cada render: onclick no se acumula.
+  tabla.onclick = e => {
+    const btn = e.target.closest('button[data-accion]');
+    if (!btn) return;
+    const idx = Number(btn.dataset.idx);
+    const p = lista[idx];
+    if (!p) return;
+    const acciones = {
+      ver:        () => verDetallePreinsc(idx),
+      aprobar:    () => cambiarEstadoPreinsc(p._id, 'aprobada'),
+      rechazar:   () => cambiarEstadoPreinsc(p._id, 'rechazada'),
+      convertir:  () => convertirAAlumna(idx),
+      actualizar: () => actualizarAlumnaExistente(idx),
+      eliminar:   () => eliminarPreinscripcion(p._id)
+    };
+    acciones[btn.dataset.accion]?.();
+  };
 }
 
 async function eliminarPreinscripcion(docId) {
@@ -200,13 +222,13 @@ function verDetallePreinsc(idx) {
       ].map(([k,v])=>`
         <div style="background:var(--card2);border-radius:8px;padding:10px">
           <div style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">${k}</div>
-          <div style="font-size:13px;font-weight:600">${v}</div>
+          <div style="font-size:13px;font-weight:600">${esc(v)}</div>
         </div>
       `).join('')}
     </div>
         <div style="margin-top:14px;display:flex;gap:8px">
       <a href="https://wa.me/57${p.telefono.replace(/\D/g,'')}" target="_blank" class="btn btn-wa btn-sm">📲 WhatsApp</a>
-      ${p.correo?`<a href="mailto:${p.correo}" class="btn btn-ghost btn-sm">✉️ Email</a>`:''}
+      ${p.correo?`<a href="mailto:${esc(p.correo)}" class="btn btn-ghost btn-sm">✉️ Email</a>`:''}
     </div>
   `;
   abrirModal('modal-hist-pagos');
@@ -221,7 +243,7 @@ function actualizarAlumnaExistente(idx) {
 
   // Crear selector de alumnas existentes
   const opciones = DB.alumnos.map(a =>
-    `<option value="${a.id}">${a.nombre} (${a.categoria})</option>`
+    `<option value="${esc(a.id)}">${esc(a.nombre)} (${esc(a.categoria)})</option>`
   ).join('');
 
   if(!opciones){ toast('No hay alumnas registradas aún','info'); return; }
@@ -229,7 +251,7 @@ function actualizarAlumnaExistente(idx) {
   document.getElementById('modal-hist-title').textContent = '🔄 Actualizar datos de alumna existente';
   document.getElementById('modal-hist-body').innerHTML = `
     <p style="font-size:13px;color:var(--text2);margin-bottom:16px">
-      Selecciona la alumna cuyo perfil quieres actualizar con los datos de <strong>${p.nombre}</strong>.
+      Selecciona la alumna cuyo perfil quieres actualizar con los datos de <strong>${esc(p.nombre)}</strong>.
       Solo se actualizarán los campos que llegaron en la preinscripción.
     </p>
     <div class="form-group" style="margin-bottom:20px">
@@ -245,9 +267,10 @@ function actualizarAlumnaExistente(idx) {
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="cerrarModal('modal-hist-pagos')">Cancelar</button>
-      <button class="btn btn-primary" onclick="confirmarActualizarAlumna('${p._id}',${idx})">🔄 Actualizar alumna</button>
+      <button class="btn btn-primary" id="btn-confirmar-actualizar">🔄 Actualizar alumna</button>
     </div>
   `;
+  document.getElementById('btn-confirmar-actualizar').onclick = () => confirmarActualizarAlumna(p._id, idx);
   abrirModal('modal-hist-pagos');
 }
 

@@ -15,7 +15,7 @@ function renderProfesores(){
   let html=`<div class="table-card"><table>
     <thead><tr><th>Profesor</th><th>Especialidad</th><th>Clases Semana</th><th>Valor/clase</th><th>Total pagado</th><th>Acciones</th></tr></thead>
     <tbody>${DB.profesores.map(p=>{
-      const clases=(DB.clases[p.id]&&DB.clases[p.id][sk])||0;
+      const clases=clasesSemana(p.id,sk);
       const vc=_valorClaseProf(p);
       const totalPag=_totalPagadoProf(p);
       return`<tr>
@@ -43,10 +43,28 @@ function renderProfesores(){
   </table></div>`;
   document.getElementById('prof-table').innerHTML=html;
 }
+// Hasta oct-2026 semKey() usaba UTC: lo registrado después de las 7 p. m.
+// quedaba en una llave corrida un día ("martes_lunes"). Esta es esa llave vieja
+// para una semana canónica "lunes_domingo"; se suma al leer y se funde al editar.
+function _skLegacy(sk){
+  const mas1=s=>{ const d=new Date(s+'T12:00'); d.setDate(d.getDate()+1); return dateStr(d); };
+  const [a,b]=sk.split('_');
+  return mas1(a)+'_'+mas1(b);
+}
+function clasesSemana(profId,sk){
+  const c=DB.clases[profId]||{};
+  return (c[sk]||0)+(c[_skLegacy(sk)]||0);
+}
 function cambiarClases(profId,sk,delta){
   if(!DB.clases[profId]) DB.clases[profId]={};
+  const leg=_skLegacy(sk);
+  if(DB.clases[profId][leg]!=null){
+    DB.clases[profId][sk]=(DB.clases[profId][sk]||0)+DB.clases[profId][leg];
+    delete DB.clases[profId][leg];
+  }
   const actual=(DB.clases[profId][sk]||0)+delta;
   DB.clases[profId][sk]=Math.max(0,actual);
+  tsSeccion('clases');  // sin esto el merge podía descartar el cambio
   saveAll(); renderProfesores();
 }
 function abrirModalProfesor(id=null){
@@ -89,7 +107,7 @@ function verFichaProfesor(id){
   let totalClases=0;
   Object.values(DB.clases[id]||{}).forEach(c=>totalClases+=c);
   const sk=semKey(semanaOfs);
-  const clasesSemana=(DB.clases[id]&&DB.clases[id][sk])||0;
+  const clasesSem=clasesSemana(id,sk);
   // Historial semanas
   const semanas=Object.keys(DB.clases[id]||{}).sort().reverse().slice(0,8);
   let histHtml=semanas.map(s=>{
@@ -101,7 +119,7 @@ function verFichaProfesor(id){
     <div class="prof-stats-grid">
       <div class="prof-stat"><div class="val">${totalClases}</div><div class="lab">Total Clases</div></div>
       <div class="prof-stat"><div class="val">${formatCOP(totalClases*HONOR_POR_CLASE)}</div><div class="lab">Honorarios Totales</div></div>
-      <div class="prof-stat"><div class="val">${clasesSemana}</div><div class="lab">Clases Esta Semana</div></div>
+      <div class="prof-stat"><div class="val">${clasesSem}</div><div class="lab">Clases Esta Semana</div></div>
     </div>
     <div style="margin-bottom:12px">
       ${p.telefono?`<div style="font-size:13px;margin-bottom:4px">📱 ${p.telefono}</div>`:''}

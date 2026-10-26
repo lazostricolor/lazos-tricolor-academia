@@ -63,6 +63,10 @@ Para probar en local: `python3 -m http.server 8000` y abrir `http://localhost:80
 5. **Nada de `onclick` inline con IDs interpolados.** Usa `data-*` + delegación
    (`elemento.onclick = ...`, no `addEventListener`, que se acumula en cada render).
 
+7. **Texto que escribió otra persona se pinta con `esc()`** (utils.js). Sobre todo
+   lo que llega del formulario público de preinscripción. Las fechas de negocio se
+   sacan con `dateStr()`, que ya es hora local de Colombia (nunca `toISOString()`).
+
 6. **Exporta el JSON desde Configuración antes de cualquier cambio grande.**
 
 ## Seguridad
@@ -78,3 +82,6 @@ Documento único en Firestore:
 `academias/lazos-tricolor/datos/principal`, campo `data` (JSON en string).
 
 Respaldos locales: `localStorage._db` + 3 snapshots rotativos.
+
+Las fotos de las alumnas **no se sincronizan**: viven solo en el navegador que
+las subió (`localStorage._fotos`), reducidas a 480 px en JPEG.
