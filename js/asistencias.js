@@ -155,7 +155,9 @@ function toggleAsistencia(alumnaId,fecha){
   const actual=DB.asistencias[alumnaId][fecha];
   if(!actual) DB.asistencias[alumnaId][fecha]='P';
   else if(actual==='P') DB.asistencias[alumnaId][fecha]='A';
-  else delete DB.asistencias[alumnaId][fecha];
+  // '' en vez de borrar la celda: así, al fusionar con otro equipo, "desmarcado"
+  // se distingue de "nunca marcado" y no revive la marca vieja
+  else DB.asistencias[alumnaId][fecha]='';
   // Guardar versión sin re-renderizar ni disparar polling
   _localVersion = Date.now();
   tsSeccion('asistencias');
