@@ -247,6 +247,7 @@ function guardarEventoCal(){
 function eliminarEventoCal(id){
   if(!confirm('¿Eliminar este evento?')) return;
   DB.planificador=(DB.planificador||[]).filter(e=>e.id!==id);
+  tsSeccion('planificador');
   saveBackground(); renderPlanificador(); toast('Evento eliminado');
 }
 

@@ -113,5 +113,6 @@ function guardarGasto(){
 function eliminarGasto(mk,idx){
   if(!confirm2('¿Eliminar este gasto?')) return;
   DB.gastos.splice(idx,1);
+  tsSeccion('gastos');
   saveAll(); renderFinanzas(); toast('Gasto eliminado');
 }

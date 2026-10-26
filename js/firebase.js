@@ -46,221 +46,90 @@ window.addEventListener('storage', (e) => {
 // ── Timestamps por sección — se actualizan al tocar cada sección ──
 function tsSeccion(campo){ DB['_ts_'+campo] = Date.now(); }
 
-// ── Merge por timestamp — el más reciente gana sección a sección ──
-// Fusiona dos arrays de objetos por su campo `id`, sin perder items ni revivir borrados.
-// - Cada id que exista en cualquiera de los dos queda en el resultado.
-// - Si un id está en ambos, se combinan sus campos; si los items llevan _editTs,
-//   gana el más reciente (para ediciones); si no, prioriza el array `prioritario`.
-// - Items SIN id (raros) se conservan del array prioritario, o del más largo si no se indica.
-// Nota sobre borrados: dos dispositivos que sincronizan seguido comparten el mismo
-// conjunto de ids; un borrado real se propaga porque el item desaparece de ambos antes
-// de que diverjan. Esta fusión evita el bug opuesto y más común: perder altas/ediciones.
-function _fusionarArrayPorId(prioritario, secundario, priorEsBase){
-  prioritario = Array.isArray(prioritario) ? prioritario : [];
-  secundario  = Array.isArray(secundario)  ? secundario  : [];
-  // Si los items no tienen id, no podemos fusionar con seguridad → el más largo
-  const tienenId = a => a.length===0 || a[0] && a[0].id!==undefined;
-  if(!tienenId(prioritario) || !tienenId(secundario)){
-    return prioritario.length >= secundario.length ? prioritario : secundario;
-  }
-  const porId = {};
-  const orden = [];
-  // Primero el secundario (base), luego el prioritario lo sobrescribe/combina
-  secundario.forEach(it=>{ if(it && it.id!==undefined){ porId[it.id]=it; orden.push(it.id); } });
-  prioritario.forEach(it=>{
-    if(!it || it.id===undefined) return;
-    const prev = porId[it.id];
-    if(!prev){ porId[it.id]=it; orden.push(it.id); return; }
-    // Ambos tienen este id: combinar por recencia si hay _editTs, si no priorizar
-    const pt = it._editTs||0, st = prev._editTs||0;
-    if(pt||st){
-      porId[it.id] = pt>=st ? it : prev;
-    } else {
-      porId[it.id] = priorEsBase ? it : Object.assign({}, prev, it);
+// mergeDB, _fusionarArrayPorId y coherenciaAlumnas viven en js/merge.js
+
+// ── Escritura optimista (oct-2026) ──────────────────────────────────────────
+// Antes cada guardado subía el documento completo SIN mirar la nube: un equipo
+// con datos viejos (pestaña en segundo plano, autosave cada 2 min) pisaba lo
+// que otro había guardado hacía un minuto. Ahora cada PATCH lleva el
+// `updateTime` del documento que este equipo ya conoce: si alguien escribió
+// entretanto, Firestore lo rechaza, se lee la nube, se fusiona con mergeDB y
+// se reintenta. Regla: _fbUpdateTime solo se actualiza cuando DB ya incorporó
+// el contenido de esa versión de la nube.
+let _fbUpdateTime = null;
+// Firma de lo que sabemos que ya está en la nube (para no subir si no cambió nada)
+let _firmaSubida = null;
+// Si Firestore no entendiera la precondición, se desactiva en esta sesión
+// en vez de dejar el panel sin poder guardar.
+let _sinPrecondicion = false;
+
+// JSON con claves ordenadas, sin fotos ni sellos de versión: dos bases con el
+// mismo contenido dan la misma firma aunque sus claves vengan en otro orden.
+function _firmaDatos(d){
+  const limpio = v => {
+    if(Array.isArray(v)) return v.map(limpio);
+    if(v && typeof v === 'object'){
+      const o = {};
+      Object.keys(v).sort().forEach(k => {
+        if(k === '_version' || k === '_snap' || k === 'foto') return;
+        o[k] = limpio(v[k]);
+      });
+      return o;
     }
-  });
-  return orden.map(id=>porId[id]);
-}
-
-// ── Coherencia entre alumnas activas y archivadas ──────────────────────────
-// Una alumna NO puede estar en las dos listas: la fusión por id une los dos
-// arrays y, sin esto, una alumna retirada revivía como activa en cada
-// sincronización (y volvía a aparecer al final de la lista de Alumnas).
-// Gana el último movimiento real: `_movTs` lo graban retirarAlumna() y
-// reactivarAlumna(). Si ninguna de las dos copias lo trae (datos viejos),
-// manda el archivo — que es lo que el usuario pidió explícitamente.
-function _movTsAl(a){ return (a && a._movTs) || 0; }
-
-function coherenciaAlumnas(db){
-  if(!db || !Array.isArray(db.alumnos) || !Array.isArray(db.alumnosRetirados)) return false;
-  let cambio=false;
-
-  // 1) Sin repetidas dentro del archivo (conservando la fecha de retiro más antigua)
-  const porId={}; const retiradas=[];
-  db.alumnosRetirados.forEach(a=>{
-    if(!a || a.id===undefined){ retiradas.push(a); return; }
-    const k=String(a.id), prev=porId[k];
-    if(!prev){ porId[k]=a; retiradas.push(a); return; }
-    cambio=true;                                  // copia repetida → se descarta
-    const frViejo = (prev.fechaRetiro && a.fechaRetiro)
-      ? (prev.fechaRetiro < a.fechaRetiro ? prev.fechaRetiro : a.fechaRetiro)
-      : (prev.fechaRetiro || a.fechaRetiro);
-    if(_movTsAl(a) > _movTsAl(prev)) Object.assign(prev, a);
-    prev.fechaRetiro = frViejo;
-  });
-  if(cambio) db.alumnosRetirados = retiradas;
-
-  // 2) Nadie a la vez activa y archivada
-  const activas=[]; const vuelvenAActivas=new Set();
-  db.alumnos.forEach(a=>{
-    if(!a || a.id===undefined){ activas.push(a); return; }
-    const ret = porId[String(a.id)];
-    if(!ret){ activas.push(a); return; }
-    cambio = true;
-    if(_movTsAl(a) > _movTsAl(ret)){               // la reactivación es más reciente
-      activas.push(a);
-      vuelvenAActivas.add(String(a.id));
-    }                                              // si no, manda el retiro: se descarta de activas
-  });
-  db.alumnos = activas;
-  if(vuelvenAActivas.size){
-    db.alumnosRetirados = db.alumnosRetirados.filter(a=>!(a && a.id!==undefined && vuelvenAActivas.has(String(a.id))));
-  }
-  if(cambio) console.log('🧹 Coherencia alumnas: activas='+db.alumnos.length+' · archivo='+db.alumnosRetirados.length);
-  return cambio;
-}
-
-function mergeDB(local, remoto){
-  // Defaults seguros — garantiza que ninguna clave queda undefined
-  const defaults = {
-    alumnos:[],alumnosRetirados:[],profesores:[],profesoresRetirados:[],
-    pagos:{},asistencias:{},clases:{},gastos:[],gastosV:[],otrosIngresos:[],recaudos:[],extraDias:{},
-    presentaciones:[],planificador:[],rifas:[],vestuarios:[],usosVestuario:[],nextId:1
+    return v;
   };
-
-  // Base: defaults + remoto, pero NUNCA reemplazar un array local con undefined/null
-  const base = {...defaults};
-  Object.keys(defaults).forEach(k=>{
-    if(remoto[k] !== undefined && remoto[k] !== null) base[k] = remoto[k];
-    // Si remoto no tiene la clave, queda el default (protege gastosV, planificador, etc.)
-  });
-  // Copiar _ts_* y _version del remoto
-  Object.keys(remoto).forEach(k=>{ if(k.startsWith('_')) base[k]=remoto[k]; });
-
-  const secciones=['alumnos','alumnosRetirados','profesores','profesoresRetirados',
-    'pagos','asistencias','clases','gastos','extraDias','presentaciones','planificador','gastosV','otrosIngresos','recaudos','rifas','vestuarios','usosVestuario'];
-
-  secciones.forEach(s=>{
-    // SIN fallback a _version: una sección sin timestamp propio NUNCA debe
-    // ganar por tener _version global alto (causó pérdida de rifas 2026-07-11)
-    const tsL = local['_ts_'+s]  || 0;
-    const tsR = remoto['_ts_'+s] || 0;
-    const localVal  = local[s]  ?? defaults[s];
-    const remotoVal = remoto[s] ?? defaults[s]; // nunca undefined
-
-    // Protección especial: si remoto no tiene timestamp propio para esta sección
-    // y local tiene datos, local gana siempre
-    const remotoTieneTs = !!remoto['_ts_'+s];
-    const localTieneDatos = Array.isArray(localVal) ? localVal.length > 0
-      : (localVal && Object.keys(localVal).length > 0);
-
-    if(!remotoTieneTs && localTieneDatos){
-      // Remoto nunca tuvo este campo con timestamp propio — conservar local
-      base[s] = localVal;
-      base['_ts_'+s] = tsL;
-      const sz = Array.isArray(localVal) ? localVal.length+' items' : Object.keys(localVal).length+' keys';
-      console.log('🛡️ '+s+': remoto sin timestamp propio — conservando local ('+sz+')');
-      return;
-    }
-
-    if(tsL > tsR){
-      // Local más reciente — gana, PERO si son arrays fusionamos por id para no
-      // perder items que el otro dispositivo agregó y este local no alcanzó a ver.
-      if(Array.isArray(localVal) && Array.isArray(remotoVal)){
-        base[s] = _fusionarArrayPorId(localVal, remotoVal, true); // local prioritario
-      } else {
-        base[s] = localVal;
-      }
-      base['_ts_'+s] = tsL;
-      console.log('📌 '+s+': local gana ts='+new Date(tsL).toLocaleTimeString());
-    } else if(tsR > tsL){
-      // Remoto más reciente — PERO nunca aceptar un array vacío que borre datos locales
-      const remotoVacio = Array.isArray(remotoVal) && remotoVal.length===0;
-      const localConDatos = Array.isArray(localVal) && localVal.length>0;
-      if(remotoVacio && localConDatos){
-        base[s] = localVal;
-        base['_ts_'+s] = Date.now(); // marcar local como más nuevo para resubir
-        console.warn('🛡️ '+s+': remoto vacío intentó borrar '+localVal.length+' items locales — BLOQUEADO, conservando local');
-      } else if(Array.isArray(localVal) && Array.isArray(remotoVal)){
-        // Remoto gana, pero fusionamos por id para no perder items que solo tiene local
-        base[s] = _fusionarArrayPorId(remotoVal, localVal, true); // remoto prioritario
-        console.log('☁️ '+s+': remoto gana ts (fusionado por id)');
-      } else {
-        console.log('☁️ '+s+': remoto gana ts='+new Date(tsR).toLocaleTimeString());
-      }
-    } else {
-      // Mismo timestamp — fusión segura sin perder datos
-      if(s==='asistencias'){
-        const ids=new Set([...Object.keys(localVal||{}),...Object.keys(remotoVal||{})]);
-        const m={};
-        ids.forEach(id=>{ m[id]=Object.assign({},localVal?.[id]||{},remotoVal?.[id]||{}); });
-        base[s]=m;
-      } else if(s==='pagos'){
-        const pg=Object.assign({},remotoVal||{});
-        Object.keys(localVal||{}).forEach(id=>{
-          if(!pg[id]) pg[id]={};
-          Object.keys(localVal[id]||{}).forEach(mk=>{
-            const L=localVal[id][mk], R=pg[id][mk];
-            if(!R){ pg[id][mk]=L; return; }              // remoto no lo tiene → tomar local
-            // Ambos existen: gana el editado más recientemente (_editTs)
-            const lt=L&&L._editTs||0, rt=R&&R._editTs||0;
-            if(lt||rt){
-              pg[id][mk] = lt>=rt ? L : R;               // el más nuevo por sello de tiempo
-            } else if(L&&L.pagado&&!(R&&R.pagado)){
-              pg[id][mk]=L;                               // respaldo (pagos viejos sin sello)
-            }
-          });
-        });
-        base[s]=pg;
-      } else if(Array.isArray(localVal)&&Array.isArray(remotoVal)){
-        // Arrays de objetos con id → fusionar por id (no "el más largo", que revive borrados
-        // o pierde ediciones). Cada id conserva la versión de quien lo tenga; si ambos, se
-        // combinan sus campos. Los items sin id caen al respaldo "más largo".
-        base[s] = _fusionarArrayPorId(localVal, remotoVal);
-      } else if(Array.isArray(localVal) && !Array.isArray(remotoVal)){
-        base[s] = localVal;
-        console.log('🛡️ '+s+': remoto no tiene este campo, conservando local ('+localVal.length+' items)');
-      } else if(s==='extraDias' || s==='clases'){
-        // Objetos indexados: fusionar mes a mes / semana a semana
-        const merged = Object.assign({}, remotoVal||{});
-        Object.keys(localVal||{}).forEach(k=>{
-          if(!merged[k]) merged[k] = localVal[k];
-          else if(Array.isArray(localVal[k]) && Array.isArray(merged[k])){
-            // Para arrays dentro del objeto, usar el más largo
-            if(localVal[k].length > merged[k].length) merged[k] = localVal[k];
-          }
-        });
-        base[s] = merged;
-      }
-    }
-  });
-
-  base.nextId=Math.max(local.nextId||1,remoto.nextId||1);
-  base.reciboSeq=Math.max(local.reciboSeq||0,remoto.reciboSeq||0);  // consecutivo de recibos
-
-  // Claves que no están en la lista de secciones (p. ej. alumnosHistoricas):
-  // conservarlas siempre — antes la fusión las borraba en silencio.
-  Object.keys(local||{}).concat(Object.keys(remoto||{})).forEach(k=>{
-    if(k.startsWith('_') || base[k]!==undefined) return;
-    const lv=local?.[k], rv=remoto?.[k];
-    if(Array.isArray(lv) && Array.isArray(rv)) base[k]=_fusionarArrayPorId(lv,rv);
-    else base[k] = (lv!==undefined && lv!==null) ? lv : rv;
-  });
-
-  // Una alumna archivada nunca debe revivir como activa por efecto de la fusión
-  coherenciaAlumnas(base);
-  return base;
+  try{ return JSON.stringify(limpio(d)); }catch(e){ return null; }
 }
+function hayCambiosSinSubir(){
+  return hayGuardadoPendiente() || _firmaSubida === null || _firmaDatos(DB) !== _firmaSubida;
+}
+// Tras fusionar con la nube: si DB quedó igual a lo que hay allá, no hay nada que subir
+function _marcarSiIgualANube(parsed){
+  // mergeDB completa claves por defecto (gastos:[], reciboSeq…): se compara
+  // contra la nube pasada por el mismo molde para no ver diferencias falsas.
+  let molde;
+  try{ const c = JSON.parse(JSON.stringify(parsed)); molde = mergeDB(c, JSON.parse(JSON.stringify(parsed))); }
+  catch(e){ return; }
+  const f = _firmaDatos(molde);
+  if(f !== null && f === _firmaDatos(DB)) _firmaSubida = f;
+}
+function _restaurarFotos(){
+  let fotos = {};
+  try{ fotos = JSON.parse(localStorage.getItem('_fotos')||'{}'); }catch(e){}
+  DB.alumnos?.forEach(a=>{ if(!a.foto&&fotos[a.id]) a.foto=fotos[a.id]; });
+}
+
+// Lee la nube y la fusiona en DB (sin subir nada). Se usa cuando un guardado
+// choca con una escritura de otro equipo. Devuelve 'no-existe' | 'vacio' | 'fusionado'.
+async function _fbLeerYFusionar(){
+  const r = await fetch(`${FB_URL}?key=${FB_KEY}`, { headers: await fbHeaders() });
+  if(r.status === 404){ _fbUpdateTime = null; return 'no-existe'; }
+  if(!r.ok) throw new Error('lectura HTTP '+r.status);
+  const j = await r.json();
+  _fbUpdateTime = j.updateTime || null;
+  const raw = j.fields?.data?.stringValue;
+  if(!raw) return 'vacio';
+  const parsed = JSON.parse(raw);
+  const antes = _firmaDatos(DB);
+  DB = mergeDB(DB, parsed);
+  _restaurarFotos();
+  repararFechasIngreso();
+  _localVersion = Math.max(_localVersion||0, parsed._version||0);
+  snapLocal();
+  if(_firmaDatos(DB) !== antes){
+    console.log('🔀 Se fusionaron cambios de otro dispositivo antes de guardar');
+    try{ renderSection(activeSection); }catch(e){}
+    toast('🔀 Se combinaron cambios de otro dispositivo','info');
+  }
+  return 'fusionado';
+}
+
+// Firestore responde así cuando el documento cambió desde el updateTime enviado
+function _esConflictoVersion(r, eb){
+  const st = eb?.error?.status;
+  return r.status === 409 || r.status === 412 || st === 'FAILED_PRECONDITION' || st === 'ABORTED';
+}
+
 async function _fbCargar(){
   if(_guardandoAhora){
     console.log('⏸ _fbCargar pausada — esperando guardado en curso...');
@@ -303,6 +172,8 @@ async function _fbCargar(){
       const hayDifsRemoto = fbVersion > localVersion;
 
       DB = merged;
+      _fbUpdateTime = j.updateTime || null;   // DB ya incorporó esta versión de la nube
+      _marcarSiIgualANube(parsed);
       // La versión global es la más alta de ambas
       _localVersion = Math.max(localVersion, fbVersion);
 
@@ -334,6 +205,7 @@ async function _fbCargar(){
 
     } else {
       // Firebase vacío
+      _fbUpdateTime = j.updateTime || null;
       if(DB.alumnos && DB.alumnos.length > 0){
         console.log('⬆️ Firebase vacío — subiendo datos locales...');
         await _fbSave(DB);
@@ -404,21 +276,38 @@ function saveBackground(){
   });
 }
 
-async function _fbSave(datos){
+// ── Un solo guardado a la vez ──
+// autosave, polling, reintentos y acciones del usuario podían disparar varios
+// PATCH a la vez. Ahora van en fila, y si ya hay uno esperando turno no se
+// encola otro: ese, al arrancar, sube el DB más reciente igual.
+let _guardadoEnCurso = null, _guardadoEsperando = null;
+function _fbSave(datos){
+  const correr = () => {
+    _guardadoEnCurso = _fbSaveInterno().finally(() => { _guardadoEnCurso = null; });
+    return _guardadoEnCurso;
+  };
+  if(_guardadoEsperando) return _guardadoEsperando;
+  if(!_guardadoEnCurso) return correr();
+  _guardadoEsperando = _guardadoEnCurso.catch(() => {}).then(() => {
+    _guardadoEsperando = null;
+    return correr();
+  });
+  return _guardadoEsperando;
+}
+
+// Sube siempre el DB global vigente (todos los llamadores pasaban DB).
+async function _fbSaveInterno(){
   setSyncStatus('syncing');
   _guardandoAhora = true;
   // try/finally: si algo lanza antes de terminar, _guardandoAhora se quedaba
   // en true para siempre y el panel dejaba de guardar y sincronizar sin avisar.
   try{
   const fotos = {};
-  datos.alumnos?.forEach(a=>{ if(a.foto) fotos[a.id]=a.foto; });
+  DB.alumnos?.forEach(a=>{ if(a.foto) fotos[a.id]=a.foto; });
   // Las fotos solo viven en este navegador. Si no caben, se sigue guardando
   // la base en Firebase, que es lo importante.
   try{ localStorage.setItem('_fotos', JSON.stringify(fotos)); }
   catch(e){ console.warn('📷 Las fotos no caben en localStorage:', e); }
-  const sinFotos = {...datos, alumnos: datos.alumnos?.map(a=>({...a,foto:null})), _version: _localVersion};
-  const payload = JSON.stringify({fields:{data:{stringValue:JSON.stringify(sinFotos)}}});
-
   // ── Límite de 64 KB de `keepalive` ────────────────────────────────────────
   // Chrome rechaza cualquier fetch con keepalive:true cuyo cuerpo pase de
   // 64 KB, y lo hace ANTES de salir a internet: el error que llega es un
@@ -426,14 +315,20 @@ async function _fbSave(datos){
   // y el paquete pasó de 64 KB, TODOS los guardados empezaron a fallar en
   // silencio mientras la lectura seguía funcionando. Por eso keepalive solo
   // se usa cuando el cuerpo cabe; por encima, se envía sin él (sin límite).
-  const _bytesPayload = (typeof TextEncoder !== 'undefined')
-    ? new TextEncoder().encode(payload).length
-    : payload.length;
-  const _cabeKeepalive = _bytesPayload < 60000;   // margen de seguridad
-  if(!_cabeKeepalive) console.log('📦 Paquete de '+(_bytesPayload/1024).toFixed(1)+' KB — enviando sin keepalive');
-
+  let conflictos = 0;
   for(let intento=1; intento<=3; intento++){
     try{
+      // Sin versión conocida (p. ej. arrancó sin internet): leer y fusionar primero
+      if(!_fbUpdateTime && !_sinPrecondicion) await _fbLeerYFusionar();
+      // El payload se arma en cada vuelta: tras una fusión DB cambió
+      const sinFotos = {...DB, alumnos: DB.alumnos?.map(a=>({...a,foto:null})), _version: _localVersion};
+      const payload = JSON.stringify({fields:{data:{stringValue:JSON.stringify(sinFotos)}}});
+      const _bytesPayload = (typeof TextEncoder !== 'undefined')
+        ? new TextEncoder().encode(payload).length
+        : payload.length;
+      const _cabeKeepalive = _bytesPayload < 60000;   // margen de seguridad
+      if(!_cabeKeepalive) console.log('📦 Paquete de '+(_bytesPayload/1024).toFixed(1)+' KB — enviando sin keepalive');
+
       const ctrl = new AbortController();
       const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
       const timeoutMs = isMobile ? 30000 : 15000; // más tiempo en mobile
@@ -447,12 +342,31 @@ async function _fbSave(datos){
         // es válido por debajo de 64 KB. Ver la nota de arriba.
         keepalive: _cabeKeepalive
       };
-      const r = await fetch(`${FB_URL}?key=${FB_KEY}&updateMask.fieldPaths=data`, fetchOpts);
+      // mask.fieldPaths=v (campo que no existe): la respuesta trae solo el
+      // updateTime, no los cientos de KB del documento.
+      let url = `${FB_URL}?key=${FB_KEY}&updateMask.fieldPaths=data&mask.fieldPaths=v`;
+      if(_fbUpdateTime && !_sinPrecondicion) url += '&currentDocument.updateTime='+encodeURIComponent(_fbUpdateTime);
+      const r = await fetch(url, fetchOpts);
       clearTimeout(tmout);
       if(!r.ok){
         const eb = await r.json().catch(()=>({}));
+        if(_fbUpdateTime && !_sinPrecondicion && _esConflictoVersion(r, eb) && conflictos < 3){
+          // Otro equipo escribió desde nuestra última lectura: fusionar y reintentar
+          conflictos++;
+          console.log('🔀 La nube cambió desde la última lectura — fusionando ('+conflictos+'/3)');
+          await _fbLeerYFusionar();
+          intento--;            // un choque de versiones no es un fallo de red
+          continue;
+        }
+        if(r.status === 400 && /currentDocument|update_?time|precondition/i.test(eb?.error?.message||'')){
+          console.error('Firestore no aceptó la precondición; se guarda sin ella en esta sesión:', eb?.error?.message);
+          _sinPrecondicion = true;
+        }
         throw new Error('HTTP '+r.status+': '+(eb?.error?.message||''));
       }
+      const doc = await r.json().catch(()=>({}));
+      _fbUpdateTime = doc.updateTime || null;
+      _firmaSubida = _firmaDatos(sinFotos);
       _ultimoGuardado = Date.now();
       setSyncStatus('ok');
       console.log('✅ Firebase verificado OK (intento '+intento+')');

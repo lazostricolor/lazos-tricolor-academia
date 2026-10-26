@@ -305,6 +305,7 @@ function confirmarActualizarAlumna(preinscId, preinscIdx) {
   cambiarEstadoPreinsc(preinscId, 'aprobada');
 
   cerrarModal('modal-hist-pagos');
+  tsSeccion('alumnos');
   saveAll();
   toast('✅ Datos de '+alumna.nombre+' actualizados correctamente');
 }
