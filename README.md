@@ -92,6 +92,21 @@ Solo entra la cuenta de Google `ADMIN_EMAIL`. Toda petición a Firestore lleva
 la petición falla**, porque `firestore.rules` solo deja leer/escribir a esa cuenta.
 Si cambias las reglas, pégalas en Firebase → Firestore Database → Reglas.
 
+## Subir la mensualidad
+
+En `js/state.js`, agrega una fila **nueva** al final de `TARIFAS` con el mes desde
+el que aplica; no edites las filas existentes:
+
+```js
+const TARIFAS = [
+  { desde:'2024-04', base:70000, familiar:50000, medio:35000, medioFamiliar:25000 },
+  { desde:'2027-02', base:80000, familiar:60000, medio:40000, medioFamiliar:30000 },
+];
+```
+
+Cada mes se cobra y se reporta con la tarifa vigente ese mes, así que los
+reportes, recibos y deudas de meses anteriores no cambian. `npm test` lo verifica.
+
 ## Datos
 
 Documento único en Firestore:

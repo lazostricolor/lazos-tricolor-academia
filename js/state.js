@@ -16,7 +16,17 @@ const FB_CONFIG = {
   projectId: 'lazos-tricolor-academia',
   appId: '1:284048193120:web:96cacf134a537c9ad57505'
 };
-const PRECIO_BASE = 70000, PRECIO_FAMI = 50000, PRECIO_MEDIO = 35000;
+// ── Tarifas de mensualidad por vigencia ──
+// Para SUBIR la mensualidad: agrega una fila NUEVA al final con el mes desde
+// el que aplica (ej. '2027-01'). Nunca edites una fila existente: cada mes se
+// cobra y se reporta con la tarifa vigente ESE mes, así subir el precio no
+// cambia la contabilidad ni las deudas de meses pasados.
+//   base: mensualidad normal · familiar: tarifa familiar
+//   medio / medioFamiliar: enero y diciembre (medio mes)
+const TARIFAS = [
+  { desde:'2024-04', base:70000, familiar:50000, medio:35000, medioFamiliar:25000 },
+];
+const PRECIO_BASE = 70000, PRECIO_FAMI = 50000, PRECIO_MEDIO = 35000; // solo referencia: se usa TARIFAS
 const HONOR_POR_CLASE = 50000;
 const DIAS_CLASE = {
   'Infantil': [4,6], 'Juvenil': [3,6], 'Adulto': [1,6], 'Adulto Mayor': [1,6]
