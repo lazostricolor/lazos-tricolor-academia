@@ -1,0 +1,8 @@
+{
+  "name": "lazos-tricolor-academia",
+  "private": true,
+  "description": "Panel administrativo de la Academia de Danzas Lazos Tricolor. Sin build: el navegador carga js/*.js directo.",
+  "scripts": {
+    "test": "node --test"
+  }
+}

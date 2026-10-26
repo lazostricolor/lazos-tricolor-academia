@@ -97,6 +97,7 @@ function guardarProfesor(){
     toast('Profesor registrado ✓');
   }
   cerrarModal('modal-profesor');
+  tsSeccion('profesores');
   saveAll(); renderProfesores();
 }
 function verFichaProfesor(id){
@@ -134,6 +135,7 @@ function verFichaProfesor(id){
     if(!confirm2('¿Retirar a '+p.nombre+'?')) return;
     DB.profesoresRetirados.push({...p,fechaRetiro:dateStr(getHoyReal())});
     DB.profesores=DB.profesores.filter(x=>x.id!==id);
+    tsSeccion('profesores'); tsSeccion('profesoresRetirados');
     cerrarModal('modal-ficha-prof');
     saveAll(); renderProfesores(); toast('Profesor retirado');
   };

@@ -43,6 +43,7 @@ function repararYResubir(){
   repararFechasIngreso();
   let reparadas=0;
   DB.alumnos.forEach(a=>{ if(a.fechaIngreso) reparadas++; });
+  tsSeccion('alumnos');
   saveAll();
   toast(`✅ ${reparadas} alumnas con fecha válida — datos subidos a Firebase`,'ok');
   renderSection(activeSection);
@@ -79,6 +80,9 @@ function importarJSON(input){
       const j=JSON.parse(e.target.result);
       if(!j.alumnos) throw new Error('Formato inválido');
       DB=Object.assign(DB,j);
+      // El respaldo trae sus _ts_ viejos: sin re-sellar, el siguiente merge
+      // con la nube podía descartar lo importado.
+      Object.keys(j).forEach(k=>{ if(!k.startsWith('_') && j[k] && typeof j[k]==='object') tsSeccion(k); });
       saveAll(); renderSection(activeSection);
       toast('Importación exitosa ✓');
     }catch{toast('Error al importar JSON','err');}

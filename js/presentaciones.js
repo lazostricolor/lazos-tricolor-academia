@@ -203,5 +203,6 @@ function guardarPresentacion(){
 function eliminarPresentacion(idx){
   if(!confirm2('¿Eliminar esta presentación?')) return;
   DB.presentaciones.splice(idx,1);
+  tsSeccion('presentaciones');
   saveBackground(); renderPresentaciones(); toast('Presentación eliminada');
 }

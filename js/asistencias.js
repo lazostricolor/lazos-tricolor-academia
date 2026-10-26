@@ -193,6 +193,7 @@ function todasPresentes(){
       DB.asistencias[a.id][hoy]='P';
     }
   });
+  tsSeccion('asistencias');
   saveAll(); renderAsistencias(); toast('Asistencia registrada ✓');
 }
 function agregarDiaExtra(){

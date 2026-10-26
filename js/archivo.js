@@ -90,5 +90,6 @@ function eliminarProfesorDefinitivo(idx){
   if(!p) return;
   if(!confirm('⚠️ ¿Eliminar DEFINITIVAMENTE a '+p.nombre+'? Esta acción no se puede deshacer.')) return;
   DB.profesoresRetirados.splice(idx,1);
+  tsSeccion('profesoresRetirados');
   saveBackground(); renderArchivo(); toast('🗑️ Profesor eliminado definitivamente');
 }
