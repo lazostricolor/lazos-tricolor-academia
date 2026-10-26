@@ -112,6 +112,23 @@ function dateStr(d){
   const p = n => String(n).padStart(2,'0');
   return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());
 }
+// Copia de la base SIN fotos (activas y retiradas): es lo que se sube a
+// Firestore y se guarda en los snapshots. Antes solo se quitaban las de
+// alumnas activas; al retirar una alumna su foto viajaba a la nube y
+// engordaba el documento, que tiene un límite de 1 MB.
+function _sinFotos(db, extra){
+  return {
+    ...db,
+    alumnos: (db.alumnos||[]).map(a=>({...a, foto:null})),
+    alumnosRetirados: (db.alumnosRetirados||[]).map(a=>(a && a.foto) ? {...a, foto:null} : a),
+    ...(extra||{})
+  };
+}
+// Peso real (KB) de lo que se sube a Firestore. Límite del documento: 1024 KB.
+function pesoDBKB(){
+  try{ return Math.round(new TextEncoder().encode(JSON.stringify(_sinFotos(DB))).length/1024); }
+  catch(e){ return -1; }
+}
 // Escapa texto para insertarlo en HTML (contenido y atributos).
 // Úsalo UNA sola vez, justo donde se interpola. Los datos del formulario
 // público de preinscripción NUNCA deben pintarse sin pasar por aquí.

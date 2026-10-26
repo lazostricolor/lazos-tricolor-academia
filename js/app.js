@@ -81,8 +81,7 @@ async function init(){
           _marcarSiIgualANube(parsed);
           _localVersion = Math.max(localV, fbVersion);
           repararFechasIngreso();
-          const fotos = JSON.parse(localStorage.getItem('_fotos')||'{}');
-          DB.alumnos?.forEach(a=>{ if(!a.foto&&fotos[a.id]) a.foto=fotos[a.id]; });
+          _restaurarFotos();
           snapLocal();
           if(fbVersion > localV){
             // Firebase tenía cambios que local no tenía — actualizar pantalla
@@ -164,7 +163,7 @@ window.addEventListener('pagehide', function(){
     snapLocal();
     // Intento final con keepalive=true (el único que funciona en pagehide)
     if(hayGuardadoPendiente()){
-      const sinFotos = {...DB, alumnos: DB.alumnos?.map(a=>({...a,foto:null})), _version: _localVersion};
+      const sinFotos = _sinFotos(DB, {_version: _localVersion});
       const payload = JSON.stringify({fields:{data:{stringValue:JSON.stringify(sinFotos)}}});
       // keepalive no acepta más de 64 KB: por encima, el intento fallaría seguro.
       // Lo pendiente queda en el snapshot local y se sube al volver a abrir.
