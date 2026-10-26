@@ -44,6 +44,9 @@ Para probar en local: `python3 -m http.server 8000` y abrir `http://localhost:80
 
 - `npm test` — tests de `mergeDB` (Node 18+, sin instalar nada). Si uno falla,
   no cambies el test: revisa qué cambió en `js/merge.js`.
+- `npm run revisar` — sintaxis de todo `js/` y funciones definidas dos veces.
+- GitHub corre las dos cosas en cada PR y en cada cambio a `main` (pestaña
+  **Actions**). Si sale en rojo, no fusiones.
 - `TEST-E~1.HTM` — arnés de `estado-cuenta.js`; se abre en el navegador.
 
 ## Reglas de oro
@@ -96,5 +99,8 @@ Documento único en Firestore:
 
 Respaldos locales: `localStorage._db` + 3 snapshots rotativos.
 
-Las fotos de las alumnas **no se sincronizan**: viven solo en el navegador que
-las subió (`localStorage._fotos`), reducidas a 480 px en JPEG.
+Las fotos de las alumnas (activas **y retiradas**) **no se sincronizan**: viven solo
+en el navegador que las subió (`localStorage._fotos`), reducidas a 480 px en JPEG.
+
+El documento tiene un **límite de 1 MB** en Firestore. Configuración muestra el
+peso actual; por encima de 800 KB el panel avisa al guardar.

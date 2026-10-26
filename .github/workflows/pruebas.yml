@@ -1,0 +1,21 @@
+# Corre en cada cambio a main y en cada Pull Request.
+# Si sale en rojo, NO fusiones: algo se rompió en js/.
+name: Pruebas
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Sintaxis y funciones duplicadas
+        run: npm run revisar
+      - name: Tests de mergeDB
+        run: npm test

@@ -19,8 +19,7 @@ try {
       if (e.data.db) {
         DB = e.data.db;
         repararFechasIngreso();
-        const fotos = JSON.parse(localStorage.getItem('_fotos') || '{}');
-        DB.alumnos?.forEach(a => { if (!a.foto && fotos[a.id]) a.foto = fotos[a.id]; });
+        _restaurarFotos();
         renderSection(activeSection);
         setSyncStatus('ok');
         toast('🔄 Datos actualizados desde otra pestaña','info');
@@ -96,7 +95,8 @@ function _marcarSiIgualANube(parsed){
 function _restaurarFotos(){
   let fotos = {};
   try{ fotos = JSON.parse(localStorage.getItem('_fotos')||'{}'); }catch(e){}
-  DB.alumnos?.forEach(a=>{ if(!a.foto&&fotos[a.id]) a.foto=fotos[a.id]; });
+  // Activas y retiradas: las fotos de las retiradas tampoco viajan a la nube
+  [...(DB.alumnos||[]), ...(DB.alumnosRetirados||[])].forEach(a=>{ if(a && !a.foto && fotos[a.id]) a.foto=fotos[a.id]; });
 }
 
 // Lee la nube y la fusiona en DB (sin subir nada). Se usa cuando un guardado
@@ -122,6 +122,19 @@ async function _fbLeerYFusionar(){
     toast('🔀 Se combinaron cambios de otro dispositivo','info');
   }
   return 'fusionado';
+}
+
+// ── Peso del documento ──
+// Firestore no acepta documentos de más de 1 MiB: si la base llega ahí, los
+// guardados empiezan a fallar. Se avisa con tiempo, una vez por sesión.
+let _avisoPesoDado = false;
+function _avisarPeso(bytes){
+  const kb = Math.round(bytes/1024);
+  if(kb > 700) console.warn('⚖️ La base pesa '+kb+' KB ('+Math.round(kb/10.24)+'% del límite de 1024 KB)');
+  if(kb > 800 && !_avisoPesoDado){
+    _avisoPesoDado = true;
+    toast('⚖️ La base ya pesa '+kb+' KB de 1024 KB permitidos. Mira Configuración → Peso de la base.','err');
+  }
 }
 
 // Firestore responde así cuando el documento cambió desde el updateTime enviado
@@ -177,8 +190,7 @@ async function _fbCargar(){
       // La versión global es la más alta de ambas
       _localVersion = Math.max(localVersion, fbVersion);
 
-      const fotos = JSON.parse(localStorage.getItem('_fotos')||'{}');
-      DB.alumnos.forEach(a=>{ if(!a.foto&&fotos[a.id]) a.foto=fotos[a.id]; });
+      _restaurarFotos();
       snapLocal();
 
       if(hayDifsLocal){
@@ -230,7 +242,7 @@ let _ultimoGuardado = 0; // timestamp del último guardado exitoso
 
 function snapLocal(){
   try{
-    const copia = {...DB, alumnos: DB.alumnos.map(a=>({...a,foto:null})), _version: _localVersion, _snap: Date.now()};
+    const copia = _sinFotos(DB, {_version: _localVersion, _snap: Date.now()});
     localStorage.setItem('_db', JSON.stringify(copia));
     // 3 copias de seguridad rotativas
     localStorage.setItem('_snap_' + (Date.now() % 3), JSON.stringify(copia));
@@ -250,7 +262,7 @@ async function saveAll(){
   encolarGuardado();                                   // 2. marcar pendiente
   if(_bc){
     try{
-      const sf={...DB,alumnos:DB.alumnos.map(a=>({...a,foto:null}))};
+      const sf=_sinFotos(DB);
       _bc.postMessage({type:'DB_UPDATED',version:_localVersion,db:sf});
     }catch(e){}
   }
@@ -303,7 +315,7 @@ async function _fbSaveInterno(){
   // en true para siempre y el panel dejaba de guardar y sincronizar sin avisar.
   try{
   const fotos = {};
-  DB.alumnos?.forEach(a=>{ if(a.foto) fotos[a.id]=a.foto; });
+  [...(DB.alumnos||[]), ...(DB.alumnosRetirados||[])].forEach(a=>{ if(a && a.foto) fotos[a.id]=a.foto; });
   // Las fotos solo viven en este navegador. Si no caben, se sigue guardando
   // la base en Firebase, que es lo importante.
   try{ localStorage.setItem('_fotos', JSON.stringify(fotos)); }
@@ -321,13 +333,14 @@ async function _fbSaveInterno(){
       // Sin versión conocida (p. ej. arrancó sin internet): leer y fusionar primero
       if(!_fbUpdateTime && !_sinPrecondicion) await _fbLeerYFusionar();
       // El payload se arma en cada vuelta: tras una fusión DB cambió
-      const sinFotos = {...DB, alumnos: DB.alumnos?.map(a=>({...a,foto:null})), _version: _localVersion};
+      const sinFotos = _sinFotos(DB, {_version: _localVersion});
       const payload = JSON.stringify({fields:{data:{stringValue:JSON.stringify(sinFotos)}}});
       const _bytesPayload = (typeof TextEncoder !== 'undefined')
         ? new TextEncoder().encode(payload).length
         : payload.length;
       const _cabeKeepalive = _bytesPayload < 60000;   // margen de seguridad
       if(!_cabeKeepalive) console.log('📦 Paquete de '+(_bytesPayload/1024).toFixed(1)+' KB — enviando sin keepalive');
+      _avisarPeso(_bytesPayload);
 
       const ctrl = new AbortController();
       const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
@@ -361,6 +374,12 @@ async function _fbSaveInterno(){
         if(r.status === 400 && /currentDocument|update_?time|precondition/i.test(eb?.error?.message||'')){
           console.error('Firestore no aceptó la precondición; se guarda sin ella en esta sesión:', eb?.error?.message);
           _sinPrecondicion = true;
+        }
+        if(/maximum size|too large|exceeds/i.test(eb?.error?.message||'')){
+          // No es falta de internet: el documento pasó de 1 MB. Reintentar no sirve.
+          setSyncStatus('error');
+          toast('La base pasó el límite de 1 MB de Firebase y NO se pudo guardar en la nube. Los datos siguen en este equipo. Pide ayuda antes de seguir.','err');
+          return false;
         }
         throw new Error('HTTP '+r.status+': '+(eb?.error?.message||''));
       }
@@ -511,6 +530,5 @@ function loadDB(){
     }
   }
   repararFechasIngreso();
-  const fotos = JSON.parse(localStorage.getItem('_fotos')||'{}');
-  DB.alumnos?.forEach(a=>{ if(!a.foto&&fotos[a.id]) a.foto=fotos[a.id]; });
+  _restaurarFotos();
 }
