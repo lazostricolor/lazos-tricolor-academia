@@ -46,11 +46,19 @@ function alumnaActivaEnMes(alumna,mk){
   }
   return true;
 }
+// Tarifa vigente en el mes mk ('YYYY-MM'): la última de TARIFAS cuyo `desde` ya llegó.
+function tarifaDeMes(mk){
+  const orden=[...TARIFAS].sort((x,y)=>x.desde<y.desde?-1:x.desde>y.desde?1:0);
+  let t=orden[0];
+  orden.forEach(x=>{ if(x.desde<=mk) t=x; });
+  return t;
+}
 function calcMensualidad(alumna,mk){
   const mes=parseInt(mk.split('-')[1]);
   const esMedio=mes===1||mes===12;
-  if(alumna.familiar) return esMedio?25000:PRECIO_FAMI;
-  return esMedio?PRECIO_MEDIO:PRECIO_BASE;
+  const t=tarifaDeMes(mk);
+  if(alumna.familiar) return esMedio?t.medioFamiliar:t.familiar;
+  return esMedio?t.medio:t.base;
 }
 function getAlumnasMes(mk){
   // Activas + retiradas que estuvieron activas en ese mes (hasta su fecha de retiro).
