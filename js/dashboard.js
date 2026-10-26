@@ -398,7 +398,7 @@ function renderDashPagos(mk,activas){
         const real=p.beca?Math.floor(val/2):val;
         const vencido=esPasado||(hoy.getDate()>15&&mk===mesKey(hoy));
         return`<tr class="${vencido?'pago-row vencido':''}">
-          <td><div style="display:flex;align-items:center;gap:8px"><div class="avatar">${a.foto?`<img src="${a.foto}">`:''}${!a.foto?iniciales(a.nombre):''}</div>${a.nombre}</div></td>
+          <td><div style="display:flex;align-items:center;gap:8px"><div class="avatar">${a.foto?`<img src="${a.foto}">`:''}${!a.foto?iniciales(a.nombre):''}</div>${esc(a.nombre)}</div></td>
           <td>${catBadge(a.categoria)}</td>
           <td>${formatCOP(real)}</td>
           <td><span class="badge badge-unpaid">${vencido?'<span class="led-red"></span>':''}Pendiente</span></td>

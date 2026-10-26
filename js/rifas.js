@@ -254,7 +254,7 @@ function abrirModalNumsExt(rifaId){
 
   document.getElementById('modal-nums-title').textContent = '👤 Asignar a persona externa';
   document.getElementById('modal-nums-info').innerHTML =
-    'Rifa: <strong>'+rifa.nombre+'</strong><br>'
+    'Rifa: <strong>'+esc(rifa.nombre)+'</strong><br>'
     +'Valor por número: <strong style="color:var(--primary)">$'+Number(rifa.valorNum||0).toLocaleString('es-CO')+'</strong><br>'
     +'<span style="font-size:11px;color:var(--text2)">Persona amiga o colaboradora externa a la academia</span>';
 
@@ -290,7 +290,7 @@ function abrirModalNums(rifaId, alumnaId){
   var titulo, info;
   if(isExt){
     titulo = tieneNums ? ('✏️ Editar externo: '+(asig.nombreExt||'sin nombre')) : '👤 Asignar a persona externa';
-    info = 'Rifa: <strong>'+rifa.nombre+'</strong><br>'
+    info = 'Rifa: <strong>'+esc(rifa.nombre)+'</strong><br>'
       +'Valor por número: <strong style="color:var(--primary)">$'+Number(rifa.valorNum||0).toLocaleString('es-CO')+'</strong>';
     document.getElementById('nums-nombre-ext').value = asig.nombreExt||'';
   } else {
@@ -298,7 +298,7 @@ function abrirModalNums(rifaId, alumnaId){
     if(!alumna){ toast('Alumna no encontrada','err'); return; }
     titulo = tieneNums ? ('✏️ Editar números de '+alumna.nombre.split(' ')[0])
                        : ('🎟️ Asignar números a '+alumna.nombre.split(' ')[0]);
-    info = '<strong>'+alumna.nombre+'</strong> · Rifa: <strong>'+rifa.nombre+'</strong><br>'
+    info = '<strong>'+esc(alumna.nombre)+'</strong> · Rifa: <strong>'+esc(rifa.nombre)+'</strong><br>'
       +'Valor por número: <strong style="color:var(--primary)">$'+Number(rifa.valorNum||0).toLocaleString('es-CO')+'</strong>';
     document.getElementById('nums-nombre-ext').value = '';
   }
@@ -391,8 +391,8 @@ function abrirModalGanador(rifaId){
   var rifa = (DB.rifas||[]).find(function(r){return r.id===ganadorRifaId;});
   if(!rifa) return;
   document.getElementById('ganador-rifa-info').innerHTML =
-    '<strong>'+rifa.nombre+'</strong><br>'
-    +'Sorteo: <strong>'+rifa.sorteo+'</strong> · Premio: <strong>'+rifa.premio+'</strong>'
+    '<strong>'+esc(rifa.nombre)+'</strong><br>'
+    +'Sorteo: <strong>'+esc(rifa.sorteo)+'</strong> · Premio: <strong>'+esc(rifa.premio)+'</strong>'
     +(rifa.ganador!==null?'<br>Ganador actual: <strong style="color:var(--col)">Nº '+rifa.ganador+'</strong>':'');
   document.getElementById('ganador-num').value = rifa.ganador||'';
   document.getElementById('ganador-resultado').innerHTML = '';
@@ -426,13 +426,13 @@ function buscarNumGanador(rifaId, num){
     var nombreG = dueno.alumna ? dueno.alumna.nombre : ('👤 '+dueno.nombreExt);
     el.innerHTML = '<div style="background:'+(dueno.pagado==='pagado'?'rgba(26,160,83,.1)':'rgba(192,50,33,.08)')+';border-radius:10px;padding:14px;text-align:center">'
       +'<div style="font-size:28px;margin-bottom:6px">'+(dueno.pagado==='pagado'?'🏆':'⛔')+'</div>'
-      +'<div style="font-size:16px;font-weight:800">'+nombreG+'</div>'
+      +'<div style="font-size:16px;font-weight:800">'+esc(nombreG)+'</div>'
       +'<div style="font-size:12px;margin-top:4px">'
         +(dueno.pagado==='pagado'
           ?'<span style="color:var(--success)">✅ Número pagado — GANA el premio</span>'
           :'<span style="color:var(--danger);font-weight:700">⛔ Número NO pagado — NO entra en juego</span>')
       +'</div>'
-      +(dueno.nota?'<div style="font-size:11px;color:var(--text2);margin-top:2px">'+dueno.nota+'</div>':'')
+      +(dueno.nota?'<div style="font-size:11px;color:var(--text2);margin-top:2px">'+esc(dueno.nota)+'</div>':'')
       +'</div>';
   } else {
     el.innerHTML = '<div style="background:rgba(176,16,32,.08);border-radius:10px;padding:14px;text-align:center">'
@@ -656,7 +656,7 @@ function renderRifas(){
       var a = alumnaPorId(info.alumnaId);
       var nombreDueno = a?a.nombre.split(' ')[0]:(duenoInfo.nombreExt||'?');
       var tooltip = nombreDueno+' · Nº'+n+(info.pagado?' ✅ pagado':' ⏳ pendiente — clic para marcar pagado')+(esGanador?' 🏆':'');
-      return '<span class="num-chip '+cls+' rifa-chip-toggle" data-rid="'+rifa.id+'" data-aid="'+info.alumnaId+'" data-num="'+n+'" title="'+tooltip+'">'
+      return '<span class="num-chip '+cls+' rifa-chip-toggle" data-rid="'+rifa.id+'" data-aid="'+info.alumnaId+'" data-num="'+n+'" title="'+esc(tooltip)+'">'
         +_fmt2(n)
         +(esGanador?'<span style="position:absolute;top:-4px;right:-4px;font-size:8px">🏆</span>':'')
         +'</span>';
@@ -682,7 +682,7 @@ function renderRifas(){
       var totNums = tieneNums ? asig.numeros.length : 0;
       var montoPagado = pagCount*(Number(rifa.valorNum)||0);
       filasAlumnas += '<div class="rifa-alumna-row">'
-        +'<span class="rifa-alumna-nombre">'+a.nombre.split(' ').slice(0,2).join(' ')+(esRetirada?' <span style="font-size:9px;color:var(--danger)">(retirada)</span>':'')+'</span>'
+        +'<span class="rifa-alumna-nombre">'+esc(a.nombre.split(' ').slice(0,2).join(' '))+(esRetirada?' <span style="font-size:9px;color:var(--danger)">(retirada)</span>':'')+'</span>'
         +'<div class="rifa-nums-wrap">'
           +(tieneNums
             ? asig.numeros.map(function(n){
@@ -711,7 +711,7 @@ function renderRifas(){
       var totE = tieneNums ? asig.numeros.length : 0;
       var montoE = pagE*(Number(rifa.valorNum)||0);
       filasAlumnas += '<div class="rifa-alumna-row" style="background:rgba(58,87,232,.03)">'
-        +'<span class="rifa-alumna-nombre" style="color:var(--primary)">👤 '+(asig.nombreExt||'Externo')+'</span>'
+        +'<span class="rifa-alumna-nombre" style="color:var(--primary)">👤 '+esc(asig.nombreExt||'Externo')+'</span>'
         +'<div class="rifa-nums-wrap">'
           +(tieneNums
             ? asig.numeros.map(function(n){
@@ -735,7 +735,7 @@ function renderRifas(){
         +'<div>'
           +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
             +'<span style="font-size:20px">🎟️</span>'
-            +'<span style="font-size:16px;font-weight:800">'+rifa.nombre+'</span>'
+            +'<span style="font-size:16px;font-weight:800">'+esc(rifa.nombre)+'</span>'
             +(realizada&&rifa.ganador!==null
               ?'<span class="rifa-badge-ganador">🏆 Realizada</span>'
               :realizada
@@ -743,11 +743,11 @@ function renderRifas(){
               :'<span class="rec-badge activo">✅ Activa</span>')
           +'</div>'
           +'<div style="font-size:12px;color:var(--text2);display:flex;flex-wrap:wrap;gap:10px">'
-            +'<span>🏆 Premio: <strong>'+rifa.premio+'</strong></span>'
+            +'<span>🏆 Premio: <strong>'+esc(rifa.premio)+'</strong></span>'
             +'<span>📅 Inicio: '+rifa.inicio+'</span>'
             +'<span>🎯 Sorteo: <strong>'+rifa.sorteo+'</strong></span>'
             +'<span>💵 $'+Number(rifa.valorNum||0).toLocaleString('es-CO')+' / número</span>'
-            +(rifa.desc?'<span>📝 '+rifa.desc+'</span>':'')
+            +(rifa.desc?'<span>📝 '+esc(rifa.desc)+'</span>':'')
           +'</div>'
         +'</div>'
         +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
@@ -804,13 +804,13 @@ function renderRifas(){
             ?'<div style="background:linear-gradient(135deg,rgba(201,168,0,.15),rgba(244,169,22,.1));border:2px solid #c9a800;border-radius:12px;padding:16px;margin-bottom:16px;text-align:center">'
               +'<div style="font-size:24px;margin-bottom:4px">🏆</div>'
               +'<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">NÚMERO GANADOR: '+rifa.ganador+'</div>'
-              +'<div style="font-size:20px;font-weight:800;margin-top:4px">'+ganadorNombre+'</div>'
-              +'<div style="font-size:12px;color:var(--text2);margin-top:2px">Premio: '+rifa.premio+'</div>'
+              +'<div style="font-size:20px;font-weight:800;margin-top:4px">'+esc(ganadorNombre)+'</div>'
+              +'<div style="font-size:12px;color:var(--text2);margin-top:2px">Premio: '+esc(rifa.premio)+'</div>'
             +'</div>'
             :'<div style="background:rgba(192,50,33,.08);border:2px solid var(--danger);border-radius:12px;padding:16px;margin-bottom:16px;text-align:center">'
               +'<div style="font-size:24px;margin-bottom:4px">⛔</div>'
               +'<div style="font-size:11px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.5px">Nº '+rifa.ganador+' SALIÓ, PERO NO ESTABA PAGADO</div>'
-              +'<div style="font-size:18px;font-weight:800;margin-top:4px">'+ganadorNombre+'</div>'
+              +'<div style="font-size:18px;font-weight:800;margin-top:4px">'+esc(ganadorNombre)+'</div>'
               +'<div style="font-size:12px;color:var(--danger);margin-top:4px;font-weight:600">Este número no entra en juego — debe repetirse el sorteo</div>'
             +'</div>')
           :'')

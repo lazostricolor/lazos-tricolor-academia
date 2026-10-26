@@ -165,7 +165,7 @@ function tablaAlumnas(lista,mk,soloLectura){
         <td><div style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="verFichaAlumna(${a.id})">
           <div class="avatar">${a.foto?`<img src="${a.foto}">`:''}${!a.foto?iniciales(a.nombre):''}</div>
           <div>
-            <div style="font-weight:600">${a.nombre} ${(()=>{if(!a.nacimiento||a.nacimiento.length<7)return'';return a.nacimiento.split('-')[1]===mk.split('-')[1]?'🎂':'';})()}</div>
+            <div style="font-weight:600">${esc(a.nombre)} ${(()=>{if(!a.nacimiento||a.nacimiento.length<7)return'';return a.nacimiento.split('-')[1]===mk.split('-')[1]?'🎂':'';})()}</div>
             <div style="font-size:11px;color:var(--muted)">${a.familiar?'👨‍👩‍👧 Familiar':''}${(()=>{if(!a.nacimiento||a.nacimiento.length<7)return'';if(a.nacimiento.split('-')[1]!==mk.split('-')[1])return'';const partes=a.nacimiento.split('-');const dia=parseInt(partes[2]);const mesNom=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][parseInt(partes[1])-1];return(a.familiar?' · ':'')+'🎂 '+dia+' '+mesNom;})()}</div>
           </div>
         </div></td>

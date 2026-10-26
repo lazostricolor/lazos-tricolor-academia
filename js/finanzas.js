@@ -42,7 +42,7 @@ function renderFinanzas(){
             const p=getPago(a.id,mk);
             const val=calcMensualidad(a,mk);
             const real=p.beca?Math.floor(val/2):val;
-            return`<tr><td style="font-size:12px">${a.nombre}</td><td style="font-size:12px">${formatCOP(real)}</td><td><span class="badge ${p.pagado?'badge-paid':'badge-unpaid'}" style="font-size:10px">${p.pagado?'✓':'Pend.'}</span></td></tr>`;
+            return`<tr><td style="font-size:12px">${esc(a.nombre)}</td><td style="font-size:12px">${formatCOP(real)}</td><td><span class="badge ${p.pagado?'badge-paid':'badge-unpaid'}" style="font-size:10px">${p.pagado?'✓':'Pend.'}</span></td></tr>`;
           }).join('')}
           </tbody>
         </table>
@@ -53,7 +53,7 @@ function renderFinanzas(){
         <table>
           <thead><tr><th>Concepto</th><th>Monto</th><th></th></tr></thead>
           <tbody>${gastosMes.map((g,i)=>`
-            <tr><td style="font-size:12px">${g.concepto}</td><td style="font-size:12px">${formatCOP(Number(g.monto))}</td>
+            <tr><td style="font-size:12px">${esc(g.concepto)}</td><td style="font-size:12px">${formatCOP(Number(g.monto))}</td>
             <td><button class="btn btn-danger btn-sm btn-icon" onclick="eliminarGasto('${mk}',${DB.gastos.indexOf(g)})">🗑️</button></td></tr>
           `).join('')||'<tr><td colspan="3" style="text-align:center;color:var(--muted);font-size:12px;padding:12px">Sin gastos registrados</td></tr>'}
           </tbody>

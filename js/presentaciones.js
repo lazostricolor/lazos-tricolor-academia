@@ -34,7 +34,7 @@ function renderPresentaciones(){
       top5HTML+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
         +'<span style="font-size:14px;font-weight:800;color:'+cols[i]+';min-width:18px">'+(i+1)+'</span>'
         +'<div style="flex:1;min-width:0">'
-          +'<div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+p.titulo+'</div>'
+          +'<div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(p.titulo)+'</div>'
           +'<div style="height:5px;background:var(--card2);border-radius:3px;margin-top:3px">'
             +'<div style="height:100%;width:'+pct+'%;background:'+cols[i]+';border-radius:3px"></div>'
           +'</div>'
@@ -68,13 +68,13 @@ function renderPresentaciones(){
     const asistentes=elenco.length;
     const total=DB.alumnos.length;
     const pct=total?Math.round(asistentes/total*100):0;
-    const catEtiqueta = ev.categoria ? '<span class="badge" style="background:var(--card2);color:var(--text2);font-size:10px;margin-left:6px">'+ev.categoria+'</span>' : '';
+    const catEtiqueta = ev.categoria ? '<span class="badge" style="background:var(--card2);color:var(--text2);font-size:10px;margin-left:6px">'+esc(ev.categoria)+'</span>' : '';
     return'<div class="pres-card">'
       +'<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">'
         +'<div>'
-          +'<h4>'+ev.titulo+catEtiqueta+'</h4>'
-          +'<div class="meta">📅 '+(ev.fecha||'—')+(ev.hora?' · 🕐 '+ev.hora:'')+(ev.lugar?' · 📍 '+ev.lugar:'')+'</div>'
-          +(ev.descripcion?'<p style="font-size:12px;color:var(--muted);margin-bottom:8px">'+ev.descripcion+'</p>':'')
+          +'<h4>'+esc(ev.titulo)+catEtiqueta+'</h4>'
+          +'<div class="meta">📅 '+(ev.fecha||'—')+(ev.hora?' · 🕐 '+ev.hora:'')+(ev.lugar?' · 📍 '+esc(ev.lugar):'')+'</div>'
+          +(ev.descripcion?'<p style="font-size:12px;color:var(--muted);margin-bottom:8px">'+esc(ev.descripcion)+'</p>':'')
         +'</div>'
         +'<div style="display:flex;gap:6px">'
           +'<button class="btn btn-ghost btn-sm btn-icon" onclick="abrirModalPresentacion('+lista.indexOf(ev)+')">✏️</button>'
@@ -87,7 +87,7 @@ function renderPresentaciones(){
           +'<div style="height:100%;width:'+pct+'%;background:var(--primary);border-radius:3px"></div>'
         +'</div>'
       +'</div>'
-      +'<div class="pres-alumnas">'+elenco.map(function(a){return '<span class="badge badge-paid" style="font-size:10px">'+String(a.nombre||'').split(' ')[0]+'</span>';}).join('')+'</div>'
+      +'<div class="pres-alumnas">'+elenco.map(function(a){return '<span class="badge badge-paid" style="font-size:10px">'+esc(String(a.nombre||'').split(' ')[0])+'</span>';}).join('')+'</div>'
     +'</div>';
   }).join('')||'<div style="text-align:center;color:var(--muted);padding:40px"><div style="font-size:48px;margin-bottom:12px">🎭</div>Sin presentaciones registradas</div>';
 
@@ -156,11 +156,11 @@ function _renderElencoCheck(){
 
   const html = activas.map(function(a){
     return '<div class="check-group"><input type="checkbox" id="ev-a-'+a.id+'" value="'+a.id+'"'+(estaMarcado(a.id)?' checked':'')+'>'
-      +'<label for="ev-a-'+a.id+'">'+a.nombre+' <span style="color:var(--muted);font-size:11px">('+a.categoria+')</span></label></div>';
+      +'<label for="ev-a-'+a.id+'">'+esc(a.nombre)+' <span style="color:var(--muted);font-size:11px">('+esc(a.categoria)+')</span></label></div>';
   }).join('')
   + retiradasEnElenco.map(function(a){
     return '<div class="check-group"><input type="checkbox" id="ev-a-'+a.id+'" value="'+a.id+'"'+(estaMarcado(a.id)?' checked':'')+'>'
-      +'<label for="ev-a-'+a.id+'">'+a.nombre+' <span style="color:var(--danger);font-size:11px">(retirada)</span></label></div>';
+      +'<label for="ev-a-'+a.id+'">'+esc(a.nombre)+' <span style="color:var(--danger);font-size:11px">(retirada)</span></label></div>';
   }).join('');
 
   const cont = document.getElementById('ev-alumnas-check');

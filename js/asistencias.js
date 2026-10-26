@@ -136,7 +136,7 @@ function renderAsistencias(){
             const pctHasta=diasHasta?Math.round(pres/diasHasta*100):0;
             const enCurso=diasHasta<total; // el mes aún no termina para esta alumna
             return`<tr>
-              <td style="font-size:12px;font-weight:500">${a.nombre.split(' ').slice(0,2).join(' ')}</td>
+              <td style="font-size:12px;font-weight:500">${esc(a.nombre.split(' ').slice(0,2).join(' '))}</td>
               ${celdas}
               <td style="color:var(--paid);font-weight:700;font-size:12px">${pres}</td>
               <td style="color:var(--unpaid);font-size:12px">${aus}</td>
@@ -302,7 +302,7 @@ function generarRanking(mk){
       var barWidth=a.pct;
       filas+='<div class="ranking-row">'
         +'<span class="ranking-medal">'+medallas[i]+'</span>'
-        +'<span class="ranking-nombre">'+a.nombre.split(' ').slice(0,2).join(' ')+'</span>'
+        +'<span class="ranking-nombre">'+esc(a.nombre.split(' ').slice(0,2).join(' '))+'</span>'
         +'<div class="ranking-bar-wrap"><div class="ranking-bar" style="width:'+barWidth+'%;background:'+color+'"></div></div>'
         +'<span class="ranking-pct" style="color:'+color+'">'+a.pct+'%</span>'
         +'</div>';

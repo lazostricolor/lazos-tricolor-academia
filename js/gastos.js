@@ -165,8 +165,8 @@ function renderGastosV(){
           <td style="font-size:12px">${g.fecha}</td>
           <td style="font-size:12px;color:var(--text2)">${g.hora||'—'}</td>
           <td>
-            <div style="font-weight:600">${g.concepto}</div>
-            ${g.nota?'<div style="font-size:11px;color:var(--text2)">'+g.nota+'</div>':''}
+            <div style="font-weight:600">${esc(g.concepto)}</div>
+            ${g.nota?'<div style="font-size:11px;color:var(--text2)">'+esc(g.nota)+'</div>':''}
           </td>
           <td><span class="badge badge-partial" style="font-size:10px">${catIconos[g.cat]||'📌'} ${g.cat}</span></td>
           <td style="text-align:right;font-weight:700;color:var(--danger)">$${Number(g.monto).toLocaleString('es-CO')}</td>

@@ -28,7 +28,7 @@ function renderPagos(){
     if(p.pagado) totalRec+=real;
     else if(a.telefono) pendientesWA.push(a);
     return`<tr class="pago-row${vencido?' vencido':''}">
-      <td><div style="display:flex;align-items:center;gap:8px"><div class="avatar">${a.foto?`<img src="${a.foto}">`:''}${!a.foto?iniciales(a.nombre):''}</div>${a.nombre}</div></td>
+      <td><div style="display:flex;align-items:center;gap:8px"><div class="avatar">${a.foto?`<img src="${a.foto}">`:''}${!a.foto?iniciales(a.nombre):''}</div>${esc(a.nombre)}</div></td>
       <td>${catBadge(a.categoria)}</td>
       <td>${formatCOP(base)}</td>
       <td style="text-align:center">
