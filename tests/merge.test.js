@@ -90,3 +90,36 @@ test('ninguna sección conocida queda undefined aunque el remoto venga incomplet
     assert.notEqual(r[k], undefined, k);
   }
 });
+
+test('dos equipos marcan pagos distintos casi a la vez: se conservan los dos', () => {
+  // A guardó primero (ts 200) el pago de la alumna 1; B, sin enterarse, marcó el de la 2 (ts 300)
+  const remotoA = { _ts_pagos: 200, pagos: { 1: { '2026-10': { pagado: true, _editTs: 200 } } } };
+  const localB  = { _ts_pagos: 300, pagos: { 2: { '2026-10': { pagado: true, _editTs: 300 } } } };
+  const r = mergeDB(localB, remotoA);
+  assert.equal(r.pagos[1]['2026-10'].pagado, true, 'se perdió el pago que marcó A');
+  assert.equal(r.pagos[2]['2026-10'].pagado, true, 'se perdió el pago que marcó B');
+  // y al revés (el local es el más viejo)
+  const r2 = mergeDB(remotoA, localB);
+  assert.equal(r2.pagos[1]['2026-10'].pagado, true);
+  assert.equal(r2.pagos[2]['2026-10'].pagado, true);
+});
+
+test('el mismo pago editado en dos equipos: gana la edición más reciente aunque su sección sea más vieja', () => {
+  const local  = { _ts_pagos: 500, pagos: { 1: { '2026-10': { pagado: true,  _editTs: 100 } } } };
+  const remoto = { _ts_pagos: 400, pagos: { 1: { '2026-10': { pagado: false, _editTs: 450 } } } };
+  assert.equal(mergeDB(local, remoto).pagos[1]['2026-10'].pagado, false);
+});
+
+test('asistencias de alumnas distintas tomadas en dos equipos: se conservan ambas', () => {
+  const local  = { _ts_asistencias: 300, asistencias: { 1: { '2026-10-25': 'P' } } };
+  const remoto = { _ts_asistencias: 200, asistencias: { 2: { '2026-10-25': 'A' } } };
+  const r = mergeDB(local, remoto);
+  assert.equal(r.asistencias[1]['2026-10-25'], 'P');
+  assert.equal(r.asistencias[2]['2026-10-25'], 'A');
+});
+
+test('una asistencia desmarcada (\'\') en el equipo más reciente no revive', () => {
+  const local  = { _ts_asistencias: 300, asistencias: { 1: { '2026-10-25': '' } } };
+  const remoto = { _ts_asistencias: 200, asistencias: { 1: { '2026-10-25': 'P' } } };
+  assert.equal(mergeDB(local, remoto).asistencias[1]['2026-10-25'], '');
+});

@@ -91,6 +91,49 @@ function coherenciaAlumnas(db){
   return cambio;
 }
 
+// ── Pagos y asistencias: fusión entrada por entrada ─────────────────────────
+// Son objetos (no arrays), y antes el lado con _ts_ más nuevo los reemplazaba
+// ENTEROS: si dos equipos marcaban pagos casi a la vez, el último en guardar
+// borraba el pago que había marcado el otro. Ahora se combinan alumna por
+// alumna y mes por mes.
+// ganaLocal: true/false = qué lado tiene la sección más reciente; null = empate.
+function _fusionarPagos(local, remoto, ganaLocal){
+  local = local || {}; remoto = remoto || {};
+  const r = {};
+  new Set([...Object.keys(remoto), ...Object.keys(local)]).forEach(id=>{
+    const Lm = local[id] || {}, Rm = remoto[id] || {};
+    const o = {};
+    new Set([...Object.keys(Rm), ...Object.keys(Lm)]).forEach(mk=>{
+      const L = Lm[mk], R = Rm[mk];
+      if(R === undefined){ o[mk] = L; return; }          // solo lo tiene local
+      if(L === undefined){ o[mk] = R; return; }          // solo lo tiene remoto
+      const lt = L && L._editTs || 0, rt = R && R._editTs || 0;
+      if(lt || rt){                                      // gana la edición más reciente
+        o[mk] = lt > rt ? L : rt > lt ? R : (ganaLocal === false ? R : L);
+      } else if(ganaLocal === null){                     // pagos viejos sin sello, empate:
+        o[mk] = (L && L.pagado && !(R && R.pagado)) ? L : R;   // gana "pagado"
+      } else {
+        o[mk] = ganaLocal ? L : R;
+      }
+    });
+    r[id] = o;
+  });
+  return r;
+}
+// Asistencias: alumna → { fecha: 'P' | 'A' | '' }. Sin sello por celda: se unen
+// las celdas de los dos lados y, si ambos tocaron la misma, gana el lado con la
+// sección más reciente (en empate, el remoto, como antes).
+function _fusionarAsistencias(local, remoto, ganaLocal){
+  local = local || {}; remoto = remoto || {};
+  const r = {};
+  new Set([...Object.keys(remoto), ...Object.keys(local)]).forEach(id=>{
+    r[id] = ganaLocal === true
+      ? Object.assign({}, remoto[id] || {}, local[id] || {})
+      : Object.assign({}, local[id] || {}, remoto[id] || {});
+  });
+  return r;
+}
+
 function mergeDB(local, remoto){
   // Defaults seguros — garantiza que ninguna clave queda undefined
   const defaults = {
@@ -134,6 +177,15 @@ function mergeDB(local, remoto){
       return;
     }
 
+    if(s==='pagos' || s==='asistencias'){
+      const ganaLocal = tsL > tsR ? true : tsR > tsL ? false : null;
+      base[s] = s==='pagos'
+        ? _fusionarPagos(localVal, remotoVal, ganaLocal)
+        : _fusionarAsistencias(localVal, remotoVal, ganaLocal);
+      base['_ts_'+s] = Math.max(tsL, tsR);
+      return;
+    }
+
     if(tsL > tsR){
       // Local más reciente — gana, PERO si son arrays fusionamos por id para no
       // perder items que el otro dispositivo agregó y este local no alcanzó a ver.
@@ -161,29 +213,8 @@ function mergeDB(local, remoto){
       }
     } else {
       // Mismo timestamp — fusión segura sin perder datos
-      if(s==='asistencias'){
-        const ids=new Set([...Object.keys(localVal||{}),...Object.keys(remotoVal||{})]);
-        const m={};
-        ids.forEach(id=>{ m[id]=Object.assign({},localVal?.[id]||{},remotoVal?.[id]||{}); });
-        base[s]=m;
-      } else if(s==='pagos'){
-        const pg=Object.assign({},remotoVal||{});
-        Object.keys(localVal||{}).forEach(id=>{
-          if(!pg[id]) pg[id]={};
-          Object.keys(localVal[id]||{}).forEach(mk=>{
-            const L=localVal[id][mk], R=pg[id][mk];
-            if(!R){ pg[id][mk]=L; return; }              // remoto no lo tiene → tomar local
-            // Ambos existen: gana el editado más recientemente (_editTs)
-            const lt=L&&L._editTs||0, rt=R&&R._editTs||0;
-            if(lt||rt){
-              pg[id][mk] = lt>=rt ? L : R;               // el más nuevo por sello de tiempo
-            } else if(L&&L.pagado&&!(R&&R.pagado)){
-              pg[id][mk]=L;                               // respaldo (pagos viejos sin sello)
-            }
-          });
-        });
-        base[s]=pg;
-      } else if(Array.isArray(localVal)&&Array.isArray(remotoVal)){
+      // (pagos y asistencias ya se resolvieron arriba, entrada por entrada)
+      if(Array.isArray(localVal)&&Array.isArray(remotoVal)){
         // Arrays de objetos con id → fusionar por id (no "el más largo", que revive borrados
         // o pierde ediciones). Cada id conserva la versión de quien lo tenga; si ambos, se
         // combinan sus campos. Los items sin id caen al respaldo "más largo".
@@ -225,5 +256,5 @@ function mergeDB(local, remoto){
 
 // En el navegador todo queda global (script clásico); en Node se exporta para los tests.
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { mergeDB, _fusionarArrayPorId, coherenciaAlumnas, _movTsAl };
+  module.exports = { mergeDB, _fusionarArrayPorId, coherenciaAlumnas, _movTsAl, _fusionarPagos, _fusionarAsistencias };
 }
