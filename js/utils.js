@@ -103,17 +103,47 @@ function getDiasSemana(ofs){
 }
 function semKey(ofs){
   const dias=getDiasSemana(ofs);
-  return dias[0].toISOString().substring(0,10)+'_'+dias[6].toISOString().substring(0,10);
+  return dateStr(dias[0])+'_'+dateStr(dias[6]);
 }
-function dateStr(d){ return d.toISOString().substring(0,10); }
+// Fecha LOCAL (Colombia) en formato YYYY-MM-DD.
+// Antes usaba toISOString(), que es UTC: después de las 7 p. m. guardaba
+// pagos y asistencias con la fecha de MAÑANA.
+function dateStr(d){
+  const p = n => String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());
+}
+// Escapa texto para insertarlo en HTML (contenido y atributos).
+// Úsalo UNA sola vez, justo donde se interpola. Los datos del formulario
+// público de preinscripción NUNCA deben pintarse sin pasar por aquí.
+function esc(v){
+  return String(v ?? '').replace(/[&<>"']/g, c => (
+    {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
+  ));
+}
 function toast(msg,type='ok'){
   const el=document.createElement('div');
   el.className=`toast ${type}`;
-  el.innerHTML=`<span>${type==='ok'?'✅':type==='err'?'❌':'ℹ️'}</span> ${msg}`;
+  // Sin innerHTML: el mensaje puede traer nombres escritos por terceros
+  const ico=document.createElement('span');
+  ico.textContent=type==='ok'?'✅':type==='err'?'❌':'ℹ️';
+  el.appendChild(ico);
+  el.appendChild(document.createTextNode(' '+msg));
   document.getElementById('toast-container').appendChild(el);
   setTimeout(()=>{el.style.animation='slideOut .3s ease forwards';setTimeout(()=>el.remove(),300)},3000);
 }
 function confirm2(msg){ return confirm(msg); }
+// Copia al portapapeles cuando navigator.clipboard no está disponible.
+// Estaba definida dos veces (asistencias.js y rifas.js) y la de rifas pisaba
+// a la otra en silencio; ahora hay una sola, compartida.
+function _copiarFallback(texto, msgOk){
+  try{
+    var ta=document.createElement('textarea');
+    ta.value=texto; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    toast(msgOk||'📋 Copiado');
+  }catch(e){ toast('No se pudo copiar automáticamente','err'); }
+}
 
 // ===================== FECHA/RELOJ =====================
 async function sincronizarFecha(){

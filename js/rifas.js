@@ -550,15 +550,6 @@ function _copiarTexto(texto, msgOk){
       .catch(function(){ _copiarFallback(texto, msgOk); });
   } else { _copiarFallback(texto, msgOk); }
 }
-function _copiarFallback(texto, msgOk){
-  try{
-    var ta=document.createElement('textarea');
-    ta.value=texto; ta.style.position='fixed'; ta.style.opacity='0';
-    document.body.appendChild(ta); ta.focus(); ta.select();
-    document.execCommand('copy'); document.body.removeChild(ta);
-    toast(msgOk||'📋 Copiado');
-  }catch(e){ toast('No se pudo copiar automáticamente','err'); }
-}
 
 function renderRifas(){
  try{

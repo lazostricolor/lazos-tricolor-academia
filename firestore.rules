@@ -23,8 +23,31 @@ service cloud.firestore {
     }
 
     // ── Preinscripciones: el formulario público solo puede CREAR ──
+    // Antes era `if true`: cualquiera podía meter documentos de cualquier
+    // tamaño y con HTML en el nombre (se pintaba en el panel). Sin `hasOnly`
+    // a propósito: el formulario de la web puede mandar campos que el panel
+    // no lee, y una lista inexacta haría perder preinscripciones reales.
+    function textoCorto(d, k) {
+      return !(k in d) || !(d[k] is string) || d[k].size() <= 300;
+    }
     match /inscripciones/{id} {
-      allow create: if true;
+      allow create: if request.resource.data.keys().size() <= 40
+        && request.resource.data.keys().hasAll(['nombre_estudiante', 'telefono'])
+        && request.resource.data.nombre_estudiante is string
+        && request.resource.data.nombre_estudiante.size() >= 3
+        && request.resource.data.nombre_estudiante.size() <= 80
+        && !request.resource.data.nombre_estudiante.matches('.*[<>].*')
+        && request.resource.data.telefono is string
+        && request.resource.data.telefono.size() >= 7
+        && request.resource.data.telefono.size() <= 20
+        && (!('estado' in request.resource.data) || request.resource.data.estado == 'pendiente')
+        && textoCorto(request.resource.data, 'correo')
+        && textoCorto(request.resource.data, 'acudiente')
+        && textoCorto(request.resource.data, 'direccion')
+        && textoCorto(request.resource.data, 'barrio')
+        && textoCorto(request.resource.data, 'conocio')
+        && textoCorto(request.resource.data, 'experiencia')
+        && textoCorto(request.resource.data, 'categoria');
     }
 
     // ── Encuesta (encuesta.html) ──

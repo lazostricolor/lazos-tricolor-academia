@@ -22,7 +22,7 @@ function renderFinanzas(){
   // Honorarios semana actual
   const sk=semKey(0);
   let honorSemana=0;
-  DB.profesores.forEach(p=>{ honorSemana+=((DB.clases[p.id]&&DB.clases[p.id][sk])||0)*HONOR_POR_CLASE; });
+  DB.profesores.forEach(p=>{ honorSemana+=clasesSemana(p.id,sk)*HONOR_POR_CLASE; });
   const balance=ingTotal-gastosTotal;
 
   document.getElementById('fin-content').innerHTML=`
