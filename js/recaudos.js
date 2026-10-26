@@ -131,8 +131,8 @@ function abrirModalAporte(recaudoId, alumnaId){
     tieneAporte ? '✏️ Modificar aporte de '+alumna.nombre.split(' ')[0]
                 : '💰 Registrar aporte de '+alumna.nombre.split(' ')[0];
   document.getElementById('aporte-alumna-info').innerHTML =
-    '<strong>'+alumna.nombre+'</strong><br>'
-    +'Recaudo: <strong>'+rec.nombre+'</strong><br>'
+    '<strong>'+esc(alumna.nombre)+'</strong><br>'
+    +'Recaudo: <strong>'+esc(rec.nombre)+'</strong><br>'
     +(rec.metaAlumna>0?'Aporte sugerido: <strong style="color:var(--primary)">$'+rec.metaAlumna.toLocaleString('es-CO')+'</strong>':'')
     +(tieneAporte?'<br><span style="color:var(--success);font-size:12px">✅ Aporte actual: $'+Number(aporte.monto).toLocaleString('es-CO')+'</span>':'');
   document.getElementById('aporte-monto').value = tieneAporte ? aporte.monto : '';
@@ -226,10 +226,10 @@ function renderRecaudos(){
       var apColor=monto>0?'var(--success)':'var(--card2)';
       var nombre=a.nombre.split(' ').slice(0,2).join(' ');
       filasAlumnas+='<div class="rec-alumna-row">'
-        +'<span class="rec-alumna-nombre">'+nombre+'</span>'
+        +'<span class="rec-alumna-nombre">'+esc(nombre)+'</span>'
         +(rec.metaAlumna>0?'<div class="rec-alumna-bar-wrap"><div class="rec-alumna-bar" style="width:'+aportoPct+'%;background:'+apColor+'"></div></div>':'')
         +'<span class="rec-alumna-monto">'+(monto>0?'$'+monto.toLocaleString('es-CO'):'—')+'</span>'
-        +(ap.nota?'<span style="font-size:10px;color:var(--text2);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+ap.nota+'">'+ap.nota+'</span>':'')
+        +(ap.nota?'<span style="font-size:10px;color:var(--text2);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(ap.nota)+'">'+esc(ap.nota)+'</span>':'')
         +'<button class="rec-alumna-btn rec-btn-aporte" data-rid="'+rec.id+'" data-aid="'+a.id+'">✏️</button>'
         +'</div>';
     });
@@ -240,10 +240,10 @@ function renderRecaudos(){
         +'<div>'
           +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
             +'<span style="font-size:18px">'+(catIconos[rec.cat]||'📌')+'</span>'
-            +'<span style="font-size:15px;font-weight:800">'+rec.nombre+'</span>'
+            +'<span style="font-size:15px;font-weight:800">'+esc(rec.nombre)+'</span>'
             +badge
           +'</div>'
-          +'<div style="font-size:12px;color:var(--text2)">📅 '+rec.inicio+' → '+rec.cierre+(rec.desc?' · '+rec.desc:'')+'</div>'
+          +'<div style="font-size:12px;color:var(--text2)">📅 '+rec.inicio+' → '+rec.cierre+(rec.desc?' · '+esc(rec.desc):'')+'</div>'
         +'</div>'
         +'<div style="display:flex;gap:6px">'
           +'<button class="btn btn-ghost btn-sm btn-icon rec-btn-editar" data-rid="'+rec.id+'">✏️</button>'

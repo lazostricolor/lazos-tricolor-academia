@@ -18,7 +18,7 @@ function renderArchivo(){
         <table>
           <thead><tr><th>Nombre</th><th>Categoría</th><th>Retiro</th><th></th></tr></thead>
           <tbody>${DB.alumnosRetirados.map((a,i)=>`<tr>
-            <td style="font-weight:600"><span style="cursor:pointer;color:var(--col)" onclick="verFichaAlumna(${a.id})">${a.nombre}</span></td>
+            <td style="font-weight:600"><span style="cursor:pointer;color:var(--col)" onclick="verFichaAlumna(${a.id})">${esc(a.nombre)}</span></td>
             <td>${catBadge(a.categoria)}</td>
             <td style="font-size:11px;color:var(--muted)">${a.fechaRetiro||'—'}</td>
             <td>
@@ -37,8 +37,8 @@ function renderArchivo(){
         <table>
           <thead><tr><th>Nombre</th><th>Especialidad</th><th>Retiro</th><th></th></tr></thead>
           <tbody>${DB.profesoresRetirados.map((p,i)=>`<tr>
-            <td style="font-weight:600">${p.nombre}</td>
-            <td style="font-size:11px;color:var(--muted)">${p.especialidad||'—'}</td>
+            <td style="font-weight:600">${esc(p.nombre)}</td>
+            <td style="font-size:11px;color:var(--muted)">${esc(p.especialidad||'—')}</td>
             <td style="font-size:11px;color:var(--muted)">${p.fechaRetiro||'—'}</td>
             <td><button class="btn btn-danger btn-sm btn-icon" title="Eliminar definitivamente" onclick="eliminarProfesorDefinitivo(${i})">🗑️</button></td>
           </tr>`).join('')||'<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:16px">Sin registros</td></tr>'}

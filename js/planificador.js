@@ -125,7 +125,7 @@ function renderPlanificador(){
       ${esFestivo?`<span class="cal-festivo-tag">🇨🇴 ${FESTIVOS[fechaCelda].length>18?FESTIVOS[fechaCelda].substring(0,16)+'…':FESTIVOS[fechaCelda]}</span>`:''}
       ${cumplesDia.map(n=>'<span class="cal-evento-tag cumple">🎂 '+n+'</span>').join('')}
       ${eventosDia.map(e=>`
-        <span class="cal-evento-tag ${e.tipo}" onclick="event.stopPropagation();editarEventoCal('${e.id}')">${e.titulo}</span>
+        <span class="cal-evento-tag ${e.tipo}" onclick="event.stopPropagation();editarEventoCal('${e.id}')">${esc(e.titulo)}</span>
       `).join('')}
     </div>`;
   }
@@ -182,7 +182,7 @@ function renderPlanificador(){
           ${eventosMes.map(e=>`<tr>
             <td style="font-size:12px">${e.fecha}</td>
             <td style="font-size:12px">${['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][new Date(e.fecha+'T12:00').getDay()]}</td>
-            <td style="font-size:13px;font-weight:600">${e.titulo}${e.desc?`<div style="font-size:11px;color:var(--text2);font-weight:400">${e.desc}</div>`:''}</td>
+            <td style="font-size:13px;font-weight:600">${esc(e.titulo)}${e.desc?`<div style="font-size:11px;color:var(--text2);font-weight:400">${esc(e.desc)}</div>`:''}</td>
             <td><span class="cal-evento-tag ${e.tipo}" style="display:inline-block">${{academia:'🎭 Academia',ensayo:'💃 Ensayo',presentacion:'🏆 Presentación',pago:'💳 Cobro',otro:'📌 Otro'}[e.tipo]||e.tipo}</span></td>
             <td><div style="display:flex;gap:4px">
               <button class="btn btn-ghost btn-sm btn-icon" onclick="editarEventoCal('${e.id}')">✏️</button>

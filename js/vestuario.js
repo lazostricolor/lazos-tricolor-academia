@@ -111,7 +111,7 @@ function _optsAlumnas(sel){
   return '<option value="">— Sin asignación fija —</option>'
     + (DB.alumnos||[]).slice().sort(function(a,b){ return a.nombre.localeCompare(b.nombre); })
         .map(function(a){
-          return '<option value="'+a.id+'"'+(String(sel)===String(a.id)?' selected':'')+'>'+a.nombre+'</option>';
+          return '<option value="'+a.id+'"'+(String(sel)===String(a.id)?' selected':'')+'>'+esc(a.nombre)+'</option>';
         }).join('');
 }
 
@@ -152,6 +152,8 @@ function guardarVestuario(){
   var prefijo = document.getElementById('vest-prefijo').value.trim().toUpperCase();
   if(!nombre)  { toast('El nombre es obligatorio','err'); return; }
   if(!prefijo) { toast('El prefijo de código es obligatorio','err'); return; }
+  // El código del conjunto (prefijo + número) viaja dentro de botones: solo letras, números y guion
+  if(!/^[A-Z0-9Ñ-]+$/.test(prefijo)) { toast('El prefijo solo puede tener letras, números y guion (ej. CUM-)','err'); return; }
   if(!DB.vestuarios) DB.vestuarios = [];
 
   var choque = DB.vestuarios.find(function(v){
@@ -209,9 +211,9 @@ function abrirModalPieza(vestId, cod){
 
   document.getElementById('modal-pieza-title').textContent = c ? 'Conjunto '+c.cod : 'Nuevo conjunto';
   document.getElementById('pieza-vest-info').innerHTML =
-    '<strong>'+v.nombre+'</strong> · prefijo <strong>'+v.prefijo+'</strong><br>'
-    + '<span style="font-size:11px;color:var(--text2)">Cada conjunto incluye: <strong>'+(v.prendas||[]).join(' + ')+'</strong>'
-    + (c ? '' : ' · siguiente código sugerido: <strong>'+_sugerirCod(v)+'</strong>') + '</span>';
+    '<strong>'+esc(v.nombre)+'</strong> · prefijo <strong>'+esc(v.prefijo)+'</strong><br>'
+    + '<span style="font-size:11px;color:var(--text2)">Cada conjunto incluye: <strong>'+esc((v.prendas||[]).join(' + '))+'</strong>'
+    + (c ? '' : ' · siguiente código sugerido: <strong>'+esc(_sugerirCod(v))+'</strong>') + '</span>';
 
   document.getElementById('pieza-cod').value    = c ? c.cod : _sugerirCod(v);
   document.getElementById('pieza-talla').value  = c ? (c.talla||'') : '';
@@ -327,16 +329,16 @@ function abrirModalUso(){
   });
   document.getElementById('uso-pres').innerHTML =
     '<option value="">— Sin presentación (ensayo o uso suelto) —</option>'
-    + pres.map(function(p){ return '<option value="'+p.id+'">'+p.titulo+(p.fecha?' · '+p.fecha:'')+'</option>'; }).join('');
+    + pres.map(function(p){ return '<option value="'+p.id+'">'+esc(p.titulo)+(p.fecha?' · '+p.fecha:'')+'</option>'; }).join('');
 
   document.getElementById('uso-vest').innerHTML = (DB.vestuarios||[]).map(function(v){
-    return '<option value="'+v.id+'"'+(usoPreVest&&String(v.id)===usoPreVest?' selected':'')+'>'+v.nombre+' ('+v.prefijo+')</option>';
+    return '<option value="'+v.id+'"'+(usoPreVest&&String(v.id)===usoPreVest?' selected':'')+'>'+esc(v.nombre)+' ('+esc(v.prefijo)+')</option>';
   }).join('');
 
   document.getElementById('uso-alumna').innerHTML =
     '<option value="">— Selecciona alumna —</option>'
     + (DB.alumnos||[]).slice().sort(function(a,b){ return a.nombre.localeCompare(b.nombre); })
-        .map(function(a){ return '<option value="'+a.id+'">'+a.nombre+'</option>'; }).join('');
+        .map(function(a){ return '<option value="'+a.id+'">'+esc(a.nombre)+'</option>'; }).join('');
 
   document.getElementById('uso-fecha').value = dateStr(getHoyReal());
   document.getElementById('uso-nota').value  = '';
@@ -378,8 +380,8 @@ function cargarPiezasUso(){
     return '<label class="check-group" style="padding:5px 0">'
       + '<input type="checkbox" class="uso-pz-check" value="'+c.cod+'">'
       + '<span style="font-size:13px"><strong style="font-family:ui-monospace,monospace">'+c.cod+'</strong>'
-      + (c.talla?' · talla '+c.talla:'')
-      + (c.fija?' · <span style="color:var(--primary);font-size:11px">habitual: '+_nombreAlumna(c.fija).split(' ')[0]+'</span>':'')
+      + (c.talla?' · talla '+esc(c.talla):'')
+      + (c.fija?' · <span style="color:var(--primary);font-size:11px">habitual: '+esc(_nombreAlumna(c.fija).split(' ')[0])+'</span>':'')
       + (c.estado==='dano'?' <span style="color:var(--warning);font-size:11px">⚠️ con daño</span>':'')
       + (c.estado==='reparacion'?' <span style="color:var(--info);font-size:11px">🔧 en reparación</span>':'')
       + '</span></label>';
@@ -430,10 +432,10 @@ function abrirModalDevolucion(usoId){
   var v = _vest(u.vestId);
 
   document.getElementById('dev-info').innerHTML =
-    '<strong style="font-family:ui-monospace,monospace;font-size:15px">'+u.cod+'</strong> · '+(v?v.nombre:'')+'<br>'
-    + 'Lo tiene <strong>'+u.alumnaNombre+'</strong> desde el '+u.fecha
-    + (u.presTitulo?'<br><span style="font-size:11px;color:var(--text2)">'+u.presTitulo+'</span>':'')
-    + (v&&v.prendas?'<br><span style="font-size:11px;color:var(--text2)">Incluye: '+v.prendas.join(' + ')+'</span>':'');
+    '<strong style="font-family:ui-monospace,monospace;font-size:15px">'+u.cod+'</strong> · '+esc(v?v.nombre:'')+'<br>'
+    + 'Lo tiene <strong>'+esc(u.alumnaNombre)+'</strong> desde el '+u.fecha
+    + (u.presTitulo?'<br><span style="font-size:11px;color:var(--text2)">'+esc(u.presTitulo)+'</span>':'')
+    + (v&&v.prendas?'<br><span style="font-size:11px;color:var(--text2)">Incluye: '+esc(v.prendas.join(' + '))+'</span>':'');
 
   document.getElementById('dev-estado').value = u.devuelto || 'buena';
   document.getElementById('dev-nota').value   = u.devNota || '';
@@ -445,8 +447,8 @@ function abrirModalDevolucion(usoId){
     cont.innerHTML = v.prendas.map(function(pr){
       var marc = (u.devPrendas||[]).indexOf(pr)>=0 ? ' checked' : '';
       return '<label class="check-group" style="padding:3px 0">'
-        + '<input type="checkbox" class="dev-pr-check" value="'+pr+'"'+marc+'>'
-        + '<span style="font-size:13px">'+pr+'</span></label>';
+        + '<input type="checkbox" class="dev-pr-check" value="'+esc(pr)+'"'+marc+'>'
+        + '<span style="font-size:13px">'+esc(pr)+'</span></label>';
     }).join('');
   } else { cont.innerHTML = ''; }
 
@@ -530,8 +532,8 @@ function renderVestuario(){
           var dias = Math.floor((new Date(dateStr(getHoyReal())+'T12:00') - new Date(u.fecha+'T12:00'))/86400000);
           return '<div class="uso-row">'
             + '<span class="uso-cod">'+u.cod+'</span>'
-            + '<span style="flex:1;min-width:150px;font-size:13px"><strong>'+u.alumnaNombre+'</strong>'
-              + '<div style="font-size:11px;color:var(--text2)">'+(v?v.nombre:'')+(u.presTitulo?' · '+u.presTitulo:'')+'</div></span>'
+            + '<span style="flex:1;min-width:150px;font-size:13px"><strong>'+esc(u.alumnaNombre)+'</strong>'
+              + '<div style="font-size:11px;color:var(--text2)">'+esc(v?v.nombre:'')+(u.presTitulo?' · '+esc(u.presTitulo):'')+'</div></span>'
             + '<span style="font-size:11px;color:'+(dias>14?'var(--danger)':'var(--text2)')+';white-space:nowrap">'
               + u.fecha + (dias>0 ? ' · hace '+dias+'d' : ' · hoy') + '</span>'
             + '<button class="btn btn-primary btn-sm" onclick="abrirModalDevolucion(\'' + u.id + '\')">↩️ Recibir</button>'
@@ -549,9 +551,9 @@ function renderVestuario(){
       + '<div class="vest-header">'
         + '<span class="vest-dot" style="background:'+(v.color||'#3a57e8')+'"></span>'
         + '<div style="flex:1;min-width:160px">'
-          + '<div style="font-size:15px;font-weight:800">'+v.nombre+' <span style="font-size:11px;color:var(--text2);font-weight:600">prefijo '+v.prefijo+'</span></div>'
+          + '<div style="font-size:15px;font-weight:800">'+esc(v.nombre)+' <span style="font-size:11px;color:var(--text2);font-weight:600">prefijo '+esc(v.prefijo)+'</span></div>'
           + '<div style="font-size:12px;color:var(--text2)">'
-            + conj.length+' conjunto(s) · '+enUso+' entregado(s) · incluye <strong>'+(v.prendas||[]).join(' + ')+'</strong>'
+            + conj.length+' conjunto(s) · '+enUso+' entregado(s) · incluye <strong>'+esc((v.prendas||[]).join(' + '))+'</strong>'
             + (v.desc?' · '+v.desc:'') + '</div>'
         + '</div>'
         + '<button class="btn btn-primary btn-sm" onclick="abrirModalPieza(\'' + v.id + '\')">➕ Conjunto</button>'
@@ -571,15 +573,15 @@ function renderVestuario(){
             var e   = EST_PIEZA[c.estado] || EST_PIEZA.buena;
             return '<tr>'
               + '<td><span class="uso-cod" style="font-size:13px">'+c.cod+'</span></td>'
-              + '<td style="font-size:12px;color:var(--text2)">'+(c.talla||'—')+'</td>'
+              + '<td style="font-size:12px;color:var(--text2)">'+esc(c.talla||'—')+'</td>'
               + '<td><span class="badge '+e.badge+'" style="font-size:10px">'+e.txt+'</span>'
-                + (c.nota?'<div style="font-size:10px;color:var(--text2);margin-top:2px">'+c.nota+'</div>':'')+'</td>'
+                + (c.nota?'<div style="font-size:10px;color:var(--text2);margin-top:2px">'+esc(c.nota)+'</div>':'')+'</td>'
               + '<td style="font-size:12px">'
                 + (act
-                    ? '<strong style="color:var(--primary)">'+act.alumnaNombre+'</strong>'
+                    ? '<strong style="color:var(--primary)">'+esc(act.alumnaNombre)+'</strong>'
                       + '<div style="font-size:10px;color:var(--text2)">desde '+act.fecha+'</div>'
                     : (c.fija
-                        ? '<span style="color:var(--text2)">habitual: '+_nombreAlumna(c.fija)+'</span>'
+                        ? '<span style="color:var(--text2)">habitual: '+esc(_nombreAlumna(c.fija))+'</span>'
                         : '<span style="color:var(--text2)">disponible</span>'))
               + '</td>'
               + '<td style="text-align:right;white-space:nowrap">'
@@ -612,12 +614,12 @@ function renderVestuario(){
     + '<div class="table-card-header">'
       + '<h3>📜 Historial de uso</h3>'
       + '<input type="text" class="search-input" placeholder="🔍 Buscar por alumna, código o presentación…" '
-        + 'value="'+filtro+'" oninput="filtrarVestuario(this.value)" style="min-width:240px">'
+        + 'value="'+esc(filtro)+'" oninput="filtrarVestuario(this.value)" style="min-width:240px">'
     + '</div>';
 
   if(!hist.length){
     html += '<p style="text-align:center;color:var(--text2);padding:36px">'
-      + (filtro ? 'Sin resultados para «'+filtro+'»' : 'Sin registros de uso todavía. Asigna un conjunto desde la tabla de arriba.')
+      + (filtro ? 'Sin resultados para «'+esc(filtro)+'»' : 'Sin registros de uso todavía. Asigna un conjunto desde la tabla de arriba.')
       + '</p>';
   } else {
     html += '<table><thead><tr>'
@@ -628,14 +630,14 @@ function renderVestuario(){
           var d = u.devuelto ? EST_DEV[u.devuelto] : null;
           return '<tr>'
             + '<td><span class="uso-cod">'+u.cod+'</span></td>'
-            + '<td style="font-weight:600">'+u.alumnaNombre+'</td>'
-            + '<td style="font-size:12px;color:var(--text2)">'+(v?v.nombre:'—')+'</td>'
-            + '<td style="font-size:12px">'+(u.presTitulo||'—')+'</td>'
+            + '<td style="font-weight:600">'+esc(u.alumnaNombre)+'</td>'
+            + '<td style="font-size:12px;color:var(--text2)">'+esc(v?v.nombre:'—')+'</td>'
+            + '<td style="font-size:12px">'+esc(u.presTitulo||'—')+'</td>'
             + '<td style="font-size:12px;color:var(--text2)">'+u.fecha+'</td>'
             + '<td style="font-size:12px;font-weight:600;color:'+(d?d.color:'var(--primary)')+'">'
               + (d ? d.txt : '📤 Sin devolver')
-              + ((u.devPrendas&&u.devPrendas.length)?'<div style="font-size:10px;font-weight:600;color:var(--text2)">'+u.devPrendas.join(', ')+'</div>':'')
-              + (u.devNota ? '<div style="font-size:10px;font-weight:400;color:var(--text2)">'+u.devNota+'</div>' : '')
+              + ((u.devPrendas&&u.devPrendas.length)?'<div style="font-size:10px;font-weight:600;color:var(--text2)">'+esc(u.devPrendas.join(', '))+'</div>':'')
+              + (u.devNota ? '<div style="font-size:10px;font-weight:400;color:var(--text2)">'+esc(u.devNota)+'</div>' : '')
             + '</td>'
             + '<td><button class="btn btn-ghost btn-sm btn-icon" onclick="abrirModalDevolucion(\'' + u.id + '\')" title="Registrar o corregir devolución">↩️</button></td>'
             + '</tr>';
