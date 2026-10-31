@@ -134,6 +134,20 @@ textarea{background:var(--sup);border:1.5px solid var(--linea);border-radius:10p
 
 /* Resumen */
 .kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.kpis.k5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.es-profe .solo-admin{display:none!important}
+.sem-label{font-family:'Bricolage Grotesque';font-size:1.1rem;min-width:190px;text-align:center}
+.aviso-sem{background:var(--sol);color:var(--solTinta);border-radius:var(--r);padding:12px 16px;margin-bottom:16px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-weight:700}
+.cruce-sem{border-radius:var(--r);padding:16px 18px;margin-bottom:16px;font-weight:700;font-size:1.1rem;background:var(--primary-lt);color:var(--primary);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.cruce-sem small{display:block;font-weight:400;font-size:.85rem;color:var(--suave)}
+.mes-card{background:var(--sup);border:1px solid var(--linea);border-left:5px solid var(--verde);border-radius:var(--r);padding:16px 18px;margin-bottom:16px;box-shadow:var(--sombra)}
+.mes-card span{color:var(--suave);font-size:.85rem;font-weight:700}
+.mes-card strong{display:block;font-family:'Bricolage Grotesque';font-weight:800;font-size:2rem;line-height:1.1;margin:2px 0}
+.mes-card small{color:var(--suave)}
+.puntos{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.punto{font-size:.74rem;font-weight:700;border-radius:999px;padding:1px 8px;background:var(--sup2);border:1px solid var(--linea);color:var(--suave)}
+.punto.vino{background:var(--verde-lt);border-color:var(--verde);color:var(--verde)}
+.punto.debe{background:var(--rojo-lt);border-color:var(--rojo);color:var(--rojo)}
 .kpi{background:var(--sup);border:1px solid var(--linea);border-radius:var(--r);padding:16px;box-shadow:var(--sombra)}
 .kpi span{display:block;color:var(--suave);font-size:.84rem;font-weight:700}
 .kpi strong{display:block;font-family:'Bricolage Grotesque';font-weight:800;font-size:1.75rem;line-height:1.15;margin-top:4px}
@@ -195,6 +209,7 @@ dialog::backdrop{background:rgba(15,20,45,.55)}
 /* ── Pantallas medianas ── */
 @media (max-width:1250px){
   .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .kpis.k5{grid-template-columns:repeat(3,minmax(0,1fr))}
   .cuentas-grid{grid-template-columns:1fr}
 }
 
@@ -214,7 +229,7 @@ dialog::backdrop{background:rgba(15,20,45,.55)}
   .dia{width:28px;height:28px;font-size:.8rem}
   .horario{font-size:.8rem}
   main{padding:16px 14px calc(96px + env(safe-area-inset-bottom))}
-  .menu-movil{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--sup);border-top:1px solid var(--linea);padding:6px 4px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -4px 16px rgba(0,0,0,.06)}
+  .menu-movil{display:grid;grid-template-columns:repeat(6,1fr);position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--sup);border-top:1px solid var(--linea);padding:6px 4px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -4px 16px rgba(0,0,0,.06)}
   .menu-movil .tab{background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;border-radius:10px;font-size:.72rem;font-weight:700;color:var(--suave)}
   .menu-movil .tab .ico{font-size:1.25rem;width:auto}
   .menu-movil .tab{position:relative}
@@ -226,6 +241,10 @@ dialog::backdrop{background:rgba(15,20,45,.55)}
   .graficos{grid-template-columns:1fr}
   .lienzo{height:230px}
   .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .kpis.k5{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpis.k5 .kpi:first-child{grid-column:span 2}
+  .sem-label{min-width:0;flex:1;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #tab-semana .herr .der{flex:1 1 100%}
   .kpi{padding:12px}
   .kpi strong{font-size:1.45rem}
   .guardar-fijo{bottom:calc(84px + env(safe-area-inset-bottom))}
@@ -262,6 +281,7 @@ dialog::backdrop{background:rgba(15,20,45,.55)}
       <button class="tab" role="tab" data-tab="resumen" aria-selected="false"><span class="ico">📊</span>Resumen</button>
       <button class="tab" role="tab" data-tab="alumnas" aria-selected="true"><span class="ico">💃</span>Alumnas<span class="badge" data-badge-sol hidden></span></button>
       <button class="tab" role="tab" data-tab="asistencia" aria-selected="false"><span class="ico">📋</span>Asistencia</button>
+      <button class="tab" role="tab" data-tab="semana" aria-selected="false"><span class="ico">🗓️</span>Semana</button>
       <button class="tab" role="tab" data-tab="pagos" aria-selected="false"><span class="ico">💳</span>Pagos</button>
       <button class="tab" role="tab" data-tab="cuentas" aria-selected="false"><span class="ico">🤝</span>Cuentas</button>
     </nav>
@@ -313,6 +333,27 @@ dialog::backdrop{background:rgba(15,20,45,.55)}
         <div class="guardar-fijo"><button id="btnGuardarAsis" class="btn prim" type="button">Guardar asistencia</button></div>
       </section>
 
+      <section id="tab-semana" hidden>
+        <div class="herr">
+          <button class="btn peq" type="button" id="semAnt" aria-label="Semana anterior">◀</button>
+          <strong id="semLabel" class="sem-label"></strong>
+          <button class="btn peq" type="button" id="semSig" aria-label="Semana siguiente">▶</button>
+          <button class="btn peq der" type="button" id="btnCopiarSemana">Copiar resumen para WhatsApp</button>
+        </div>
+        <div id="semAviso" class="aviso-sem solo-admin" hidden></div>
+        <div class="kpis k5">
+          <div class="kpi"><span>Asistencias</span><strong id="semAsis"></strong><small id="semAsisDet"></small></div>
+          <div class="kpi"><span>Efectivo (lo tiene el profe)</span><strong id="semEfe"></strong></div>
+          <div class="kpi"><span>Transferencias (academia)</span><strong id="semTra"></strong></div>
+          <div class="kpi"><span>Total recaudado</span><strong id="semTot"></strong></div>
+          <div class="kpi"><span>Por cobrar</span><strong class="rojo" id="semDeb"></strong><small id="semDebDet"></small></div>
+        </div>
+        <div class="cruce-sem"><div><span id="semCruce"></span><small id="semCruceDet"></small></div><button id="btnCruzarSemana" class="btn prim solo-admin" type="button">Cruzar esta semana</button></div>
+        <div class="mes-card solo-admin"><span id="mesTitulo"></span><strong id="mesTotal"></strong><small id="mesDet"></small></div>
+        <div class="cabecera-sec"><h3 class="seccion">Asistencia y cobro de la semana</h3></div>
+        <ul id="listaSemana" class="lista rejilla"></ul>
+      </section>
+
       <section id="tab-pagos" hidden>
         <div class="herr">
           <select id="rangoPagos" aria-label="Periodo">
@@ -336,8 +377,8 @@ dialog::backdrop{background:rgba(15,20,45,.55)}
           <div class="kpi"><span>Al día</span><strong class="verde" id="kAlDia"></strong></div>
           <div class="kpi"><span>Pendientes de pago</span><strong class="rojo" id="kPend"></strong></div>
           <div class="kpi"><span>Asistencia del mes</span><strong id="kAsis"></strong><small id="kAsisDet"></small></div>
-          <div class="kpi"><span>Ingresos del mes</span><strong id="kIngMes"></strong><small id="kIngDet"></small></div>
-          <div class="kpi"><span>Resultado del mes</span><strong id="kResMes"></strong><small id="kResDet"></small></div>
+          <div class="kpi solo-admin"><span>Ingresos del mes</span><strong id="kIngMes"></strong><small id="kIngDet"></small></div>
+          <div class="kpi solo-admin"><span>Resultado del mes</span><strong id="kResMes"></strong><small id="kResDet"></small></div>
         </div>
         <div class="graficos">
           <div class="grafico"><h2>Ingresos por semana</h2><div class="lienzo"><canvas id="gSemanas" aria-label="Ingresos de las últimas 8 semanas frente al honorario semanal" role="img"></canvas></div></div>
@@ -389,6 +430,7 @@ dialog::backdrop{background:rgba(15,20,45,.55)}
     <button class="tab" role="tab" data-tab="resumen" aria-selected="false"><span class="ico">📊</span>Resumen</button>
     <button class="tab" role="tab" data-tab="alumnas" aria-selected="true"><span class="ico">💃</span>Alumnas<span class="badge" data-badge-sol hidden></span></button>
     <button class="tab" role="tab" data-tab="asistencia" aria-selected="false"><span class="ico">📋</span>Asistencia</button>
+      <button class="tab" role="tab" data-tab="semana" aria-selected="false"><span class="ico">🗓️</span>Semana</button>
     <button class="tab" role="tab" data-tab="pagos" aria-selected="false"><span class="ico">💳</span>Pagos</button>
     <button class="tab" role="tab" data-tab="cuentas" aria-selected="false"><span class="ico">🤝</span>Cuentas</button>
   </nav>
@@ -612,7 +654,7 @@ const RUI = {
   },
   render() {
     if (!RS.rol) return;
-    RUI.alumnas(); RUI.pagos(); RUI.cuentas(); RAS.pintarLista(); RG.pintar(); RSOL.pintarSol();
+    RUI.alumnas(); RUI.pagos(); RUI.cuentas(); RAS.pintarLista(); RG.pintar(); RSOL.pintarSol(); RSEM.pintarSemana();
     if (RS.historialId) RA.pintarHistorial();
   },
   alumnas() {
@@ -891,6 +933,116 @@ const RG = {
 };
 
 /* ==========================================================================
+   RSEM — finanza semanal basada en la asistencia
+   ========================================================================== */
+const RSEM = {
+  ofs: 0,
+  rango(ofs) {
+    const ini = RU.sumarDias(RU.inicioSemana(RU.hoy()), 7 * (ofs ?? RSEM.ofs));
+    return { ini, fin: RU.sumarDias(ini, 6) };
+  },
+  inicioRumba() {
+    const f = RS.alumnas.map(a => a.fechaIngreso).concat(RS.pagos.map(p => p.fecha), RS.asistencias.map(r => r.fecha || r.id)).filter(Boolean).sort();
+    return f.length ? RU.inicioSemana(f[0]) : null;
+  },
+  honorario(ini) {
+    const desde = RSEM.inicioRumba();
+    return desde && ini >= desde && ini <= RU.hoy() ? RUMBA_CONFIG.honorarioSemanal : 0;
+  },
+  cubierta(alumnaId, fecha) {
+    return RS.pagos.some(p => p.alumnaId === alumnaId && !p.anulado && p.plan !== 'diaria' && (p.cubreDesde || '') <= fecha && fecha <= (p.cubreHasta || ''));
+  },
+  datosSemana(ofs) {
+    const { ini, fin } = RSEM.rango(ofs);
+    const clases = RS.asistencias.filter(r => { const f = r.fecha || r.id; return f >= ini && f <= fin; })
+      .map(r => ({ fecha: r.fecha || r.id, presentes: r.presentes || [] })).sort((a, b) => a.fecha.localeCompare(b.fecha));
+    const pagos = RS.pagos.filter(p => !p.anulado && p.fecha >= ini && p.fecha <= fin);
+    const caja = RP.sumar(pagos);
+    const ids = new Set(clases.flatMap(c => c.presentes).concat(pagos.map(p => p.alumnaId)));
+    const filas = [...ids].map(id => {
+      const a = RS.alumnas.find(x => x.id === id) || { id, nombre: (pagos.find(p => p.alumnaId === id) || {}).alumnaNombre || 'Alumna eliminada', frecuencia: 'diaria' };
+      const vino = clases.filter(c => c.presentes.includes(id)).map(c => c.fecha);
+      const sinCubrir = vino.filter(f => !RSEM.cubierta(id, f));
+      const suyos = pagos.filter(p => p.alumnaId === id);
+      const pago = RP.sumar(suyos);
+      const diariaPagada = RS.pagos.filter(p => p.alumnaId === id && !p.anulado && p.plan === 'diaria' && (p.cubreDesde || p.fecha) >= ini && (p.cubreDesde || p.fecha) <= fin)
+        .reduce((s, p) => s + (Number(p.monto) || 0), 0);
+      let debe = 0;
+      if (a.frecuencia === 'diaria') debe = Math.max(0, sinCubrir.length * RUMBA_CONFIG.precios.diaria - diariaPagada);
+      else if (sinCubrir.length - Math.floor(diariaPagada / RUMBA_CONFIG.precios.diaria) > 0) debe = RUMBA_CONFIG.precios[a.frecuencia] || 0;
+      return { a, vino, sinCubrir, pago, debe };
+    }).sort((x, y) => (y.debe > 0) - (x.debe > 0) || RU.norm(x.a.nombre).localeCompare(RU.norm(y.a.nombre)));
+    const honorario = RSEM.honorario(ini);
+    const corte = RS.cortes.find(c => c.desde <= ini && c.hasta >= fin);
+    return { ini, fin, clases, caja, filas, honorario, saldo: caja.efectivo - honorario, corte,
+      asistencias: clases.reduce((s, c) => s + c.presentes.length, 0),
+      porCobrar: filas.reduce((s, f) => s + f.debe, 0), deudoras: filas.filter(f => f.debe > 0) };
+  },
+  mes(pref) {
+    const pagos = RS.pagos.filter(p => !p.anulado && (p.fecha || '').startsWith(pref));
+    const s = RP.sumar(pagos);
+    let semanas = 0;
+    const [y, m] = pref.split('-').map(Number);
+    for (let d = RU.iso(new Date(y, m - 1, 1)); d.startsWith(pref); d = RU.sumarDias(d, 1)) if (RU.aFecha(d).getDay() === 1 && RSEM.honorario(d)) semanas++;
+    return { ...s, semanas, honorarios: semanas * RUMBA_CONFIG.honorarioSemanal };
+  },
+  pintarSemana() {
+    if (!RS.rol) return;
+    const d = RSEM.datosSemana();
+    $('semLabel').textContent = RU.fecha(d.ini, true) + ' – ' + RU.fecha(d.fin, true) + (RSEM.ofs === 0 ? ' (esta semana)' : '');
+    $('semSig').disabled = RSEM.ofs >= 0;
+    $('semAsis').textContent = d.asistencias;
+    $('semAsisDet').textContent = d.clases.length + (d.clases.length === 1 ? ' clase registrada' : ' clases registradas');
+    $('semEfe').textContent = RU.dinero(d.caja.efectivo);
+    $('semTra').textContent = RU.dinero(d.caja.transferencia);
+    $('semTot').textContent = RU.dinero(d.caja.total);
+    $('semDeb').textContent = RU.dinero(d.porCobrar);
+    $('semDebDet').textContent = d.deudoras.length ? d.deudoras.length + (d.deudoras.length === 1 ? ' alumna' : ' alumnas') : 'Todas al día';
+    $('semCruce').textContent = d.corte ? 'Semana ya cruzada: ' + RP.textoSaldo(d.corte.saldo) : (d.honorario ? RP.textoSaldo(d.saldo) : 'Sin honorario esta semana');
+    $('semCruceDet').textContent = 'Efectivo ' + RU.dinero(d.caja.efectivo) + ' − honorario ' + RU.dinero(d.honorario);
+    $('btnCruzarSemana').hidden = !!d.corte || d.fin >= RU.hoy() && RSEM.ofs === 0 && new Date().getDay() !== 0;
+    const pasada = RSEM.datosSemana(-1);
+    $('semAviso').hidden = RS.rol !== 'admin' || RSEM.ofs !== 0 || !!pasada.corte || !pasada.honorario;
+    $('semAviso').innerHTML = 'La semana del ' + RU.fecha(pasada.ini, true) + ' al ' + RU.fecha(pasada.fin, true) + ' terminó y no se ha cruzado. <button class="btn peq" type="button" id="btnVerPasada">Ver resumen</button>';
+    if (RS.rol === 'admin') {
+      const pref = d.ini.slice(0, 7), mm = RSEM.mes(pref);
+      $('mesTitulo').textContent = 'Recaudado en ' + RU.aFecha(pref + '-01').toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
+      $('mesTotal').textContent = RU.dinero(mm.total);
+      $('mesDet').textContent = 'Efectivo ' + RU.dinero(mm.efectivo) + ' · Transferencias ' + RU.dinero(mm.transferencia) +
+        ' · Honorarios ' + RU.dinero(mm.honorarios) + ' (' + mm.semanas + (mm.semanas === 1 ? ' semana' : ' semanas') + ') · Neto ' + (mm.total - mm.honorarios < 0 ? '− ' : '') + RU.dinero(Math.abs(mm.total - mm.honorarios));
+    }
+    $('listaSemana').innerHTML = d.filas.length ? d.filas.map(f => `
+      <li class="alumna ${f.debe ? 'rojo' : 'verde'}">
+        <div class="al-fila"><span class="al-nombre">${RU.esc(f.a.nombre)}</span><span class="al-meta">${PLANES[f.a.frecuencia]?.nombre || ''}</span></div>
+        <div class="puntos">${d.clases.map(c => `<span class="punto ${f.sinCubrir.includes(c.fecha) ? 'debe' : f.vino.includes(c.fecha) ? 'vino' : ''}">${RU.aFecha(c.fecha).toLocaleDateString('es-CO', { weekday: 'short' })}</span>`).join('')}</div>
+        <div class="contacto">Vino ${f.vino.length} ${f.vino.length === 1 ? 'vez' : 'veces'}${f.pago.total ? ' · pagó ' + RU.dinero(f.pago.total) + (f.pago.efectivo && f.pago.transferencia ? '' : f.pago.efectivo ? ' en efectivo' : ' por transferencia') : ''}</div>
+        <div class="estado ${f.debe ? 'rojo' : 'verde'}">${f.debe ? 'Debe ' + RU.dinero(f.debe) : 'Al día'}</div>
+        ${f.debe && RS.alumnas.some(x => x.id === f.a.id) ? `<div class="acciones"><button class="btn prim peq" data-accion="pago" data-id="${f.a.id}">Registrar pago</button></div>` : ''}
+      </li>`).join('') : '<li class="vacio">No hay asistencia ni pagos registrados en esta semana.</li>';
+  },
+  texto() {
+    const d = RSEM.datosSemana();
+    return '💃 *Rumba · Lazos Tricolor*\n📊 Resumen semana del ' + RU.fecha(d.ini, true) + ' al ' + RU.fecha(d.fin, true) + '\n\n' +
+      '🗓️ Clases: ' + d.clases.length + ' · Asistencias: ' + d.asistencias + '\n' +
+      '💵 Efectivo recibido por el profe: ' + RU.dinero(d.caja.efectivo) + '\n' +
+      '🏦 Transferencias a la academia: ' + RU.dinero(d.caja.transferencia) + '\n' +
+      '💰 Total recaudado: ' + RU.dinero(d.caja.total) + '\n' +
+      '🎯 Honorario de la semana: ' + RU.dinero(d.honorario) + '\n\n' +
+      '✅ ' + (d.corte ? 'Ya cruzada: ' + RP.textoSaldo(d.corte.saldo) : RP.textoSaldo(d.saldo)) +
+      (d.deudoras.length ? '\n\n⏰ Por cobrar ' + RU.dinero(d.porCobrar) + ':\n' + d.deudoras.map(f => '• ' + f.a.nombre + ': ' + RU.dinero(f.debe)).join('\n') : '');
+  },
+  cruzar() {
+    if (RS.rol !== 'admin') return;
+    const d = RSEM.datosSemana(), uc = RP.ultimoCorte();
+    RA.tab('cuentas');
+    $('corteHasta').value = d.fin;
+    $('corteDesde').value = uc ? RU.sumarDias(uc.hasta, 1) : (RSEM.inicioRumba() || d.ini);
+    RUI.semanasSugeridas();
+    $('cajaCorte').scrollIntoView({ block: 'start' });
+  }
+};
+
+/* ==========================================================================
    RSOL — solicitudes que llegan desde inscripcion-rumba.html
    ========================================================================== */
 const RSOL = {
@@ -1001,6 +1153,7 @@ const RA = {
     $('vistaLogin').hidden = true; $('app').hidden = false; $('usuario').hidden = false;
     $('usuarioEmail').textContent = RS.email + (RS.rol === 'admin' ? ' (administrador)' : ' (profesor)');
     $('lnkPanel').hidden = RS.rol !== 'admin';
+    document.body.classList.toggle('es-profe', RS.rol !== 'admin');
     if (!RS.asisFecha) RAS.cambiarFecha(RAS.fechaSugerida());
     if (RS.rol === 'admin') RUI.corteDefaults();
     RA.tab(RS.tab);
@@ -1008,8 +1161,8 @@ const RA = {
   tab(nombre) {
     RS.tab = nombre;
     document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === nombre)));
-    ['resumen', 'alumnas', 'asistencia', 'pagos', 'cuentas'].forEach(t => { $('tab-' + t).hidden = t !== nombre; });
-    $('tituloSec').textContent = { resumen: 'Resumen', alumnas: 'Alumnas', asistencia: 'Asistencia', pagos: 'Pagos', cuentas: 'Cuentas' }[nombre];
+    ['resumen', 'alumnas', 'asistencia', 'semana', 'pagos', 'cuentas'].forEach(t => { $('tab-' + t).hidden = t !== nombre; });
+    $('tituloSec').textContent = { resumen: 'Resumen', alumnas: 'Alumnas', asistencia: 'Asistencia', semana: 'Semana', pagos: 'Pagos', cuentas: 'Cuentas' }[nombre];
     window.scrollTo(0, 0);
     if (nombre === 'resumen' && RS.rol) RG.pintar();
   },
@@ -1225,6 +1378,11 @@ $('corteSemanas').addEventListener('input', RUI.pintarCorte);
 $('btnCorte').addEventListener('click', RA.registrarCorte);
 $('btnCopiarPend').addEventListener('click', () => RU.copiar(RG.textoPendientes()));
 $('btnLinkInsc').addEventListener('click', RSOL.copiarLink);
+$('semAnt').addEventListener('click', () => { RSEM.ofs--; RSEM.pintarSemana(); });
+$('semSig').addEventListener('click', () => { if (RSEM.ofs < 0) { RSEM.ofs++; RSEM.pintarSemana(); } });
+$('btnCopiarSemana').addEventListener('click', () => RU.copiar(RSEM.texto()));
+$('btnCruzarSemana').addEventListener('click', RSEM.cruzar);
+$('semAviso').addEventListener('click', e => { if (e.target.id === 'btnVerPasada') { RSEM.ofs = -1; RSEM.pintarSemana(); } });
 $('asFecha').addEventListener('change', () => {
   if (RS.asisSucio && !confirm('Tienes cambios de asistencia sin guardar. ¿Cambiar de fecha de todas formas?')) { $('asFecha').value = RS.asisFecha; return; }
   if ($('asFecha').value) RAS.cambiarFecha($('asFecha').value);
