@@ -193,7 +193,13 @@
       <div id="sec-recaudos" class="section">
         <div class="section-header">
           <div class="section-title">🎯 Recaudos para Actividades</div>
-          <button class="btn btn-primary btn-sm" onclick="abrirModalRecaudo()">➕ Nuevo Recaudo</button>
+          <div style="display:flex;align-items:center;gap:10px">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;user-select:none">
+              <input type="checkbox" id="rec-solo-pendientes" onchange="renderRecaudos()" style="accent-color:var(--primary);cursor:pointer">
+              Solo los que no han pagado
+            </label>
+            <button class="btn btn-primary btn-sm" onclick="abrirModalRecaudo()">➕ Nuevo Recaudo</button>
+          </div>
         </div>
 
         <!-- Lista de recaudos activos / cerrados -->

@@ -188,6 +188,7 @@ function renderRecaudos(){
   }
 
   const hoy = dateStr(getHoyReal());
+  const soloPendientes = !!(document.getElementById('rec-solo-pendientes') && document.getElementById('rec-solo-pendientes').checked);
   const catIconos={Vestuario:'👗',Transporte:'🚌',Accesorios:'💃',Escenografía:'🎭',Alimentación:'🍱',Otro:'📌'};
 
   const lista=[].concat(DB.recaudos).sort(function(a,b){
@@ -217,8 +218,13 @@ function renderRecaudos(){
     // ID único para el canvas de este recaudo
     var canvasId = 'rec-chart-'+rec.id.replace(/[^a-z0-9]/gi,'_');
 
+    // Filtro "solo los que no han pagado": filas de alumnas con aporte en 0
+    var alumnasFilas = soloPendientes
+      ? alumnas.filter(function(a){ var ap=aportes[String(a.id)]||aportes[a.id]; return !(ap&&Number(ap.monto)>0); })
+      : alumnas;
+
     var filasAlumnas='';
-    alumnas.forEach(function(a){
+    alumnasFilas.forEach(function(a){
       var k=String(a.id);
       var ap=aportes[k]||aportes[a.id]||{monto:0};
       var monto=Number(ap.monto)||0;
@@ -289,9 +295,10 @@ function renderRecaudos(){
           +'</div>'
           // Tabla de alumnas
           +'<div>'
-            +'<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">✏️ Registrar / modificar</div>'
+            +'<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">'
+              +(soloPendientes?('⏳ Pendientes de pago ('+alumnasFilas.length+')'):'✏️ Registrar / modificar')+'</div>'
             +'<div style="border:1px solid var(--border);border-radius:10px;overflow:hidden">'
-              +'<div style="padding:4px 14px">'+filasAlumnas+'</div>'
+              +'<div style="padding:4px 14px">'+(filasAlumnas||'<div style="padding:16px;text-align:center;color:var(--success);font-size:13px;font-weight:600">✅ Todas han aportado</div>')+'</div>'
             +'</div>'
           +'</div>'
         +'</div>'
