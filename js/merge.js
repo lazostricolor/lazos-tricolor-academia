@@ -138,7 +138,7 @@ function mergeDB(local, remoto){
   // Defaults seguros — garantiza que ninguna clave queda undefined
   const defaults = {
     alumnos:[],alumnosRetirados:[],profesores:[],profesoresRetirados:[],
-    pagos:{},asistencias:{},clases:{},gastos:[],gastosV:[],otrosIngresos:[],recaudos:[],extraDias:{},
+    pagos:{},asistencias:{},clases:{},gastos:[],gastosV:[],otrosIngresos:[],recaudos:[],extraDias:{},diasCancelados:{},
     presentaciones:[],planificador:[],rifas:[],vestuarios:[],usosVestuario:[],nextId:1
   };
 
@@ -152,7 +152,7 @@ function mergeDB(local, remoto){
   Object.keys(remoto).forEach(k=>{ if(k.startsWith('_')) base[k]=remoto[k]; });
 
   const secciones=['alumnos','alumnosRetirados','profesores','profesoresRetirados',
-    'pagos','asistencias','clases','gastos','extraDias','presentaciones','planificador','gastosV','otrosIngresos','recaudos','rifas','vestuarios','usosVestuario'];
+    'pagos','asistencias','clases','gastos','extraDias','diasCancelados','presentaciones','planificador','gastosV','otrosIngresos','recaudos','rifas','vestuarios','usosVestuario'];
 
   secciones.forEach(s=>{
     // SIN fallback a _version: una sección sin timestamp propio NUNCA debe
@@ -222,7 +222,7 @@ function mergeDB(local, remoto){
       } else if(Array.isArray(localVal) && !Array.isArray(remotoVal)){
         base[s] = localVal;
         console.log('🛡️ '+s+': remoto no tiene este campo, conservando local ('+localVal.length+' items)');
-      } else if(s==='extraDias' || s==='clases'){
+      } else if(s==='extraDias' || s==='clases' || s==='diasCancelados'){
         // Objetos indexados: fusionar mes a mes / semana a semana
         const merged = Object.assign({}, remotoVal||{});
         Object.keys(localVal||{}).forEach(k=>{

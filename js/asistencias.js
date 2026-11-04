@@ -16,6 +16,11 @@ function getDiasClaseMes(alumna,mk){
       return !e.cats||e.cats.includes(alumna.categoria||''); // nuevo: filtrar por cat
     })
     .map(e=>typeof e==='string'?e:e.fecha);
+  // Días CANCELADOS (festivos / sin clase) para esta categoría — se restan.
+  const rawCancel=(DB.diasCancelados&&DB.diasCancelados[mk])||[];
+  const cancelFiltrados=rawCancel
+    .filter(e=> !e.cats || e.cats.includes(alumna.categoria||''))
+    .map(e=>typeof e==='string'?e:e.fecha);
   // No contar clases anteriores a la fecha de ingreso de la alumna:
   // una alumna que entró a mitad de mes no debe salir castigada por las clases previas.
   const ingreso = alumna.fechaIngreso || '';
@@ -25,6 +30,7 @@ function getDiasClaseMes(alumna,mk){
     const fecha=new Date(y,m-1,d);
     const ds=dateStr(fecha);
     if(ingreso && ds < ingreso) continue;   // saltar días previos al ingreso
+    if(cancelFiltrados.includes(ds)) continue; // día cancelado/festivo: no cuenta
     if(diasSemana.includes(fecha.getDay())||extrasFiltrados.includes(ds)) dias.push(ds);
   }
   return dias;
@@ -201,11 +207,26 @@ function todasPresentes(){
 function agregarDiaExtra(){
   // Pre-llenar con el mes activo
   const mk = mesSec.asist;
-  const [y,m] = mk.split('-');
   document.getElementById('extra-fecha').value = mk+'-01';
   document.getElementById('extra-cats').querySelectorAll('input[type=checkbox]')
     .forEach(cb=>cb.checked=true); // todas marcadas por defecto
+  const rClase=document.querySelector('input[name=extra-tipo][value=clase]');
+  if(rClase) rClase.checked=true;
+  onCambioTipoExtra();
   abrirModal('modal-dia-extra');
+}
+
+// Cambia los textos del modal según el tipo elegido (dar clase vs cancelar)
+function onCambioTipoExtra(){
+  const tipoEl=document.querySelector('input[name=extra-tipo]:checked');
+  const tipo=tipoEl?tipoEl.value:'clase';
+  const cancelar = tipo==='cancelar';
+  const t=document.getElementById('extra-modal-title');
+  const l=document.getElementById('extra-fecha-label');
+  const b=document.getElementById('extra-btn-guardar');
+  if(t) t.textContent = cancelar ? '🚫 Cancelar día de clase' : '➕ Día de clase especial';
+  if(l) l.textContent = cancelar ? 'Fecha sin clase (festivo) *' : 'Fecha del día de clase *';
+  if(b) b.textContent = cancelar ? '🚫 Marcar sin clase' : '➕ Agregar día de clase';
 }
 
 function guardarDiaExtra(){
@@ -215,25 +236,58 @@ function guardarDiaExtra(){
     .querySelectorAll('input[type=checkbox]:checked')]
     .map(cb=>cb.value);
   if(!cats.length){ toast('Selecciona al menos una categoría','err'); return; }
+  const tipoEl=document.querySelector('input[name=extra-tipo]:checked');
+  const cancelar = tipoEl && tipoEl.value==='cancelar';
   const mk = fecha.substring(0,7);
-  if(!DB.extraDias) DB.extraDias={};
-  // Nuevo formato: extraDias[mk] = [ {fecha, cats:[...]} ] o string legacy
-  // Migrar si es array legacy de strings
-  if(Array.isArray(DB.extraDias[mk]) && DB.extraDias[mk].length>0 && typeof DB.extraDias[mk][0]==='string'){
-    DB.extraDias[mk] = DB.extraDias[mk].map(f=>({fecha:f, cats:['Infantil','Juvenil','Adulto','Adulto Mayor']}));
+
+  if(cancelar){
+    // Día cancelado / festivo: se resta de los días de clase de esas categorías
+    if(!DB.diasCancelados) DB.diasCancelados={};
+    if(!Array.isArray(DB.diasCancelados[mk])) DB.diasCancelados[mk]=[];
+    DB.diasCancelados[mk] = DB.diasCancelados[mk].filter(e=>(e.fecha||e)!==fecha);
+    DB.diasCancelados[mk].push({fecha, cats});
+    tsSeccion('diasCancelados');
+    DB._ts_diasCancelados = Date.now();
+  } else {
+    if(!DB.extraDias) DB.extraDias={};
+    // Migrar si es array legacy de strings
+    if(Array.isArray(DB.extraDias[mk]) && DB.extraDias[mk].length>0 && typeof DB.extraDias[mk][0]==='string'){
+      DB.extraDias[mk] = DB.extraDias[mk].map(f=>({fecha:f, cats:['Infantil','Juvenil','Adulto','Adulto Mayor']}));
+    }
+    if(!Array.isArray(DB.extraDias[mk])) DB.extraDias[mk]=[];
+    DB.extraDias[mk] = DB.extraDias[mk].filter(e=>(e.fecha||e)!==fecha);
+    DB.extraDias[mk].push({fecha, cats});
+    tsSeccion('extraDias');
+    DB._ts_extraDias = Date.now();
   }
-  if(!Array.isArray(DB.extraDias[mk])) DB.extraDias[mk]=[];
-  // Quitar si ya existe esa fecha para esas categorías y reemplazar
-  DB.extraDias[mk] = DB.extraDias[mk].filter(e=>(e.fecha||e)!==fecha);
-  DB.extraDias[mk].push({fecha, cats});
-  tsSeccion('extraDias');
-  DB._ts_extraDias = Date.now();
   snapLocal();
   cerrarModal('modal-dia-extra');
   renderAsistencias();
-  toast('⏳ Guardando día extra...');
+  toast('⏳ Guardando...');
   _fbSave(DB).then(function(ok){
-    if(ok){ desencolarGuardado(); _ultimoGuardado=Date.now(); toast('✅ Día extra guardado — '+cats.join(', ')); }
+    if(ok){ desencolarGuardado(); _ultimoGuardado=Date.now(); toast((cancelar?'✅ Día cancelado — ':'✅ Día de clase guardado — ')+cats.join(', ')); }
+    else { encolarGuardado(); programarReintento(); toast('⚠️ Guardado local — reintentando...','info'); }
+  });
+}
+
+// Quitar un día especial (extra o cancelado) por fecha
+function quitarDiaEspecial(mk, fecha, tipo){
+  if(tipo==='cancelar'){
+    if(DB.diasCancelados&&DB.diasCancelados[mk]){
+      DB.diasCancelados[mk]=DB.diasCancelados[mk].filter(e=>(e.fecha||e)!==fecha);
+      tsSeccion('diasCancelados'); DB._ts_diasCancelados=Date.now();
+    }
+  } else {
+    if(DB.extraDias&&DB.extraDias[mk]){
+      DB.extraDias[mk]=DB.extraDias[mk].filter(e=>(e.fecha||e)!==fecha);
+      tsSeccion('extraDias'); DB._ts_extraDias=Date.now();
+    }
+  }
+  snapLocal();
+  renderAsistencias();
+  toast('⏳ Guardando...');
+  _fbSave(DB).then(function(ok){
+    if(ok){ desencolarGuardado(); _ultimoGuardado=Date.now(); toast('✅ Actualizado'); }
     else { encolarGuardado(); programarReintento(); toast('⚠️ Guardado local — reintentando...','info'); }
   });
 }

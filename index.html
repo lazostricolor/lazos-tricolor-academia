@@ -688,12 +688,25 @@
 <div class="modal-overlay" id="modal-dia-extra">
   <div class="modal" style="max-width:440px">
     <div class="modal-header">
-      <h3>➕ Agregar día extra de clase</h3>
+      <h3 id="extra-modal-title">➕ Día de clase especial</h3>
       <button class="modal-close" onclick="cerrarModal('modal-dia-extra')">✕</button>
     </div>
     <div class="modal-body">
+      <div class="form-group" style="margin-bottom:16px">
+        <label style="margin-bottom:8px;display:block">¿Qué quieres hacer? *</label>
+        <div style="display:flex;gap:8px">
+          <label class="lt-check-item" style="flex:1;display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--border);border-radius:12px;cursor:pointer">
+            <input type="radio" name="extra-tipo" value="clase" checked onchange="onCambioTipoExtra()" style="width:auto;accent-color:var(--primary)">
+            <span style="font-size:12.5px;font-weight:600">➕ Dar clase<br><span style="font-weight:400;color:var(--text2);font-size:11px">día fuera del horario</span></span>
+          </label>
+          <label class="lt-check-item" style="flex:1;display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--border);border-radius:12px;cursor:pointer">
+            <input type="radio" name="extra-tipo" value="cancelar" onchange="onCambioTipoExtra()" style="width:auto;accent-color:var(--unpaid)">
+            <span style="font-size:12.5px;font-weight:600">🚫 Cancelar<br><span style="font-weight:400;color:var(--text2);font-size:11px">festivo / sin clase</span></span>
+          </label>
+        </div>
+      </div>
       <div class="form-group" style="margin-bottom:18px">
-        <label>Fecha del día extra *</label>
+        <label id="extra-fecha-label">Fecha del día de clase *</label>
         <input type="date" id="extra-fecha">
       </div>
       <div class="form-group">
@@ -720,7 +733,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="cerrarModal('modal-dia-extra')">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarDiaExtra()">➕ Agregar día extra</button>
+      <button class="btn btn-primary" id="extra-btn-guardar" onclick="guardarDiaExtra()">➕ Agregar día de clase</button>
     </div>
   </div>
 </div>

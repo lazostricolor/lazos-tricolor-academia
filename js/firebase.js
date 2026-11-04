@@ -175,7 +175,7 @@ async function _fbCargar(){
       // hasta el siguiente guardado manual. Ese era el bug de "trabajo en la
       // academia, vuelvo días después y no está".
       const _SECCIONES_TS = ['alumnos','alumnosRetirados','profesores','profesoresRetirados',
-        'pagos','asistencias','clases','gastos','extraDias','presentaciones','planificador',
+        'pagos','asistencias','clases','gastos','extraDias','diasCancelados','presentaciones','planificador',
         'gastosV','otrosIngresos','recaudos','rifas','vestuarios','usosVestuario'];
       const seccionesLocalesNuevas = _SECCIONES_TS.filter(s =>
         (DB['_ts_'+s] || 0) > (parsed['_ts_'+s] || 0));
