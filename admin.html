@@ -46,6 +46,7 @@
       <button class="nav-item" onclick="showSection('recaudos')"><span class="nav-icon">🎯</span>Recaudos</button>
       <button class="nav-item" onclick="showSection('rifas')"><span class="nav-icon">🎟️</span>Rifas</button>
       <button class="nav-item" onclick="location.href='panel-sudaderas.html'"><span class="nav-icon">👕</span>Sudaderas</button>
+      <button class="nav-item" onclick="location.href='rumba.html'"><span class="nav-icon">💃</span>Rumba</button>
       <button class="nav-item" onclick="showSection('ingresos')"><span class="nav-icon">💰</span>Otros Ingresos</button>
       <button class="nav-item" onclick="showSection('gastos')"><span class="nav-icon">🧾</span>Gastos Varios</button>
       <button class="nav-item" onclick="showSection('finanzas')"><span class="nav-icon">📈</span>Finanzas</button>
@@ -88,6 +89,7 @@
         <div class="cards-grid" id="dash-stats"></div>
         <div class="donuts-row" id="dash-donuts"></div>
         <div class="charts-row" id="dash-charts"></div>
+        <div id="dash-rumba"></div>
         <div class="dist-grid" id="dash-dist"></div>
         <div class="table-card">
           <div class="table-card-header">
@@ -191,7 +193,13 @@
       <div id="sec-recaudos" class="section">
         <div class="section-header">
           <div class="section-title">🎯 Recaudos para Actividades</div>
-          <button class="btn btn-primary btn-sm" onclick="abrirModalRecaudo()">➕ Nuevo Recaudo</button>
+          <div style="display:flex;align-items:center;gap:10px">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;user-select:none">
+              <input type="checkbox" id="rec-solo-pendientes" onchange="renderRecaudos()" style="accent-color:var(--primary);cursor:pointer">
+              Solo los que no han pagado
+            </label>
+            <button class="btn btn-primary btn-sm" onclick="abrirModalRecaudo()">➕ Nuevo Recaudo</button>
+          </div>
         </div>
 
         <!-- Lista de recaudos activos / cerrados -->
@@ -680,12 +688,25 @@
 <div class="modal-overlay" id="modal-dia-extra">
   <div class="modal" style="max-width:440px">
     <div class="modal-header">
-      <h3>➕ Agregar día extra de clase</h3>
+      <h3 id="extra-modal-title">➕ Día de clase especial</h3>
       <button class="modal-close" onclick="cerrarModal('modal-dia-extra')">✕</button>
     </div>
     <div class="modal-body">
+      <div class="form-group" style="margin-bottom:16px">
+        <label style="margin-bottom:8px;display:block">¿Qué quieres hacer? *</label>
+        <div style="display:flex;gap:8px">
+          <label class="lt-check-item" style="flex:1;display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--border);border-radius:12px;cursor:pointer">
+            <input type="radio" name="extra-tipo" value="clase" checked onchange="onCambioTipoExtra()" style="width:auto;accent-color:var(--primary)">
+            <span style="font-size:12.5px;font-weight:600">➕ Dar clase<br><span style="font-weight:400;color:var(--text2);font-size:11px">día fuera del horario</span></span>
+          </label>
+          <label class="lt-check-item" style="flex:1;display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--border);border-radius:12px;cursor:pointer">
+            <input type="radio" name="extra-tipo" value="cancelar" onchange="onCambioTipoExtra()" style="width:auto;accent-color:var(--unpaid)">
+            <span style="font-size:12.5px;font-weight:600">🚫 Cancelar<br><span style="font-weight:400;color:var(--text2);font-size:11px">festivo / sin clase</span></span>
+          </label>
+        </div>
+      </div>
       <div class="form-group" style="margin-bottom:18px">
-        <label>Fecha del día extra *</label>
+        <label id="extra-fecha-label">Fecha del día de clase *</label>
         <input type="date" id="extra-fecha">
       </div>
       <div class="form-group">
@@ -712,7 +733,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="cerrarModal('modal-dia-extra')">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarDiaExtra()">➕ Agregar día extra</button>
+      <button class="btn btn-primary" id="extra-btn-guardar" onclick="guardarDiaExtra()">➕ Agregar día de clase</button>
     </div>
   </div>
 </div>
@@ -1063,6 +1084,19 @@
     <div class="modal-body">
       <div class="form-grid" style="grid-template-columns:1fr 1fr">
         <div class="form-group" style="grid-column:1/-1">
+          <label>Modalidad *</label>
+          <div style="display:flex;gap:8px">
+            <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--border);border-radius:12px;cursor:pointer">
+              <input type="radio" name="rec-modo" value="aporte" checked onchange="onCambioModoRecaudo()" style="width:auto;accent-color:var(--primary)">
+              <span style="font-size:12.5px;font-weight:600">💰 Aporte por alumna<br><span style="font-weight:400;color:var(--text2);font-size:11px">cuota fija o libre</span></span>
+            </label>
+            <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--border);border-radius:12px;cursor:pointer">
+              <input type="radio" name="rec-modo" value="boleteria" onchange="onCambioModoRecaudo()" style="width:auto;accent-color:var(--primary)">
+              <span style="font-size:12.5px;font-weight:600">🎟️ Boletería de evento<br><span style="font-weight:400;color:var(--text2);font-size:11px">cada alumna pide su cantidad</span></span>
+            </label>
+          </div>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
           <label>Nombre del recaudo *</label>
           <input type="text" id="rec-nombre" placeholder="Ej: Lavado de vestuarios, Transporte Festival...">
         </div>
@@ -1074,13 +1108,18 @@
           <label>Fecha cierre *</label>
           <input type="date" id="rec-cierre">
         </div>
-        <div class="form-group">
+        <div class="form-group rec-solo-aporte">
           <label>Aporte sugerido por alumna ($)</label>
           <input type="number" id="rec-meta-alumna" placeholder="Ej: 15000" min="0">
         </div>
-        <div class="form-group">
+        <div class="form-group rec-solo-aporte">
           <label>Meta total ($) — opcional</label>
           <input type="number" id="rec-meta-total" placeholder="Calculada automáticamente" min="0">
+        </div>
+        <div class="form-group rec-solo-boleteria" style="grid-column:1/-1;display:none">
+          <label>Valor por boleta ($) *</label>
+          <input type="number" id="rec-valor-boleta" placeholder="Ej: 20000" min="0" step="500">
+          <small style="font-size:11px;color:var(--muted)">El precio que fijan los organizadores. Cada alumna pide la cantidad que quiera.</small>
         </div>
         <div class="form-group" style="grid-column:1/-1">
           <label>Descripción</label>
@@ -1127,9 +1166,14 @@
     <div class="modal-body">
       <div id="aporte-alumna-info" style="background:var(--card2);border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px"></div>
       <div class="form-grid" style="grid-template-columns:1fr 1fr">
+        <div class="form-group" id="aporte-cantidad-wrap" style="grid-column:1/-1;display:none">
+          <label>Boletas que pide *</label>
+          <input type="number" id="aporte-cantidad" placeholder="Ej: 4" min="0" step="1" oninput="calcBoletasAporte()">
+          <small id="aporte-calc" style="font-size:12px;color:var(--primary);font-weight:600"></small>
+        </div>
         <div class="form-group">
-          <label>Monto aportado ($) *</label>
-          <input type="number" id="aporte-monto" placeholder="Ej: 15000" min="0">
+          <label id="aporte-monto-label">Monto aportado ($) *</label>
+          <input type="number" id="aporte-monto" placeholder="Ej: 15000" min="0" oninput="calcBoletasAporte()">
         </div>
         <div class="form-group">
           <label>Fecha del aporte</label>
@@ -1297,6 +1341,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="js/state.js"></script>
 <script src="js/utils.js"></script>
+<script src="js/merge.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/firebase.js"></script>
 <script src="js/navegacion.js"></script>
@@ -1319,6 +1364,7 @@
 <script src="js/vestuario.js"></script>
 <script src="js/config.js"></script>
 <script src="js/encuestas.js"></script>
+<script src="js/rumba-dash.js"></script>
 <script src="js/app.js"></script>
 
 </body>

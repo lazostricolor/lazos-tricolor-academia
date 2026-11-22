@@ -16,6 +16,11 @@ function getDiasClaseMes(alumna,mk){
       return !e.cats||e.cats.includes(alumna.categoria||''); // nuevo: filtrar por cat
     })
     .map(e=>typeof e==='string'?e:e.fecha);
+  // Días CANCELADOS (festivos / sin clase) para esta categoría — se restan.
+  const rawCancel=(DB.diasCancelados&&DB.diasCancelados[mk])||[];
+  const cancelFiltrados=rawCancel
+    .filter(e=> !e.cats || e.cats.includes(alumna.categoria||''))
+    .map(e=>typeof e==='string'?e:e.fecha);
   // No contar clases anteriores a la fecha de ingreso de la alumna:
   // una alumna que entró a mitad de mes no debe salir castigada por las clases previas.
   const ingreso = alumna.fechaIngreso || '';
@@ -25,6 +30,7 @@ function getDiasClaseMes(alumna,mk){
     const fecha=new Date(y,m-1,d);
     const ds=dateStr(fecha);
     if(ingreso && ds < ingreso) continue;   // saltar días previos al ingreso
+    if(cancelFiltrados.includes(ds)) continue; // día cancelado/festivo: no cuenta
     if(diasSemana.includes(fecha.getDay())||extrasFiltrados.includes(ds)) dias.push(ds);
   }
   return dias;
@@ -136,7 +142,7 @@ function renderAsistencias(){
             const pctHasta=diasHasta?Math.round(pres/diasHasta*100):0;
             const enCurso=diasHasta<total; // el mes aún no termina para esta alumna
             return`<tr>
-              <td style="font-size:12px;font-weight:500">${a.nombre.split(' ').slice(0,2).join(' ')}</td>
+              <td style="font-size:12px;font-weight:500">${esc(a.nombre.split(' ').slice(0,2).join(' '))}</td>
               ${celdas}
               <td style="color:var(--paid);font-weight:700;font-size:12px">${pres}</td>
               <td style="color:var(--unpaid);font-size:12px">${aus}</td>
@@ -155,7 +161,9 @@ function toggleAsistencia(alumnaId,fecha){
   const actual=DB.asistencias[alumnaId][fecha];
   if(!actual) DB.asistencias[alumnaId][fecha]='P';
   else if(actual==='P') DB.asistencias[alumnaId][fecha]='A';
-  else delete DB.asistencias[alumnaId][fecha];
+  // '' en vez de borrar la celda: así, al fusionar con otro equipo, "desmarcado"
+  // se distingue de "nunca marcado" y no revive la marca vieja
+  else DB.asistencias[alumnaId][fecha]='';
   // Guardar versión sin re-renderizar ni disparar polling
   _localVersion = Date.now();
   tsSeccion('asistencias');
@@ -193,16 +201,32 @@ function todasPresentes(){
       DB.asistencias[a.id][hoy]='P';
     }
   });
+  tsSeccion('asistencias');
   saveAll(); renderAsistencias(); toast('Asistencia registrada ✓');
 }
 function agregarDiaExtra(){
   // Pre-llenar con el mes activo
   const mk = mesSec.asist;
-  const [y,m] = mk.split('-');
   document.getElementById('extra-fecha').value = mk+'-01';
   document.getElementById('extra-cats').querySelectorAll('input[type=checkbox]')
     .forEach(cb=>cb.checked=true); // todas marcadas por defecto
+  const rClase=document.querySelector('input[name=extra-tipo][value=clase]');
+  if(rClase) rClase.checked=true;
+  onCambioTipoExtra();
   abrirModal('modal-dia-extra');
+}
+
+// Cambia los textos del modal según el tipo elegido (dar clase vs cancelar)
+function onCambioTipoExtra(){
+  const tipoEl=document.querySelector('input[name=extra-tipo]:checked');
+  const tipo=tipoEl?tipoEl.value:'clase';
+  const cancelar = tipo==='cancelar';
+  const t=document.getElementById('extra-modal-title');
+  const l=document.getElementById('extra-fecha-label');
+  const b=document.getElementById('extra-btn-guardar');
+  if(t) t.textContent = cancelar ? '🚫 Cancelar día de clase' : '➕ Día de clase especial';
+  if(l) l.textContent = cancelar ? 'Fecha sin clase (festivo) *' : 'Fecha del día de clase *';
+  if(b) b.textContent = cancelar ? '🚫 Marcar sin clase' : '➕ Agregar día de clase';
 }
 
 function guardarDiaExtra(){
@@ -212,25 +236,58 @@ function guardarDiaExtra(){
     .querySelectorAll('input[type=checkbox]:checked')]
     .map(cb=>cb.value);
   if(!cats.length){ toast('Selecciona al menos una categoría','err'); return; }
+  const tipoEl=document.querySelector('input[name=extra-tipo]:checked');
+  const cancelar = tipoEl && tipoEl.value==='cancelar';
   const mk = fecha.substring(0,7);
-  if(!DB.extraDias) DB.extraDias={};
-  // Nuevo formato: extraDias[mk] = [ {fecha, cats:[...]} ] o string legacy
-  // Migrar si es array legacy de strings
-  if(Array.isArray(DB.extraDias[mk]) && DB.extraDias[mk].length>0 && typeof DB.extraDias[mk][0]==='string'){
-    DB.extraDias[mk] = DB.extraDias[mk].map(f=>({fecha:f, cats:['Infantil','Juvenil','Adulto','Adulto Mayor']}));
+
+  if(cancelar){
+    // Día cancelado / festivo: se resta de los días de clase de esas categorías
+    if(!DB.diasCancelados) DB.diasCancelados={};
+    if(!Array.isArray(DB.diasCancelados[mk])) DB.diasCancelados[mk]=[];
+    DB.diasCancelados[mk] = DB.diasCancelados[mk].filter(e=>(e.fecha||e)!==fecha);
+    DB.diasCancelados[mk].push({fecha, cats});
+    tsSeccion('diasCancelados');
+    DB._ts_diasCancelados = Date.now();
+  } else {
+    if(!DB.extraDias) DB.extraDias={};
+    // Migrar si es array legacy de strings
+    if(Array.isArray(DB.extraDias[mk]) && DB.extraDias[mk].length>0 && typeof DB.extraDias[mk][0]==='string'){
+      DB.extraDias[mk] = DB.extraDias[mk].map(f=>({fecha:f, cats:['Infantil','Juvenil','Adulto','Adulto Mayor']}));
+    }
+    if(!Array.isArray(DB.extraDias[mk])) DB.extraDias[mk]=[];
+    DB.extraDias[mk] = DB.extraDias[mk].filter(e=>(e.fecha||e)!==fecha);
+    DB.extraDias[mk].push({fecha, cats});
+    tsSeccion('extraDias');
+    DB._ts_extraDias = Date.now();
   }
-  if(!Array.isArray(DB.extraDias[mk])) DB.extraDias[mk]=[];
-  // Quitar si ya existe esa fecha para esas categorías y reemplazar
-  DB.extraDias[mk] = DB.extraDias[mk].filter(e=>(e.fecha||e)!==fecha);
-  DB.extraDias[mk].push({fecha, cats});
-  tsSeccion('extraDias');
-  DB._ts_extraDias = Date.now();
   snapLocal();
   cerrarModal('modal-dia-extra');
   renderAsistencias();
-  toast('⏳ Guardando día extra...');
+  toast('⏳ Guardando...');
   _fbSave(DB).then(function(ok){
-    if(ok){ desencolarGuardado(); _ultimoGuardado=Date.now(); toast('✅ Día extra guardado — '+cats.join(', ')); }
+    if(ok){ desencolarGuardado(); _ultimoGuardado=Date.now(); toast((cancelar?'✅ Día cancelado — ':'✅ Día de clase guardado — ')+cats.join(', ')); }
+    else { encolarGuardado(); programarReintento(); toast('⚠️ Guardado local — reintentando...','info'); }
+  });
+}
+
+// Quitar un día especial (extra o cancelado) por fecha
+function quitarDiaEspecial(mk, fecha, tipo){
+  if(tipo==='cancelar'){
+    if(DB.diasCancelados&&DB.diasCancelados[mk]){
+      DB.diasCancelados[mk]=DB.diasCancelados[mk].filter(e=>(e.fecha||e)!==fecha);
+      tsSeccion('diasCancelados'); DB._ts_diasCancelados=Date.now();
+    }
+  } else {
+    if(DB.extraDias&&DB.extraDias[mk]){
+      DB.extraDias[mk]=DB.extraDias[mk].filter(e=>(e.fecha||e)!==fecha);
+      tsSeccion('extraDias'); DB._ts_extraDias=Date.now();
+    }
+  }
+  snapLocal();
+  renderAsistencias();
+  toast('⏳ Guardando...');
+  _fbSave(DB).then(function(ok){
+    if(ok){ desencolarGuardado(); _ultimoGuardado=Date.now(); toast('✅ Actualizado'); }
     else { encolarGuardado(); programarReintento(); toast('⚠️ Guardado local — reintentando...','info'); }
   });
 }
@@ -301,7 +358,7 @@ function generarRanking(mk){
       var barWidth=a.pct;
       filas+='<div class="ranking-row">'
         +'<span class="ranking-medal">'+medallas[i]+'</span>'
-        +'<span class="ranking-nombre">'+a.nombre.split(' ').slice(0,2).join(' ')+'</span>'
+        +'<span class="ranking-nombre">'+esc(a.nombre.split(' ').slice(0,2).join(' '))+'</span>'
         +'<div class="ranking-bar-wrap"><div class="ranking-bar" style="width:'+barWidth+'%;background:'+color+'"></div></div>'
         +'<span class="ranking-pct" style="color:'+color+'">'+a.pct+'%</span>'
         +'</div>';
@@ -333,14 +390,6 @@ function copiarMensajeRanking(){
   texto=texto.replace(/&quot;/g,'"').replace(/&lt;/g,'<');
   if(navigator.clipboard){
     navigator.clipboard.writeText(texto).then(function(){ toast('📋 Mensaje copiado ✓'); })
-    .catch(function(){ _copiarFallback(texto); });
-  } else { _copiarFallback(texto); }
-}
-function _copiarFallback(texto){
-  var ta=document.createElement('textarea');
-  ta.value=texto; ta.style.position='fixed'; ta.style.opacity='0';
-  document.body.appendChild(ta); ta.select();
-  try{ document.execCommand('copy'); toast('📋 Mensaje copiado ✓'); }
-  catch(e){ toast('No se pudo copiar','err'); }
-  document.body.removeChild(ta);
+    .catch(function(){ _copiarFallback(texto, '📋 Mensaje copiado ✓'); });
+  } else { _copiarFallback(texto, '📋 Mensaje copiado ✓'); }
 }

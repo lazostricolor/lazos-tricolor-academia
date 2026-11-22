@@ -5,7 +5,7 @@ rules_version = '2';
 //  Se pegan en: Firebase → Firestore Database → Reglas → Publicar
 //
 //  Regla general: TODO cerrado, salvo lo que se abre abajo.
-//  El panel (index.html y panel-sudaderas.html) entra con la
+//  El panel (admin.html y panel-sudaderas.html) entra con la
 //  cuenta de Google de la academia y puede hacer todo.
 // ═══════════════════════════════════════════════════════════
 service cloud.firestore {
@@ -23,8 +23,31 @@ service cloud.firestore {
     }
 
     // ── Preinscripciones: el formulario público solo puede CREAR ──
+    // Antes era `if true`: cualquiera podía meter documentos de cualquier
+    // tamaño y con HTML en el nombre (se pintaba en el panel). Sin `hasOnly`
+    // a propósito: el formulario de la web puede mandar campos que el panel
+    // no lee, y una lista inexacta haría perder preinscripciones reales.
+    function textoCorto(d, k) {
+      return !(k in d) || !(d[k] is string) || d[k].size() <= 300;
+    }
     match /inscripciones/{id} {
-      allow create: if true;
+      allow create: if request.resource.data.keys().size() <= 40
+        && request.resource.data.keys().hasAll(['nombre_estudiante', 'telefono'])
+        && request.resource.data.nombre_estudiante is string
+        && request.resource.data.nombre_estudiante.size() >= 3
+        && request.resource.data.nombre_estudiante.size() <= 80
+        && !request.resource.data.nombre_estudiante.matches('.*[<>].*')
+        && request.resource.data.telefono is string
+        && request.resource.data.telefono.size() >= 7
+        && request.resource.data.telefono.size() <= 20
+        && (!('estado' in request.resource.data) || request.resource.data.estado == 'pendiente')
+        && textoCorto(request.resource.data, 'correo')
+        && textoCorto(request.resource.data, 'acudiente')
+        && textoCorto(request.resource.data, 'direccion')
+        && textoCorto(request.resource.data, 'barrio')
+        && textoCorto(request.resource.data, 'conocio')
+        && textoCorto(request.resource.data, 'experiencia')
+        && textoCorto(request.resource.data, 'categoria');
     }
 
     // ── Encuesta (encuesta.html) ──
@@ -108,6 +131,70 @@ service cloud.firestore {
                 && request.resource.data.total == resource.data.total))
         // abonos: se pueden agregar o quitar, nunca modificar uno existente
         && request.resource.data.abonos.diff(resource.data.abonos).changedKeys().size() == 0;
+    }
+
+    // ── Rumba (rumba.html) ──
+    // Administración: las dos cuentas de Alfredo. Profesor: Sebastián Mora (solo rumba).
+    function esAdminRumba() {
+      return request.auth != null && request.auth.token.email_verified == true
+        && request.auth.token.email in ['alfredomariara@gmail.com', 'academialazostricolor@gmail.com'];
+    }
+    function esProfeRumba() {
+      return request.auth != null && request.auth.token.email_verified == true
+        && request.auth.token.email in ['zmora0211@gmail.com'];
+    }
+    function equipoRumba() { return esAdminRumba() || esProfeRumba(); }
+
+    match /rumba_alumnas/{id} {
+      allow read, create, update: if equipoRumba();
+      allow delete: if esAdminRumba();
+    }
+    match /rumba_asistencias/{fecha} {
+      allow read, create, update: if equipoRumba();
+      allow delete: if esAdminRumba();
+    }
+    // Pagos: quien registra queda firmado; el profesor solo puede ANULAR
+    // (con motivo) un pago aún no cruzado, nunca cambiar valor, fecha ni método.
+    match /rumba_pagos/{id} {
+      allow read: if equipoRumba();
+      allow create: if equipoRumba()
+                    && request.resource.data.recibidoPor == request.auth.token.email
+                    && request.resource.data.metodo in ['efectivo', 'transferencia']
+                    && request.resource.data.monto is number
+                    && request.resource.data.monto > 0
+                    && !('corteId' in request.resource.data);
+      allow update: if esAdminRumba()
+                    || (esProfeRumba()
+                        && !('corteId' in resource.data)
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['anulado', 'motivoAnulacion', '_editTs', '_editPor']));
+      allow delete: if esAdminRumba();
+    }
+    // Cruces de cuentas: los ve el equipo, los registra solo la administración.
+    match /rumba_cortes/{id} {
+      allow read: if equipoRumba();
+      allow write: if esAdminRumba();
+    }
+    // Inscripción pública (inscripcion-rumba.html): cualquiera puede ENVIAR una
+    // solicitud con datos válidos; solo el equipo de rumba la ve y la aprueba.
+    match /rumba_solicitudes/{id} {
+      allow create: if request.resource.data.keys().hasAll(['nombre', 'celular', 'frecuencia', 'autoriza', 'estado', 'fecha', 'creadoTs'])
+                    && request.resource.data.keys().hasOnly(['nombre', 'edad', 'celular', 'frecuencia', 'salud', 'autoriza', 'estado', 'fecha', 'creadoTs'])
+                    && request.resource.data.nombre is string
+                    && request.resource.data.nombre.size() >= 3 && request.resource.data.nombre.size() <= 80
+                    && request.resource.data.celular is string
+                    && request.resource.data.celular.size() >= 7 && request.resource.data.celular.size() <= 20
+                    && request.resource.data.frecuencia in ['diaria', 'semanal', 'mensual']
+                    && request.resource.data.autoriza == true
+                    && request.resource.data.estado == 'pendiente'
+                    && request.resource.data.fecha is string && request.resource.data.fecha.size() == 10
+                    && request.resource.data.creadoTs is int
+                    && (!('edad' in request.resource.data)
+                        || (request.resource.data.edad is int && request.resource.data.edad >= 1 && request.resource.data.edad <= 110))
+                    && (!('salud' in request.resource.data)
+                        || (request.resource.data.salud is string && request.resource.data.salud.size() <= 300));
+      allow read, update: if equipoRumba();
+      allow delete: if esAdminRumba();
     }
   }
 }

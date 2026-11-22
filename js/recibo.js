@@ -86,7 +86,7 @@ function generarRecibo(alumnaId){
     // Cuerpo
     + '<div style="font-size:12px;line-height:1.9">'
       + '<div style="color:#555">Hemos recibido de:</div>'
-      + '<div style="font-size:15px;font-weight:800;margin-bottom:10px">'+acudiente+'</div>'
+      + '<div style="font-size:15px;font-weight:800;margin-bottom:10px">'+esc(acudiente)+'</div>'
       + _reciboLinea('Alumna', a.nombre)
       + _reciboLinea('Categoría', a.categoria||'—')
       + _reciboLinea('Concepto', 'Mensualidad '+mesLabel(mk))
@@ -118,7 +118,7 @@ function generarRecibo(alumnaId){
 function _reciboLinea(label, valor){
   return '<div style="display:flex;justify-content:space-between;gap:10px">'
     + '<span style="color:#555">'+label+':</span>'
-    + '<span style="font-weight:600;text-align:right">'+valor+'</span></div>';
+    + '<span style="font-weight:600;text-align:right">'+esc(valor)+'</span></div>';
 }
 
 let _reciboActual = null;

@@ -15,12 +15,12 @@ function renderProfesores(){
   let html=`<div class="table-card"><table>
     <thead><tr><th>Profesor</th><th>Especialidad</th><th>Clases Semana</th><th>Valor/clase</th><th>Total pagado</th><th>Acciones</th></tr></thead>
     <tbody>${DB.profesores.map(p=>{
-      const clases=(DB.clases[p.id]&&DB.clases[p.id][sk])||0;
+      const clases=clasesSemana(p.id,sk);
       const vc=_valorClaseProf(p);
       const totalPag=_totalPagadoProf(p);
       return`<tr>
-        <td><span style="cursor:pointer;font-weight:600;color:var(--col)" onclick="verFichaProfesor(${p.id})">${p.nombre}</span></td>
-        <td style="color:var(--muted);font-size:12px">${p.especialidad||'—'}</td>
+        <td><span style="cursor:pointer;font-weight:600;color:var(--col)" onclick="verFichaProfesor(${p.id})">${esc(p.nombre)}</span></td>
+        <td style="color:var(--muted);font-size:12px">${esc(p.especialidad||'—')}</td>
         <td>
           <div style="display:flex;align-items:center;gap:8px">
             <button class="btn btn-ghost btn-sm btn-icon" onclick="cambiarClases(${p.id},'${sk}',-1)">−</button>
@@ -43,10 +43,28 @@ function renderProfesores(){
   </table></div>`;
   document.getElementById('prof-table').innerHTML=html;
 }
+// Hasta oct-2026 semKey() usaba UTC: lo registrado después de las 7 p. m.
+// quedaba en una llave corrida un día ("martes_lunes"). Esta es esa llave vieja
+// para una semana canónica "lunes_domingo"; se suma al leer y se funde al editar.
+function _skLegacy(sk){
+  const mas1=s=>{ const d=new Date(s+'T12:00'); d.setDate(d.getDate()+1); return dateStr(d); };
+  const [a,b]=sk.split('_');
+  return mas1(a)+'_'+mas1(b);
+}
+function clasesSemana(profId,sk){
+  const c=DB.clases[profId]||{};
+  return (c[sk]||0)+(c[_skLegacy(sk)]||0);
+}
 function cambiarClases(profId,sk,delta){
   if(!DB.clases[profId]) DB.clases[profId]={};
+  const leg=_skLegacy(sk);
+  if(DB.clases[profId][leg]!=null){
+    DB.clases[profId][sk]=(DB.clases[profId][sk]||0)+DB.clases[profId][leg];
+    delete DB.clases[profId][leg];
+  }
   const actual=(DB.clases[profId][sk]||0)+delta;
   DB.clases[profId][sk]=Math.max(0,actual);
+  tsSeccion('clases');  // sin esto el merge podía descartar el cambio
   saveAll(); renderProfesores();
 }
 function abrirModalProfesor(id=null){
@@ -79,6 +97,7 @@ function guardarProfesor(){
     toast('Profesor registrado ✓');
   }
   cerrarModal('modal-profesor');
+  tsSeccion('profesores');
   saveAll(); renderProfesores();
 }
 function verFichaProfesor(id){
@@ -89,7 +108,7 @@ function verFichaProfesor(id){
   let totalClases=0;
   Object.values(DB.clases[id]||{}).forEach(c=>totalClases+=c);
   const sk=semKey(semanaOfs);
-  const clasesSemana=(DB.clases[id]&&DB.clases[id][sk])||0;
+  const clasesSem=clasesSemana(id,sk);
   // Historial semanas
   const semanas=Object.keys(DB.clases[id]||{}).sort().reverse().slice(0,8);
   let histHtml=semanas.map(s=>{
@@ -101,12 +120,12 @@ function verFichaProfesor(id){
     <div class="prof-stats-grid">
       <div class="prof-stat"><div class="val">${totalClases}</div><div class="lab">Total Clases</div></div>
       <div class="prof-stat"><div class="val">${formatCOP(totalClases*HONOR_POR_CLASE)}</div><div class="lab">Honorarios Totales</div></div>
-      <div class="prof-stat"><div class="val">${clasesSemana}</div><div class="lab">Clases Esta Semana</div></div>
+      <div class="prof-stat"><div class="val">${clasesSem}</div><div class="lab">Clases Esta Semana</div></div>
     </div>
     <div style="margin-bottom:12px">
-      ${p.telefono?`<div style="font-size:13px;margin-bottom:4px">📱 ${p.telefono}</div>`:''}
-      ${p.correo?`<div style="font-size:13px;margin-bottom:4px">✉️ ${p.correo}</div>`:''}
-      ${p.especialidad?`<div style="font-size:13px;color:var(--muted)">🎭 ${p.especialidad}</div>`:''}
+      ${p.telefono?`<div style="font-size:13px;margin-bottom:4px">📱 ${esc(p.telefono)}</div>`:''}
+      ${p.correo?`<div style="font-size:13px;margin-bottom:4px">✉️ ${esc(p.correo)}</div>`:''}
+      ${p.especialidad?`<div style="font-size:13px;color:var(--muted)">🎭 ${esc(p.especialidad)}</div>`:''}
     </div>
     <h4 style="font-size:13px;margin-bottom:10px">Historial semanal (clases)</h4>
     ${histHtml}
@@ -116,6 +135,7 @@ function verFichaProfesor(id){
     if(!confirm2('¿Retirar a '+p.nombre+'?')) return;
     DB.profesoresRetirados.push({...p,fechaRetiro:dateStr(getHoyReal())});
     DB.profesores=DB.profesores.filter(x=>x.id!==id);
+    tsSeccion('profesores'); tsSeccion('profesoresRetirados');
     cerrarModal('modal-ficha-prof');
     saveAll(); renderProfesores(); toast('Profesor retirado');
   };
@@ -132,7 +152,7 @@ function _seccionPagosFicha(p){
     items = pagos.map((pg)=>{
       const realIdx = p.pagos.indexOf(pg);
       return '<div class="hist-item" style="cursor:pointer" onclick="abrirModalPagoProf('+p.id+','+realIdx+')">'
-        +'<span style="font-size:12px">'+pg.fecha+(pg.clases?' · '+pg.clases+' clases':'')+(pg.nota?' · '+pg.nota:'')+'</span>'
+        +'<span style="font-size:12px">'+pg.fecha+(pg.clases?' · '+pg.clases+' clases':'')+(pg.nota?' · '+esc(pg.nota):'')+'</span>'
         +'<span style="font-weight:700;color:var(--paid)">'+formatCOP(pg.monto||0)+'</span>'
         +'</div>';
     }).join('');
@@ -174,7 +194,7 @@ function abrirModalPagoProf(profId, idx){
   const vc = _valorClaseProf(p);
   document.getElementById('modal-pago-prof-title').textContent = editPagoProfIdx!==null ? 'Editar pago' : 'Registrar pago';
   document.getElementById('pago-prof-info').innerHTML =
-    '<strong>'+p.nombre+'</strong>'
+    '<strong>'+esc(p.nombre)+'</strong>'
     + (vc?'<br>Valor por clase: <strong style="color:var(--col)">'+formatCOP(vc)+'</strong>':'<br><span style="color:var(--muted)">Sin valor por clase definido — puedes escribir el monto directamente</span>');
 
   if(editPagoProfIdx!==null){
@@ -269,14 +289,14 @@ function estadoCuentaProf(profId){
     +'<td style="text-align:center">'+(i+1)+'</td>'
     +'<td>'+pg.fecha+'</td>'
     +'<td style="text-align:center">'+(pg.clases||'—')+'</td>'
-    +'<td>'+(pg.nota||'—')+'</td>'
+    +'<td>'+esc(pg.nota||'—')+'</td>'
     +'<td style="text-align:right;font-weight:700">'+formatCOP(pg.monto||0)+'</td>'
     +'</tr>'
   ).join('') : '<tr><td colspan="5" style="text-align:center;color:#888;padding:20px">Sin pagos registrados</td></tr>';
 
   const win = window.open('', '_blank');
   win.document.write(
-'<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Estado de cuenta — '+p.nombre+'</title>'
+'<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Estado de cuenta — '+esc(p.nombre)+'</title>'
 +'<style>'
 +'*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}'
 +'body{padding:40px;color:#1a1a2e;font-size:13px}'
@@ -303,10 +323,10 @@ function estadoCuentaProf(profId){
 +'<button class="btn-print noprint" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>'
 +'<div class="enc"><div><h1>Academia de Danzas Lazos Tricolor</h1><div class="sub">Soacha, Cundinamarca · Estado de cuenta de profesor</div></div>'
 +'<div class="fecha">Generado:<br><strong>'+hoy+'</strong></div></div>'
-+'<div class="datos"><h2>'+p.nombre+'</h2>'
-+(p.especialidad?'<div class="linea">🎭 '+p.especialidad+'</div>':'')
-+(p.telefono?'<div class="linea">📱 '+p.telefono+'</div>':'')
-+(p.correo?'<div class="linea">✉️ '+p.correo+'</div>':'')
++'<div class="datos"><h2>'+esc(p.nombre)+'</h2>'
++(p.especialidad?'<div class="linea">🎭 '+esc(p.especialidad)+'</div>':'')
++(p.telefono?'<div class="linea">📱 '+esc(p.telefono)+'</div>':'')
++(p.correo?'<div class="linea">✉️ '+esc(p.correo)+'</div>':'')
 +(vc?'<div class="linea">💵 Valor por clase: <strong>'+formatCOP(vc)+'</strong></div>':'')
 +'<div class="linea">📋 Total de pagos registrados: <strong>'+pagos.length+'</strong></div>'
 +'</div>'

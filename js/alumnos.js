@@ -165,7 +165,7 @@ function tablaAlumnas(lista,mk,soloLectura){
         <td><div style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="verFichaAlumna(${a.id})">
           <div class="avatar">${a.foto?`<img src="${a.foto}">`:''}${!a.foto?iniciales(a.nombre):''}</div>
           <div>
-            <div style="font-weight:600">${a.nombre} ${(()=>{if(!a.nacimiento||a.nacimiento.length<7)return'';return a.nacimiento.split('-')[1]===mk.split('-')[1]?'🎂':'';})()}</div>
+            <div style="font-weight:600">${esc(a.nombre)} ${(()=>{if(!a.nacimiento||a.nacimiento.length<7)return'';return a.nacimiento.split('-')[1]===mk.split('-')[1]?'🎂':'';})()}</div>
             <div style="font-size:11px;color:var(--muted)">${a.familiar?'👨‍👩‍👧 Familiar':''}${(()=>{if(!a.nacimiento||a.nacimiento.length<7)return'';if(a.nacimiento.split('-')[1]!==mk.split('-')[1])return'';const partes=a.nacimiento.split('-');const dia=parseInt(partes[2]);const mesNom=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][parseInt(partes[1])-1];return(a.familiar?' · ':'')+'🎂 '+dia+' '+mesNom;})()}</div>
           </div>
         </div></td>
@@ -209,16 +209,31 @@ function calcAntiguedad(){
   if(m<0){y--;m+=12;}
   document.getElementById('antiguedad-display').textContent=`🎓 ${y} año${y!==1?'s':''}, ${m} mes${m!==1?'es':''} en la academia`;
 }
+// La foto se reduce a 480 px y JPEG antes de guardarla: el original de un
+// celular pesa 4-10 MB en base64 y llenaba la cuota de localStorage (~5 MB),
+// lo que dejaba el panel sin poder guardar.
 function cargarFoto(input){
   const f=input.files[0];
   if(!f)return;
-  const r=new FileReader();
-  r.onload=e=>{
-    fotoTemp=e.target.result;
+  if(f.size>12*1024*1024){ toast('La foto pesa más de 12 MB. Elige otra.','err'); input.value=''; return; }
+  const url=URL.createObjectURL(f);
+  const img=new Image();
+  img.onload=()=>{
+    const MAX=480, k=Math.min(1, MAX/Math.max(img.width, img.height));
+    const cv=document.createElement('canvas');
+    cv.width=Math.round(img.width*k); cv.height=Math.round(img.height*k);
+    cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+    URL.revokeObjectURL(url);
+    fotoTemp=cv.toDataURL('image/jpeg', 0.72);
     const prev=document.getElementById('foto-preview');
     prev.innerHTML=`<img src="${fotoTemp}" style="width:100%;height:100%;object-fit:cover">`;
   };
-  r.readAsDataURL(f);
+  img.onerror=()=>{
+    URL.revokeObjectURL(url);
+    toast('No se pudo leer la imagen (¿formato HEIC del iPhone?). Usa JPG o PNG.','err');
+    input.value='';
+  };
+  img.src=url;
 }
 function abrirModalAlumna(id=null){
   editAlumnaId=id;

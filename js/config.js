@@ -5,6 +5,28 @@
 ═══════════════════════════════════════════════════════════ */
 
 // ===================== CONFIG =====================
+// Firestore guarda TODA la academia en un solo documento con límite de 1 MB.
+// Esta barra avisa con tiempo, antes de que los guardados empiecen a fallar.
+function _filaPesoDB(){
+  const kb = pesoDBKB();
+  if(kb < 0) return '';
+  const pct = Math.min(100, Math.round(kb/1024*100));
+  const color = kb > 800 ? 'var(--danger)' : kb >= 600 ? 'var(--warning)' : 'var(--success)';
+  const nota = kb > 800
+    ? '⚠️ Muy cerca del límite: hay que dividir los datos antes de seguir (pide ayuda).'
+    : kb >= 600 ? 'Va creciendo: conviene revisar qué ocupa más espacio.' : 'Sin problema.';
+  return `
+        <div style="padding:0 16px 16px;font-size:13px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+            <strong style="color:var(--text)">⚖️ Peso de la base en la nube</strong>
+            <span style="color:${color};font-weight:700">${kb} KB / 1024 KB (${pct}%)</span>
+          </div>
+          <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden">
+            <div style="width:${pct}%;height:100%;background:${color}"></div>
+          </div>
+          <div style="margin-top:6px;color:var(--muted)">${nota}</div>
+        </div>`;
+}
 function renderConfig(){
   document.getElementById('config-content').innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:700px">
@@ -35,6 +57,7 @@ function renderConfig(){
           <div>🔢 <strong style="color:var(--text)">Próximo ID:</strong> ${DB.nextId}</div>
           <div>💻 <strong style="color:var(--text)">Versión:</strong> 2.0 — GitHub Pages</div>
         </div>
+        ${_filaPesoDB()}
       </div>
     </div>
   `;
@@ -43,6 +66,7 @@ function repararYResubir(){
   repararFechasIngreso();
   let reparadas=0;
   DB.alumnos.forEach(a=>{ if(a.fechaIngreso) reparadas++; });
+  tsSeccion('alumnos');
   saveAll();
   toast(`✅ ${reparadas} alumnas con fecha válida — datos subidos a Firebase`,'ok');
   renderSection(activeSection);
@@ -52,7 +76,7 @@ async function subirFirebase(){
   toast('Subido a Firebase ✓');
 }
 function exportarJSON(){
-  const sinFotos={...DB,alumnos:DB.alumnos.map(a=>({...a,foto:null}))};
+  const sinFotos=_sinFotos(DB);
   const blob=new Blob([JSON.stringify(sinFotos,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -79,6 +103,9 @@ function importarJSON(input){
       const j=JSON.parse(e.target.result);
       if(!j.alumnos) throw new Error('Formato inválido');
       DB=Object.assign(DB,j);
+      // El respaldo trae sus _ts_ viejos: sin re-sellar, el siguiente merge
+      // con la nube podía descartar lo importado.
+      Object.keys(j).forEach(k=>{ if(!k.startsWith('_') && j[k] && typeof j[k]==='object') tsSeccion(k); });
       saveAll(); renderSection(activeSection);
       toast('Importación exitosa ✓');
     }catch{toast('Error al importar JSON','err');}
