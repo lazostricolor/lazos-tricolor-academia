@@ -353,6 +353,7 @@ async function cerrarCoreo() {
   if (S.unsubCoreo) { S.unsubCoreo(); S.unsubCoreo = null; }
   Motor.pausar(); Motor.bucle = null; S.ent.on = false;
   const v = $('#video'); v.pause(); v.removeAttribute('src'); v.load();
+  quitarYT();
   S.coreo = null;
 }
 
@@ -367,9 +368,69 @@ async function cargarMedios() {
   aplicarTempo();
   Motor.ir(0);
   const v = $('#video');
-  const vurl = c.video?.url ? await S.st.resolverUrl(c.video.url) : null;
+  const yt = c.video?.yt || null;
+  const vurl = !yt && c.video?.url ? await S.st.resolverUrl(c.video.url) : null;
   if (vurl) { v.src = vurl; v.muted = !S.videoSonido; } else { v.removeAttribute('src'); v.load(); }
-  $('#video-wrap').hidden = !vurl || !S.videoVisible;
+  v.hidden = !!yt;
+  if (yt) prepararYT(yt); else quitarYT();
+  $('#video-wrap').hidden = !(vurl || yt) || !S.videoVisible;
+}
+
+/* ── Video de YouTube (enlace «no listado»): se controla con la API del reproductor ── */
+let _ytApi = null;
+function cargarApiYT() {
+  if (_ytApi) return _ytApi;
+  _ytApi = new Promise(ok => {
+    if (window.YT && YT.Player) return ok();
+    const previo = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => { previo && previo(); ok(); };
+    const s = document.createElement('script'); s.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(s);
+  });
+  return _ytApi;
+}
+async function prepararYT(id) {
+  if (S.yt && S.yt.id === id) return;
+  quitarYT();
+  const caja = document.createElement('div'); caja.id = 'yt-player';
+  $('#video-wrap').insertBefore(caja, $('#video-info'));
+  S.yt = { id, player: null, listo: false, ultSeek: 0 };
+  const yo = S.yt;
+  await cargarApiYT();
+  if (S.yt !== yo) return;
+  yo.player = new YT.Player('yt-player', {
+    videoId: id,
+    playerVars: { playsinline: 1, rel: 0, modestbranding: 1, controls: 1, disablekb: 1 },
+    events: { onReady: e => { yo.listo = true; S.videoSonido ? e.target.unMute() : e.target.mute(); S.sucio = true; } }
+  });
+}
+function quitarYT() {
+  if (S.yt && S.yt.player) { try { S.yt.player.destroy(); } catch (_) {} }
+  S.yt = null;
+  const r = $('#yt-player'); if (r) r.remove();
+}
+function idYouTube(url) {
+  const m = String(url).match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/))([\w-]{11})/);
+  return m ? m[1] : null;
+}
+function sincronizarYT(t) {
+  const c = S.coreo, y = S.yt, p = y && y.listo && y.player;
+  if (!p || $('#video-wrap').hidden || S.ajusteVideo) return;
+  const objetivo = t - (c.video.offset || 0), dur = p.getDuration() || Infinity;
+  const info = $('#video-info'), ahora = performance.now(), estado = p.getPlayerState();
+  if (objetivo < 0 || objetivo > dur) {
+    if (estado === 1) p.pauseVideo();
+    info.textContent = objetivo < 0 ? 'El video empieza en ' + fmtT(c.video.offset) : 'Fin del video';
+    return;
+  }
+  info.textContent = '';
+  if (Motor.tocando) {
+    if (Math.abs(p.getPlaybackRate() - Motor.vel) > .01) p.setPlaybackRate(Motor.vel);
+    if (estado !== 1 && estado !== 3) { if (ahora - y.ultSeek > 600) { p.seekTo(objetivo, true); p.playVideo(); y.ultSeek = ahora; } }
+    else if (Math.abs(p.getCurrentTime() - objetivo) > 0.4 && ahora - y.ultSeek > 1500) { p.seekTo(objetivo, true); y.ultSeek = ahora; }
+  } else {
+    if (Math.abs(p.getCurrentTime() - objetivo) > 0.08 && ahora - y.ultSeek > 200) { p.seekTo(objetivo, true); y.ultSeek = ahora; }
+    if (estado === 1 || estado === 3) p.pauseVideo();
+  }
 }
 
 function aplicarTempo() {
@@ -1006,6 +1067,7 @@ function seguirCabezal(t) {
 /* ═══════════════ Video sincronizado ═══════════════ */
 function sincronizarVideo(t) {
   const v = $('#video'); const c = S.coreo;
+  if (c.video?.yt) return sincronizarYT(t);
   if (!c.video || !v.src || $('#video-wrap').hidden || S.ajusteVideo) return;
   const objetivo = t - (c.video.offset || 0);
   const dentro = objetivo >= 0 && (!isFinite(v.duration) || objetivo <= v.duration);
@@ -1038,7 +1100,7 @@ function cuadro() {
       sincronizarVideo(t);
       renderFormBarra();
       S.ultimoT = t; S.sucio = false;
-    }
+    } else if (S.yt && S.yt.listo) sincronizarYT(t);   // YouTube puede arrancar solo al buscar: mantenerlo en pausa
     if (!Motor.tocando && $('#btn-play').getAttribute('aria-label') === 'Pausar') pintarPlay();
   }
   requestAnimationFrame(cuadro);
@@ -1253,14 +1315,14 @@ function panelMusica() {
 function panelVideo() {
   const v = S.coreo.video, ed = puedeEditar();
   let h = '<section><h3>Video del ensayo</h3>';
-  if (v?.url) h += `<div class="archivo"><span>🎬 ${esc(v.nombre || 'Video')}</span></div>`;
+  if (v?.url) h += `<div class="archivo"><span>${v.yt ? '▶ YouTube · ' : '🎬 '}${esc(v.nombre || 'Video')}</span></div>`;
   if (S.progreso?.tipo === 'video') h += `<div class="progreso"><i style="width:${Math.round(S.progreso.v * 100)}%"></i></div><p class="nota">Subiendo video… ${Math.round(S.progreso.v * 100)}%</p>`;
   if (ed) {
-    h += `<div class="botones"><label class="btn btn-mini" style="cursor:pointer">${v?.url ? 'Cambiar video' : 'Subir video'}<input type="file" name="video" accept="video/*" hidden></label>
-        <button class="btn btn-mini" data-acc="video-enlace" type="button">Pegar enlace (.mp4)</button>
+    h += `<div class="botones">${S.st.subeVideos ? `<label class="btn btn-mini" style="cursor:pointer">${v?.url ? 'Cambiar video' : 'Subir video'}<input type="file" name="video" accept="video/*" hidden></label>` : ''}
+        <button class="btn btn-mini${S.st.subeVideos ? '' : ' btn-primario'}" data-acc="video-enlace" type="button">${v?.url ? 'Cambiar enlace' : 'Pegar enlace de YouTube'}</button>
         ${v?.url ? '<button class="btn btn-mini btn-peligro" data-acc="quitar-video" type="button">Quitar</button>' : ''}</div>`;
   }
-  if (!v?.url) return h + `<p class="nota">${ed ? 'Cuando termines la coreografía, sube el video del ensayo y sincronízalo con la música.' : 'Aún no hay video del ensayo.'}</p></section>`;
+  if (!v?.url) return h + `<p class="nota">${ed ? (S.st.subeVideos ? 'Cuando termines la coreografía, sube el video del ensayo y sincronízalo con la música.' : 'Sube el video del ensayo a YouTube como «No listado» (solo lo ve quien tiene el enlace), pega aquí el enlace y sincronízalo con la música.') : 'Aún no hay video del ensayo.'}</p></section>`;
   h += `<div class="checks" style="margin:12px 0">
       <label><input type="checkbox" name="video-ver" ${S.videoVisible ? 'checked' : ''}> Mostrar video</label>
       <label><input type="checkbox" name="video-sonido" ${S.videoSonido ? 'checked' : ''}> Sonido del video</label></div></section>`;
@@ -1270,7 +1332,7 @@ function panelVideo() {
       <div class="botones"><button class="btn btn-mini" data-voff="-1" type="button">−1 s</button><button class="btn btn-mini" data-voff="-0.1" type="button">−0,1 s</button>
         <button class="btn btn-mini" data-voff="0.1" type="button">+0,1 s</button><button class="btn btn-mini" data-voff="1" type="button">+1 s</button></div>
       ${S.ajusteVideo
-        ? `<p class="nota aviso">Mueve el video (con sus controles) al mismo golpe en que está la canción y pulsa:</p><div class="botones"><button class="btn btn-primario" data-acc="video-fijar" type="button">Sincronizar aquí</button><button class="btn" data-acc="video-ajuste" type="button">Cancelar</button></div>`
+        ? `<p class="nota aviso">Mueve el video (con sus controles) al mismo golpe en que está la canción${S.coreo.video.yt ? ', déjalo en pausa' : ''} y pulsa:</p><div class="botones"><button class="btn btn-primario" data-acc="video-fijar" type="button">Sincronizar aquí</button><button class="btn" data-acc="video-ajuste" type="button">Cancelar</button></div>`
         : `<button class="btn btn-mini" data-acc="video-ajuste" type="button" style="margin-top:8px">Ajustar a mano un golpe…</button>`}
     </section>`;
   }
@@ -1390,9 +1452,13 @@ async function clickPanel(e) {
       break;
     }
     case 'video-enlace': {
-      const r = await modal({ titulo: 'Enlace del video', si: 'Usar enlace', html: '<p class="muted">Debe ser un enlace directo a un archivo de video (.mp4). Los enlaces de YouTube no se pueden sincronizar.</p><label class="campo"><span>Enlace</span><input name="url" type="url" placeholder="https://…/ensayo.mp4"></label>' });
-      if (!r || !/^https?:\/\//.test(r.url.trim())) return;
-      const viejo = c.video?.path; c.video = { url: r.url.trim(), path: '', nombre: r.url.trim().split('/').pop().split('?')[0], offset: 0 };
+      const r = await modal({ titulo: 'Enlace del video', si: 'Usar enlace', html: '<p class="muted">Pega el enlace de YouTube (puede ser «No listado») o un enlace directo a un archivo .mp4.</p><label class="campo"><span>Enlace</span><input name="url" type="url" placeholder="https://youtu.be/…"></label>' });
+      if (!r) return;
+      const u = r.url.trim(), yt = idYouTube(u);
+      if (!yt && !/^https?:\/\/.+\.(mp4|webm|mov)(\?|$)/i.test(u)) return toast('Ese enlace no es de YouTube ni de un archivo de video.', true);
+      const viejo = c.video?.path, off = c.video?.offset || 0;
+      c.video = yt ? { url: 'https://youtu.be/' + yt, yt, path: '', nombre: 'Video del ensayo', offset: off }
+                   : { url: u, path: '', nombre: u.split('/').pop().split('?')[0], offset: off };
       cambio(); await cargarMedios(); renderTodo(); if (viejo) S.st.borrarArchivo(viejo); break;
     }
     case 'quitar-video': {
@@ -1400,10 +1466,13 @@ async function clickPanel(e) {
       const viejo = c.video?.path; c.video = null; cambio(); await cargarMedios(); renderTodo(); if (viejo) S.st.borrarArchivo(viejo); break;
     }
     case 'video-ajuste': {
-      S.ajusteVideo = !S.ajusteVideo; const v = $('#video'); v.controls = S.ajusteVideo; Motor.pausar(); pintarPlay(); v.pause(); renderPanel(); break;
+      S.ajusteVideo = !S.ajusteVideo; const v = $('#video'); v.controls = S.ajusteVideo; Motor.pausar(); pintarPlay(); v.pause();
+      if (S.yt && S.yt.listo) S.yt.player.pauseVideo();
+      renderPanel(); break;
     }
     case 'video-fijar': {
-      const v = $('#video'); c.video.offset = Math.round((Motor.tiempo() - v.currentTime) * 100) / 100;
+      const v = $('#video'), tv = c.video.yt ? (S.yt && S.yt.listo ? S.yt.player.getCurrentTime() : 0) : v.currentTime;
+      c.video.offset = Math.round((Motor.tiempo() - tv) * 100) / 100;
       S.ajusteVideo = false; v.controls = false; cambio(); S.sucio = true; renderPanel(); toast('Video sincronizado ✓'); break;
     }
     case 'sellar': {
@@ -1438,7 +1507,11 @@ async function cambioPanel(e) {
   if (n === 'tray') { S.trayectorias = el.checked; S.sucio = true; return; }
   if (n === 'iman') { S.iman = el.checked; return; }
   if (n === 'video-ver') { S.videoVisible = el.checked; $('#video-wrap').hidden = !el.checked; S.sucio = true; return; }
-  if (n === 'video-sonido') { S.videoSonido = el.checked; $('#video').muted = !el.checked; return; }
+  if (n === 'video-sonido') {
+    S.videoSonido = el.checked; $('#video').muted = !el.checked;
+    if (S.yt && S.yt.listo) el.checked ? S.yt.player.unMute() : S.yt.player.mute();
+    return;
+  }
   if (n === 'met-on') return alternarMet(el.checked);
   if (n === 'met-acento') { Motor.met.acento = el.checked; guardarPrefsMet(); Motor._reiniciarMet(); return; }
   if (n === 'met-luz') { Motor.met.luz = el.checked; guardarPrefsMet(); return; }

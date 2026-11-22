@@ -2,7 +2,9 @@
    coreo/datos.js
    Sesión (Google / celular / modo práctica) y almacenamiento.
    Dos "almacenes" con la misma interfaz:
-     Nube  → Firestore + Storage (proyecto lazos-tricolor-academia)
+     Nube  → Firestore (proyecto lazos-tricolor-academia). La música se guarda en
+             Firestore por partes (plan gratis); el video va por enlace (YouTube o .mp4).
+             Si algún día se activa Storage (plan Blaze), poner STORAGE_ACTIVO = true.
      Demo  → localStorage + IndexedDB (solo en este equipo)
 ═══════════════════════════════════════════════════════════ */
 
@@ -15,6 +17,12 @@ const FB_CONFIG_COREO = {
   storageBucket: 'lazos-tricolor-academia.appspot.com',
   appId: '1:284048193120:web:96cacf134a537c9ad57505'
 };
+
+// Storage necesita el plan de pago Blaze. Mientras sea false, la pista va a Firestore
+// (coreografias/{id}/pista/*) y los videos se agregan con un enlace.
+const STORAGE_ACTIVO = false;
+const PISTA_MAX_MB = 20;              // ~23 documentos de 900 KB
+const PISTA_PARTE = 900 * 1024;
 
 // Cuentas que pueden crear y modificar coreografías (deben coincidir con firestore.rules y storage.rules)
 const COREOGRAFOS = ['academialazostricolor@gmail.com', 'alfredomariara@gmail.com'];
@@ -75,9 +83,19 @@ const Nube = {
     const datos = JSON.parse(JSON.stringify(c)); delete datos.id;
     await this._col('coreografias').doc(c.id).set(datos);
   },
-  async borrarCoreo(id) { await this._col('coreografias').doc(id).delete(); },
+  async borrarCoreo(id) {
+    const partes = await this._col('coreografias').doc(id).collection('pista').get().catch(() => null);
+    if (partes) await Promise.all(partes.docs.map(d => d.ref.delete()));
+    await this._col('coreografias').doc(id).delete();
+  },
 
+  subeVideos: STORAGE_ACTIVO,
   subirArchivo(file, ruta, alProgreso) {
+    const esAudio = /^audio\//.test(file.type) || /\.(mp3|m4a|wav|ogg|aac)$/i.test(file.name);
+    if (!STORAGE_ACTIVO) {
+      if (esAudio) return this._subirPista(file, ruta, alProgreso);
+      return Promise.reject(new Error('para el video usa un enlace de YouTube'));
+    }
     return new Promise((ok, mal) => {
       if (!FB.st) return mal(new Error('Firebase Storage no está activado.'));
       const ref = FB.st.ref(ruta);
@@ -90,8 +108,42 @@ const Nube = {
         async () => ok({ url: await ref.getDownloadURL(), path: ruta }));
     });
   },
-  async borrarArchivo(path) { try { if (path && FB.st) await FB.st.ref(path).delete(); } catch (_) {} },
-  async resolverUrl(url) { return url; },
+  // Pista en Firestore: documentos coreografias/{coreo}/pista/{archivo}_{n} con los bytes.
+  // url y path quedan como "fs:{coreo}/{archivo}".
+  async _subirPista(file, ruta, alProgreso) {
+    if (file.size > PISTA_MAX_MB * 1024 * 1024) throw new Error(`la pista pesa más de ${PISTA_MAX_MB} MB; usa un MP3 más liviano`);
+    const coreo = ruta.split('/')[1], archivo = 'p' + Date.now().toString(36);
+    const total = Math.ceil(file.size / PISTA_PARTE) || 1;
+    const tipo = file.type || 'audio/mpeg';
+    const col = this._col('coreografias').doc(coreo).collection('pista');
+    for (let n = 0; n < total; n++) {
+      const bytes = new Uint8Array(await file.slice(n * PISTA_PARTE, (n + 1) * PISTA_PARTE).arrayBuffer());
+      await col.doc(archivo + '_' + String(n).padStart(3, '0')).set({ archivo, n, total, tipo, datos: firebase.firestore.Blob.fromUint8Array(bytes) });
+      alProgreso && alProgreso((n + 1) / total);
+    }
+    const ref = 'fs:' + coreo + '/' + archivo;
+    return { url: ref, path: ref };
+  },
+  _partes(ref) {
+    const [coreo, archivo] = ref.slice(3).split('/');
+    return this._col('coreografias').doc(coreo).collection('pista').where('archivo', '==', archivo).get();
+  },
+  async borrarArchivo(path) {
+    try {
+      if (path && path.startsWith('fs:')) { const s = await this._partes(path); await Promise.all(s.docs.map(d => d.ref.delete())); }
+      else if (path && FB.st && STORAGE_ACTIVO) await FB.st.ref(path).delete();
+    } catch (_) {}
+  },
+  _urls: new Map(),
+  async resolverUrl(url) {
+    if (!url || !url.startsWith('fs:')) return url;
+    if (this._urls.has(url)) return this._urls.get(url);
+    const s = await this._partes(url);
+    const docs = s.docs.map(d => d.data()).sort((a, b) => a.n - b.n);
+    if (!docs.length || docs.length !== docs[0].total) return null;
+    const blob = new Blob(docs.map(d => d.datos.toUint8Array()), { type: docs[0].tipo || 'audio/mpeg' });
+    const u = URL.createObjectURL(blob); this._urls.set(url, u); return u;
+  },
 
   // Solicitudes de cambio de nombre
   async crearSolicitud(s) { await this._col('solicitudes').add(s); },
@@ -117,6 +169,7 @@ const Nube = {
 /* ═══════════════ ALMACÉN DEMO (este equipo) ═══════════════ */
 const Demo = {
   nombre: 'demo',
+  subeVideos: true,
   _k: 'coreo_demo_v1',
   _oy: { lista: new Set(), coreo: new Map(), solic: new Set(), aut: new Set() },
   _leer() {

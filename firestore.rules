@@ -98,6 +98,13 @@ service cloud.firestore {
       allow read: if esCoreografo()
         || (esAlumna() && resource.data.categoria in get(rutaAlumna()).data.categorias);
       allow write: if esCoreografo();
+      // La música va aquí por partes (plan gratis, sin Storage); se lee igual que la coreografía
+      match /pista/{parte} {
+        allow read: if esCoreografo()
+          || (esAlumna() && get(/databases/$(database)/documents/coreografias/$(id)).data.categoria
+                            in get(rutaAlumna()).data.categorias);
+        allow write: if esCoreografo();
+      }
     }
     match /autorizados/{clave} {
       allow get: if request.auth != null && clave == claveAlumna();

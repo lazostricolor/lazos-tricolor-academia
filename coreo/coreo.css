@@ -212,6 +212,7 @@ a.btn { text-decoration: none; color: inherit; }
 /* Video */
 .video-wrap { background: #000; border-radius: var(--radio); overflow: hidden; border: 1px solid var(--borde); position: relative; }
 .video-wrap video { width: 100%; max-height: 42dvh; display: block; background: #000; }
+.video-wrap iframe { width: 100%; aspect-ratio: 16 / 9; max-height: 42dvh; display: block; border: 0; background: #000; }
 .video-info { position: absolute; left: 8px; top: 8px; font-size: 12px; padding: 3px 8px; border-radius: 6px; background: rgba(0,0,0,.6); color: var(--txt2); }
 .video-info:empty { display: none; }
 

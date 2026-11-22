@@ -141,14 +141,22 @@ detección de tempo), `app.js` (escenario, línea de tiempo, paneles), `coreo.cs
   velocidad 40–150 % sin cambiar el tono (`preservesPitch`), repetir ocho o tramo, metrónomo
   y subida gradual. Las canciones quedan en IndexedDB del equipo (base `ensayo`).
 
-Firestore: `coreografias/{id}`, `autorizados/{mail:correo | tel:+57…}`, `solicitudes/{id}`.
-La forma de onda y el tempo se calculan al subir la pista y se guardan en el documento.
+Firestore: `coreografias/{id}`, `coreografias/{id}/pista/*`, `autorizados/{mail:correo | tel:+57…}`,
+`solicitudes/{id}`. La forma de onda y el tempo se calculan al subir la pista y se guardan en el documento.
+
+**Plan gratis (sin Storage):** `STORAGE_ACTIVO = false` en `coreo/datos.js`.
+- La música se guarda en Firestore en partes de 900 KB (`coreografias/{id}/pista/{archivo}_{n}`),
+  máximo 20 MB por pista. El plan Spark da 1 GB de Firestore: alcanza para unas 150 canciones.
+- El video va por **enlace de YouTube** («No listado») o un enlace directo .mp4, y se sincroniza
+  con la API del reproductor de YouTube.
+- Si algún día se pasa a Blaze: activar Storage, pegar `storage.rules`, poner `STORAGE_ACTIVO = true`
+  (y revisar `storageBucket`). Las pistas ya guardadas en Firestore siguen funcionando.
 
 Para activarla en Firebase (una sola vez):
-1. Pegar `firestore.rules` (Firestore → Reglas) y `storage.rules` (Storage → Reglas).
-2. Activar **Storage** (guarda MP3 y videos). Si el bucket termina en
-   `.firebasestorage.app`, cambiar `storageBucket` en `coreo/datos.js`.
-3. Authentication → Método de acceso → activar **Teléfono** (Google ya está).
+1. Pegar `firestore.rules` (Firestore → Reglas) cada vez que cambie.
+2. Dominio autorizado `app.academialazostricolor.com` (Authentication → Configuración). Hecho.
+3. Ingreso por **celular**: Authentication → Método de acceso → Teléfono (puede pedir Blaze).
+   Mientras tanto, las alumnas entran con Google.
 
 ## Datos
 
