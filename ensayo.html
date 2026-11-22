@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0e0f13">
+<meta name="color-scheme" content="dark">
+<title>Ensayo · Lazos Tricolor</title>
+<link rel="icon" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="coreo/coreo.css">
+<style>
+  .ens { max-width: 1180px; margin: 0 auto; padding: 18px 16px 48px; }
+  .nota { font-size: 13px; color: var(--txt3); margin: 8px 0 0; }
+
+  /* Sin canción */
+  .soltar {
+    display: grid; place-items: center; gap: 6px; text-align: center; cursor: pointer;
+    padding: 44px 20px; border: 2px dashed var(--borde2); border-radius: 18px; background: var(--bg2);
+    transition: border-color .15s, background .15s;
+  }
+  .soltar:hover, .soltar.encima { border-color: var(--acento); background: rgba(242,194,48,.06); }
+  .soltar .icono { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: var(--acento); color: var(--acento-txt); margin-bottom: 6px; }
+  .soltar b { font-size: 20px; }
+  .soltar span { color: var(--txt2); font-size: 14px; max-width: 360px; }
+  .sec-tit { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--txt2); margin: 28px 0 10px; }
+  .canciones { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+  .canciones li { display: flex; align-items: center; gap: 4px; background: var(--sup); border: 1px solid var(--borde); border-radius: var(--radio); padding: 4px 4px 4px 0; }
+  .cancion { flex: 1; min-width: 0; text-align: left; background: none; border: 0; cursor: pointer; padding: 10px 14px; display: grid; gap: 2px; }
+  .cancion b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cancion span { font-size: 13px; color: var(--txt2); }
+  .canciones li:hover { border-color: var(--borde2); }
+
+  /* Con canción */
+  .ens-grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; }
+  .ens-cabeza { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .ens-cabeza h2 { margin: 0; font-size: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ens-cabeza p { margin: 0; color: var(--txt2); font-size: 14px; }
+  .ens-cabeza > div { min-width: 0; flex: 1; }
+
+  .contador {
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px;
+    background: var(--sup); border: 1px solid var(--borde); border-radius: 18px; padding: 14px 20px;
+  }
+  .cont-lado { display: grid; gap: 2px; }
+  .cont-lado span { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--txt3); }
+  .cont-lado b { font-size: 30px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .cont-num {
+    font-size: clamp(96px, 20vw, 150px); font-weight: 800; line-height: 1; letter-spacing: -.05em;
+    font-variant-numeric: tabular-nums; min-width: 1.4ch; text-align: center; transition: color .08s, transform .08s;
+  }
+  .cont-num.uno { color: var(--acento); }
+  .cont-num.golpe { transform: scale(1.06); }
+  .cont-der { justify-items: end; text-align: right; }
+  .luces { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .luz { width: 16px; height: 16px; border-radius: 50%; background: var(--sup2); border: 1px solid var(--borde2); transition: background .05s, box-shadow .05s; }
+  .luz.actual { border-color: var(--txt2); }
+  .luz.on { background: var(--txt); box-shadow: 0 0 12px rgba(236,238,243,.6); }
+  .luz.on.uno { background: var(--acento); border-color: var(--acento); box-shadow: 0 0 14px rgba(242,194,48,.9); }
+
+  .celdas { display: grid; gap: 4px; margin: 10px 0 12px; }
+  .celdas i { font-style: normal; text-align: center; font-weight: 700; font-size: 13px; padding: 6px 0; border-radius: 8px; background: var(--bg2); border: 1px solid var(--borde); color: var(--txt3); }
+  .celdas i.compas { color: var(--txt2); border-color: var(--borde2); }
+  .celdas i.on { background: var(--txt); color: var(--bg); border-color: var(--txt); }
+  .celdas i.on.uno { background: var(--acento); border-color: var(--acento); color: var(--acento-txt); }
+
+  .onda-wrap { background: var(--sup); border: 1px solid var(--borde); border-radius: var(--radio); overflow: hidden; }
+  #onda { display: block; width: 100%; height: 120px; cursor: pointer; touch-action: pan-y; }
+  .onda-pie { display: flex; justify-content: space-between; gap: 10px; padding: 6px 12px; font-size: 12px; color: var(--txt3); border-top: 1px solid var(--borde); }
+
+  .ens .transporte { margin-top: 12px; gap: 8px; }
+  .ens .btn-play { width: 60px; height: 60px; }
+
+  .tarjetas { display: grid; gap: 14px; }
+  .tarjeta { background: var(--sup); border: 1px solid var(--borde); border-radius: var(--radio); padding: 14px 16px; }
+  .tarjeta h3 { margin: 0 0 10px; font-size: 15px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .tarjeta h3 small { font-size: 12px; font-weight: 600; color: var(--ok); }
+  .fila-ctrl { display: flex; align-items: center; gap: 8px; }
+  .fila-ctrl input[type=range] { flex: 1; min-height: 0; padding: 0; border: 0; background: none; accent-color: var(--acento); }
+  .grande { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+  .grande b { font-size: 40px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.03em; line-height: 1; }
+  .grande span { color: var(--txt2); font-size: 15px; font-weight: 600; }
+  .chips-vel { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+  .chips-vel .chip { padding: 6px 11px; }
+  .campo { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--txt2); }
+  .campo input, .campo select { width: 90px; min-height: 36px; padding: 5px 8px; }
+  .campos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .campos .campo { justify-content: space-between; }
+  .campos .campo input { width: 70px; }
+  .bpm-fila { display: flex; align-items: center; gap: 6px; }
+  .bpm-fila input { width: 96px; text-align: center; font-weight: 700; font-size: 18px; }
+  .bpm-fila .btn { padding: 4px 9px; }
+  .botones { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .sep-t { height: 1px; background: var(--borde); margin: 14px 0; }
+  .eti-t { font-size: 13px; font-weight: 700; color: var(--txt2); margin: 0 0 8px; }
+  .det { font-size: 13px; color: var(--txt2); margin: 8px 0 0; }
+  .det b { color: var(--txt); }
+  .det.dudoso b { color: var(--acento); }
+  .tap { width: 100%; min-height: 52px; font-size: 16px; letter-spacing: .1em; }
+  .ent-estado { font-size: 14px; color: var(--acento); font-weight: 600; margin: 10px 0 0; }
+
+  .cargando { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; align-content: center; gap: 14px; background: rgba(14,15,19,.86); text-align: center; padding: 20px; }
+  .rueda { width: 44px; height: 44px; border-radius: 50%; border: 4px solid var(--borde2); border-top-color: var(--acento); animation: girar .8s linear infinite; }
+  @keyframes girar { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .rueda { animation-duration: 2.4s; } .cont-num { transition: none; } }
+
+  @media (max-width: 900px) {
+    .ens-grid { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .contador { padding: 10px 14px; gap: 8px; }
+    .cont-lado b { font-size: 22px; }
+    .luz { width: 12px; height: 12px; }
+    .barra .ocultar-cel { display: none; }
+    .ens .transporte .tiempo { order: 9; width: 100%; text-align: center; margin: 0; }
+  }
+</style>
+</head>
+<body>
+<header class="barra">
+  <a href="coreografias.html" class="btn-icono" aria-label="Volver a coreografías">
+    <svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </a>
+  <h1 class="barra-titulo">Ensayo</h1>
+  <span class="espacio"></span>
+  <a href="metronomo.html" class="btn btn-sutil btn-mini ocultar-cel">Metrónomo</a>
+  <button class="btn btn-sutil btn-mini" data-acc="lista" id="btn-lista" type="button" hidden>Mis canciones</button>
+  <label class="btn btn-primario btn-mini" for="in-cancion">+ Canción</label>
+</header>
+
+<main class="ens">
+  <!-- Sin canción -->
+  <section id="v-vacio">
+    <label for="in-cancion" class="soltar" id="soltar">
+      <span class="icono" aria-hidden="true"><svg viewBox="0 0 24 24" width="26" height="26"><path d="M9 18V5l11-2v13M9 18a3 3 0 1 1-3-3 3 3 0 0 1 3 3zm11-2a3 3 0 1 1-3-3 3 3 0 0 1 3 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
+      <b>Elige una canción</b>
+      <span>MP3, M4A o WAV, desde el PC o el celular. También puedes arrastrarla aquí. Encuentro el tempo y el compás, y la puedes poner más lenta sin que cambie el tono.</span>
+    </label>
+    <div id="recientes"></div>
+  </section>
+
+  <!-- Con canción -->
+  <section id="v-ens" hidden>
+    <div class="ens-grid">
+      <div>
+        <div class="ens-cabeza">
+          <div><h2 id="c-nombre"></h2><p id="c-info"></p></div>
+        </div>
+
+        <div class="contador" aria-live="off">
+          <div class="cont-lado"><span>Ocho</span><b id="k-ocho">1</b></div>
+          <div class="cont-num" id="k-num">1</div>
+          <div class="cont-lado cont-der"><span id="k-compas-eti">Compás</span><div class="luces" id="k-luces"></div></div>
+        </div>
+        <div class="celdas" id="k-celdas"></div>
+
+        <div class="onda-wrap">
+          <canvas id="onda" aria-label="Forma de onda: toca para ir a un punto, arrastra para repetir un tramo"></canvas>
+          <div class="onda-pie"><span id="onda-ayuda">Toca para saltar · arrastra para repetir un tramo</span><span id="duracion"></span></div>
+        </div>
+
+        <div class="transporte">
+          <button class="btn-icono" data-acc="inicio" type="button" aria-label="Ir al inicio"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 5v14M19 5l-9 7 9 7z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></button>
+          <button class="btn-icono txt" data-acc="atras" type="button" aria-label="Retroceder un ocho" id="btn-atras">−8</button>
+          <button id="btn-play" class="btn-play" data-acc="play" type="button" aria-label="Reproducir"></button>
+          <button class="btn-icono txt" data-acc="adelante" type="button" aria-label="Avanzar un ocho" id="btn-adelante">+8</button>
+          <button id="btn-ocho" class="btn-toggle" data-acc="ocho" type="button" aria-pressed="false">Repetir ocho</button>
+          <span class="espacio"></span>
+          <button id="btn-met" class="btn-toggle" data-acc="met" type="button" aria-pressed="false">Metrónomo</button>
+          <span class="tiempo" id="tiempo">0:00.0</span>
+        </div>
+      </div>
+
+      <div class="tarjetas">
+        <section class="tarjeta">
+          <h3>Velocidad <small>el tono no cambia</small></h3>
+          <div class="grande"><b id="vel-pct">100%</b><span id="vel-bpm"></span></div>
+          <div class="fila-ctrl">
+            <button class="btn btn-mini" data-acc="vel-d" data-d="-5" type="button" aria-label="Más lento 5%">−5%</button>
+            <input type="range" id="in-vel" min="40" max="150" step="1" value="100" aria-label="Velocidad en porcentaje">
+            <button class="btn btn-mini" data-acc="vel-d" data-d="5" type="button" aria-label="Más rápido 5%">+5%</button>
+          </div>
+          <div class="chips-vel" id="chips-vel"></div>
+          <label class="campo">Practicar a <input id="in-vel-bpm" type="number" inputmode="decimal" min="20" max="400" step="0.1"> BPM</label>
+        </section>
+
+        <section class="tarjeta" id="tarjeta-tempo"></section>
+
+        <section class="tarjeta">
+          <h3>Metrónomo</h3>
+          <div class="botones" style="margin:0 0 12px">
+            <button class="btn-toggle" data-acc="met" id="btn-met2" type="button" aria-pressed="false">Sonar con la canción</button>
+            <button class="btn-toggle" data-acc="acento" id="btn-acento" type="button" aria-pressed="true">Acento en el 1</button>
+          </div>
+          <p class="eti-t">Subdivisión</p>
+          <div class="seg seg-sub" id="seg-sub">
+            <button type="button" data-acc="sub" data-s="1"><b>♩</b>Negras</button>
+            <button type="button" data-acc="sub" data-s="2"><b>♫</b>Corcheas</button>
+            <button type="button" data-acc="sub" data-s="3"><b>3</b>Tresillos</button>
+            <button type="button" data-acc="sub" data-s="4"><b>𝅘𝅥𝅯</b>Semicorch.</button>
+          </div>
+          <div class="sep-t"></div>
+          <label class="campo fila-ctrl"><span style="width:84px">Metrónomo</span><input type="range" id="in-vol-met" min="0" max="1" step="0.01"></label>
+          <label class="campo fila-ctrl" style="margin-top:6px"><span style="width:84px">Música</span><input type="range" id="in-vol-mus" min="0" max="1" step="0.01"></label>
+        </section>
+
+        <section class="tarjeta">
+          <h3>Subir la velocidad poco a poco</h3>
+          <div class="campos">
+            <label class="campo">Empezar en <input id="ent-desde" type="number" min="40" max="150" step="5" value="70"></label>
+            <label class="campo">Llegar a <input id="ent-hasta" type="number" min="40" max="150" step="5" value="100"></label>
+            <label class="campo">Subir % <input id="ent-paso" type="number" min="1" max="25" step="1" value="5"></label>
+            <label class="campo">Cada vueltas <input id="ent-cada" type="number" min="1" max="20" step="1" value="2"></label>
+          </div>
+          <div class="botones"><button class="btn btn-ancho" data-acc="ent" id="btn-ent" type="button">Empezar</button></div>
+          <p class="nota">Repite el ocho actual (o el tramo que marques en la onda) y va subiendo la velocidad.</p>
+          <p class="ent-estado" id="ent-estado" hidden></p>
+        </section>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="cargando" id="cargando" hidden><div class="rueda"></div><p id="cargando-txt">Analizando…</p></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<input type="file" id="in-cancion" accept="audio/*,.mp3,.m4a,.wav" hidden>
+
+<script src="coreo/audio.js"></script>
+<script src="coreo/ensayo.js"></script>
+</body>
+</html>

@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0e0f13">
+<meta name="color-scheme" content="dark">
+<title>Metrónomo · Lazos Tricolor</title>
+<link rel="icon" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0f13; --sup: #1b1e26; --sup2: #232733; --borde: #2c303c; --borde2: #3a3f4e;
+    --txt: #eceef3; --txt2: #a4a9b8; --txt3: #6f7586;
+    --acento: #f2c230; --acento-txt: #1a1500; --azul: #4c7dff;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    background: radial-gradient(900px 420px at 50% -10%, #1d2130 0%, var(--bg) 65%) var(--bg);
+    color: var(--txt); font: 15px/1.45 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
+    display: flex; justify-content: center; padding: max(16px, env(safe-area-inset-top)) 16px 32px;
+  }
+  button, input { font: inherit; color: inherit; }
+  button { cursor: pointer; touch-action: manipulation; }
+  :focus-visible { outline: 2px solid var(--acento); outline-offset: 3px; }
+  main { width: 100%; max-width: 440px; display: flex; flex-direction: column; align-items: center; gap: 22px; }
+
+  header { width: 100%; display: flex; align-items: center; justify-content: space-between; }
+  header a { color: var(--txt2); text-decoration: none; font-size: 14px; font-weight: 600; padding: 8px 0; }
+  header a:hover { color: var(--txt); }
+  h1 { font-size: 15px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--txt2); margin: 0; }
+
+  .bpm { text-align: center; }
+  .bpm-num { font-size: clamp(76px, 24vw, 112px); font-weight: 800; line-height: .95; font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
+  .bpm-eti { color: var(--txt2); font-size: 14px; font-weight: 600; }
+  .bpm-eti b { color: var(--acento); font-weight: 700; }
+
+  .ajuste { width: 100%; display: grid; grid-template-columns: 56px 1fr 56px; gap: 10px; align-items: center; }
+  .redondo { height: 56px; border-radius: 16px; background: var(--sup); border: 1px solid var(--borde2); font-size: 26px; font-weight: 700; transition: background .12s, transform .08s; }
+  .redondo:hover { background: var(--sup2); }
+  .redondo:active { transform: scale(.95); }
+  #in-bpm { height: 56px; width: 100%; text-align: center; font-size: 22px; font-weight: 800; background: var(--sup); border: 1px solid var(--borde2); border-radius: 16px; font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
+  #in-bpm::-webkit-inner-spin-button, #in-bpm::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  #rango { width: 100%; accent-color: var(--acento); height: 28px; }
+
+  .compas { display: grid; grid-template-columns: repeat(4, 1fr); width: 100%; background: var(--sup); border: 1px solid var(--borde2); border-radius: 14px; padding: 4px; gap: 4px; }
+  .compas button { height: 44px; border: 0; border-radius: 10px; background: transparent; color: var(--txt2); font-weight: 800; font-size: 17px; font-variant-numeric: tabular-nums; }
+  .compas button[aria-pressed="true"] { background: var(--txt); color: var(--bg); }
+
+  .luces { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; min-height: 48px; align-items: center; }
+  .luz { width: 38px; height: 38px; border-radius: 50%; background: var(--sup); border: 2px solid var(--borde2); display: grid; place-items: center; font-weight: 800; font-size: 14px; color: var(--txt3); transition: background .06s, box-shadow .06s, transform .06s; }
+  .luz.uno { border-color: rgba(242,194,48,.55); color: var(--acento); }
+  .luz.on { background: var(--txt); border-color: var(--txt); color: var(--bg); box-shadow: 0 0 18px rgba(236,238,243,.55); transform: scale(1.12); }
+  .luz.uno.on { background: var(--acento); border-color: var(--acento); color: var(--acento-txt); box-shadow: 0 0 22px rgba(242,194,48,.85); }
+
+  .play { width: 132px; height: 132px; border-radius: 50%; border: 0; background: var(--acento); color: var(--acento-txt); display: grid; place-items: center; box-shadow: 0 12px 36px rgba(242,194,48,.25); transition: transform .1s, background .15s; }
+  .play:hover { background: #ffd24a; }
+  .play:active { transform: scale(.95); }
+  .play[aria-pressed="true"] { background: var(--txt); box-shadow: 0 12px 36px rgba(236,238,243,.15); }
+  .play svg { width: 48px; height: 48px; }
+  .atajo { color: var(--txt3); font-size: 12px; margin-top: -12px; }
+
+  .fila { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tap { height: 64px; border-radius: 16px; background: var(--sup); border: 1px solid var(--borde2); font-weight: 800; font-size: 18px; letter-spacing: .06em; transition: background .1s, transform .06s; }
+  .tap.golpe { background: var(--sup2); transform: scale(.97); }
+  .vol { display: grid; gap: 4px; align-content: center; padding: 0 14px; border-radius: 16px; background: var(--sup); border: 1px solid var(--borde2); font-size: 12px; color: var(--txt2); font-weight: 600; }
+  .vol input { width: 100%; accent-color: var(--acento); }
+  .nota { color: var(--txt3); font-size: 12px; text-align: center; margin: 0; max-width: 340px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <a href="coreografias.html">← Coreografías</a>
+    <h1>Metrónomo</h1>
+    <a href="ensayo.html" style="width:90px;text-align:right">Ensayo →</a>
+  </header>
+
+  <section class="bpm" aria-live="polite">
+    <div class="bpm-num" id="bpm-num">120</div>
+    <div class="bpm-eti">BPM · <b id="nombre-tempo">Allegro</b></div>
+  </section>
+
+  <div class="ajuste">
+    <button class="redondo" id="menos" type="button" aria-label="Bajar 1 BPM">−</button>
+    <input id="in-bpm" type="number" inputmode="numeric" min="30" max="260" step="1" value="120" aria-label="BPM">
+    <button class="redondo" id="mas" type="button" aria-label="Subir 1 BPM">+</button>
+  </div>
+  <input id="rango" type="range" min="30" max="260" step="1" value="120" aria-label="Tempo en BPM">
+
+  <div class="compas" role="group" aria-label="Compás" id="compas">
+    <button type="button" data-c="2/4">2/4</button>
+    <button type="button" data-c="3/4">3/4</button>
+    <button type="button" data-c="4/4">4/4</button>
+    <button type="button" data-c="6/8">6/8</button>
+  </div>
+
+  <div class="luces" id="luces" aria-hidden="true"></div>
+
+  <button class="play" id="play" type="button" aria-pressed="false" aria-label="Iniciar metrónomo"></button>
+  <div class="atajo">Barra espaciadora: iniciar / detener · flechas: ±1 BPM</div>
+
+  <div class="fila">
+    <button class="tap" id="tap" type="button">TAP</button>
+    <label class="vol">Volumen<input id="vol" type="range" min="0" max="1" step="0.05" value="0.8"></label>
+  </div>
+  <p class="nota" id="nota-tap">Toca TAP al ritmo (4 veces o más) para calcular el tempo.</p>
+</main>
+
+<script>
+/* Metrónomo preciso: Web Audio + programación anticipada ("lookahead").
+   Un temporizador (en un Worker, para que no se frene en segundo plano) revisa cada 25 ms
+   y deja programados con el reloj de audio los golpes de los próximos 100 ms. */
+(() => {
+  const $ = s => document.querySelector(s);
+  const ICO_PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>';
+  const ICO_STOP = '<svg viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="currentColor"/></svg>';
+  const COMPASES = { '2/4': 2, '3/4': 3, '4/4': 4, '6/8': 6 };
+  const ADELANTO = 0.1, CADA_MS = 25;
+
+  // Preferencias guardadas en este equipo
+  let prefs = { bpm: 120, compas: '4/4', vol: 0.8 };
+  try { Object.assign(prefs, JSON.parse(localStorage.getItem('metronomo_libre') || '{}')); } catch (_) {}
+  const guardar = () => { try { localStorage.setItem('metronomo_libre', JSON.stringify(prefs)); } catch (_) {} };
+
+  let ctx = null, salida = null, sonando = false;
+  let siguiente = 0, pulso = 0;          // hora de audio del próximo golpe y su número dentro del compás
+  let cola = [];                         // golpes programados, para encender las luces a tiempo
+
+  // Temporizador en Worker
+  let tic = null, ticId = null;
+  try {
+    const src = 'let i=null;onmessage=e=>{clearInterval(i);if(e.data>0)i=setInterval(()=>postMessage(0),e.data)}';
+    tic = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+    tic.onmessage = programar;
+  } catch (_) { tic = null; }
+  const ticIniciar = () => tic ? tic.postMessage(CADA_MS) : (ticId = setInterval(programar, CADA_MS));
+  const ticParar = () => tic ? tic.postMessage(0) : clearInterval(ticId);
+
+  const pulsosPorCompas = () => COMPASES[prefs.compas] || 4;
+
+  function sonar(acento, cuando) {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.value = acento ? 1000 : 600;
+    const v = prefs.vol * (acento ? 1 : 0.7);
+    g.gain.setValueAtTime(0, cuando);
+    g.gain.linearRampToValueAtTime(v, cuando + 0.001);
+    g.gain.exponentialRampToValueAtTime(0.0001, cuando + 0.05);
+    o.connect(g).connect(salida);
+    o.start(cuando); o.stop(cuando + 0.06);
+  }
+
+  function programar() {
+    if (!sonando) return;
+    while (siguiente < ctx.currentTime + ADELANTO) {
+      sonar(pulso === 0, siguiente);
+      cola.push({ pulso, t: siguiente });
+      siguiente += 60 / prefs.bpm;                 // un cambio de BPM se aplica desde el siguiente golpe
+      pulso = (pulso + 1) % pulsosPorCompas();
+    }
+  }
+
+  // Luces: se encienden cuando el golpe realmente suena (reloj de audio menos la latencia de salida)
+  function dibujar() {
+    if (!sonando) return;
+    const ahora = ctx.currentTime - (ctx.outputLatency || ctx.baseLatency || 0);
+    let ultimo = null;
+    while (cola.length && cola[0].t <= ahora) ultimo = cola.shift();
+    if (ultimo) encender(ultimo.pulso);
+    requestAnimationFrame(dibujar);
+  }
+  let apagarId = null;
+  function encender(n) {
+    const luces = $('#luces').children;
+    for (let i = 0; i < luces.length; i++) luces[i].classList.toggle('on', i === n);
+    clearTimeout(apagarId);
+    apagarId = setTimeout(() => { for (const l of luces) l.classList.remove('on'); }, Math.min(140, 30000 / prefs.bpm));
+  }
+
+  async function iniciar() {
+    if (!ctx) {
+      ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+      salida = ctx.createGain(); salida.connect(ctx.destination);
+    }
+    await ctx.resume();
+    sonando = true; pulso = 0; cola = [];
+    siguiente = ctx.currentTime + 0.06;
+    programar(); ticIniciar(); requestAnimationFrame(dibujar);
+    pintarPlay();
+  }
+  function detener() {
+    sonando = false; ticParar(); cola = [];
+    if (salida) {                      // corta en seco lo que ya estaba programado
+      salida.disconnect(); salida = ctx.createGain(); salida.connect(ctx.destination);
+    }
+    for (const l of $('#luces').children) l.classList.remove('on');
+    pintarPlay();
+  }
+  const alternar = () => sonando ? detener() : iniciar();
+
+  function pintarPlay() {
+    const b = $('#play');
+    b.innerHTML = sonando ? ICO_STOP : ICO_PLAY;
+    b.setAttribute('aria-pressed', String(sonando));
+    b.setAttribute('aria-label', sonando ? 'Detener metrónomo' : 'Iniciar metrónomo');
+  }
+
+  // ── BPM ──
+  const NOMBRES = [[40, 'Grave'], [60, 'Largo'], [66, 'Larghetto'], [76, 'Adagio'], [108, 'Andante'], [120, 'Moderato'], [168, 'Allegro'], [200, 'Presto'], [999, 'Prestissimo']];
+  function ponerBpm(v, desdeCampo) {
+    v = Math.round(+v);
+    if (!isFinite(v)) return;
+    v = Math.max(30, Math.min(260, v));
+    prefs.bpm = v; guardar();
+    $('#bpm-num').textContent = v;
+    $('#rango').value = v;
+    if (!desdeCampo) $('#in-bpm').value = v;
+    $('#nombre-tempo').textContent = NOMBRES.find(([lim]) => v < lim)[1];
+  }
+  $('#menos').onclick = () => ponerBpm(prefs.bpm - 1);
+  $('#mas').onclick = () => ponerBpm(prefs.bpm + 1);
+  $('#rango').oninput = e => ponerBpm(e.target.value);
+  $('#in-bpm').oninput = e => { const v = +e.target.value; if (v >= 30 && v <= 260) ponerBpm(v, true); };
+  $('#in-bpm').onchange = e => ponerBpm(e.target.value || prefs.bpm);
+
+  // Mantener presionado − / + para cambiar rápido
+  ['#menos', '#mas'].forEach(sel => {
+    let t1, t2; const paso = sel === '#mas' ? 1 : -1;
+    const fin = () => { clearTimeout(t1); clearInterval(t2); };
+    $(sel).addEventListener('pointerdown', () => { t1 = setTimeout(() => { t2 = setInterval(() => ponerBpm(prefs.bpm + paso), 60); }, 400); });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => $(sel).addEventListener(ev, fin));
+  });
+
+  // ── Compás ──
+  function ponerCompas(c) {
+    prefs.compas = COMPASES[c] ? c : '4/4'; guardar();
+    document.querySelectorAll('#compas button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.c === prefs.compas)));
+    $('#luces').innerHTML = Array.from({ length: pulsosPorCompas() }, (_, i) => `<div class="luz${i === 0 ? ' uno' : ''}">${i + 1}</div>`).join('');
+    if (sonando) pulso = 0;    // el siguiente golpe vuelve a ser el 1
+  }
+  $('#compas').onclick = e => { const b = e.target.closest('[data-c]'); if (b) ponerCompas(b.dataset.c); };
+
+  // ── Volumen ──
+  $('#vol').value = prefs.vol;
+  $('#vol').oninput = e => { prefs.vol = +e.target.value; guardar(); };
+
+  // ── Tap tempo ──
+  let toques = [];
+  function tap() {
+    const t = performance.now();
+    if (toques.length && t - toques[toques.length - 1] > 2000) toques = [];
+    toques.push(t); if (toques.length > 8) toques.shift();
+    const b = $('#tap'); b.classList.add('golpe'); setTimeout(() => b.classList.remove('golpe'), 90);
+    if (toques.length < 2) { $('#nota-tap').textContent = 'Sigue tocando al ritmo…'; return; }
+    const dif = []; for (let i = 1; i < toques.length; i++) dif.push(toques[i] - toques[i - 1]);
+    const prom = dif.reduce((a, b) => a + b, 0) / dif.length;
+    ponerBpm(60000 / prom);
+    $('#nota-tap').textContent = toques.length < 4 ? 'Sigue tocando para afinar…' : `Tempo calculado con ${toques.length} toques.`;
+  }
+  $('#tap').addEventListener('pointerdown', e => { e.preventDefault(); tap(); });
+  $('#tap').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); tap(); } });
+
+  // ── Teclado ──
+  $('#play').onclick = alternar;
+  document.addEventListener('keydown', e => {
+    if (e.target.matches('input[type=number]')) return;
+    if (e.code === 'Space') { e.preventDefault(); alternar(); }
+    else if (e.key === 'ArrowUp' || e.key === 'ArrowRight') { if (e.target.matches('input[type=range]')) return; e.preventDefault(); ponerBpm(prefs.bpm + 1); }
+    else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') { if (e.target.matches('input[type=range]')) return; e.preventDefault(); ponerBpm(prefs.bpm - 1); }
+    else if (e.key.toLowerCase() === 't') tap();
+  });
+  // Evita que la barra espaciadora "pulse" el último botón enfocado además de alternar
+  document.addEventListener('keyup', e => { if (e.code === 'Space') e.preventDefault(); });
+
+  ponerBpm(prefs.bpm); ponerCompas(prefs.compas); pintarPlay();
+})();
+</script>
+</body>
+</html>

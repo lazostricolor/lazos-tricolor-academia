@@ -49,6 +49,50 @@ service cloud.firestore {
                    && request.auth.token.email in ['alfredomariara@gmail.com', 'academialazostricolor@gmail.com'];
     }
 
+    // ═══════════ Coreografías (coreografias.html) ═══════════
+    // Coreógrafos: crean y modifican todo. Alumnas: solo leen las coreografías
+    // de sus categorías, si están en /autorizados (por correo de Google o celular).
+    function esCoreografo() {
+      return request.auth != null
+        && request.auth.token.get('email_verified', false) == true
+        && request.auth.token.get('email', '') in ['academialazostricolor@gmail.com', 'alfredomariara@gmail.com'];
+    }
+    function claveAlumna() {
+      return request.auth.token.get('phone_number', null) != null
+        ? 'tel:' + request.auth.token.phone_number
+        : 'mail:' + request.auth.token.get('email', '').lower();
+    }
+    function rutaAlumna() {
+      return /databases/$(database)/documents/autorizados/$(claveAlumna());
+    }
+    function esAlumna() {
+      return request.auth != null
+        && (request.auth.token.get('phone_number', null) != null || request.auth.token.get('email_verified', false) == true)
+        && exists(rutaAlumna());
+    }
+
+    match /coreografias/{id} {
+      allow read: if esCoreografo()
+        || (esAlumna() && resource.data.categoria in get(rutaAlumna()).data.categorias);
+      allow write: if esCoreografo();
+    }
+    match /autorizados/{clave} {
+      allow get: if request.auth != null && clave == claveAlumna();
+      allow read, write: if esCoreografo();
+    }
+    // Solicitudes de cambio de nombre: la alumna crea la suya (nunca en una coreografía sellada)
+    match /solicitudes/{id} {
+      allow create: if esAlumna()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.clave == claveAlumna()
+        && request.resource.data.estado == 'pendiente'
+        && request.resource.data.nombreNuevo is string
+        && request.resource.data.nombreNuevo.size() <= 30
+        && get(/databases/$(database)/documents/coreografias/$(request.resource.data.coreoId)).data.get('sellada', false) != true;
+      allow read: if esCoreografo() || (request.auth != null && resource.data.uid == request.auth.uid);
+      allow update, delete: if esCoreografo();
+    }
+
     // ── Sudaderas: página del papá (sudaderas.html?id=...) ──
     // Puede abrir SU registro por el id del enlace (no listar todos),
     // elegir talla si aún no tiene, y agregar / anular abonos.

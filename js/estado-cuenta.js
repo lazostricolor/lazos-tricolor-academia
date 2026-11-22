@@ -21,7 +21,7 @@
 // ===================== CONSTANTES =====================
 /* Logo del encabezado del PDF.
    Ruta relativa a la raíz del sitio. El archivo debe estar junto a
-   index.html en el repositorio. Si se deja vacío o el archivo no existe,
+   admin.html en el repositorio. Si se deja vacío o el archivo no existe,
    el PDF se genera igual, solo que sin logo (no se rompe nada).
    Pensado para un logo horizontal: se ajusta a 160px de ancho.           */
 const EC_LOGO = 'logo.png';

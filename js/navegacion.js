@@ -5,7 +5,7 @@
 
    CAMBIO EN ESTA VERSIÓN
    Se agregó al final el bloque "IR A SECCIÓN POR URL", que permite
-   abrir el panel directamente en una sección usando index.html#pagos.
+   abrir el panel directamente en una sección usando admin.html#pagos.
    Lo usa el menú izquierdo de panel-sudaderas.html para volver al
    panel principal y caer donde corresponde.
    Nada más cambió: todas las funciones anteriores quedan idénticas.
@@ -77,7 +77,7 @@ function cambiarSemana(d){ semanaOfs+=d; renderProfesores(); }
 
 // ===================== IR A SECCIÓN POR URL =====================
 /* Abre una sección concreta cuando se llega con hash en la dirección.
-   Ejemplo: index.html#pagos  →  entra directo a Mensualidades.
+   Ejemplo: admin.html#pagos  →  entra directo a Mensualidades.
 
    Lo usa el menú izquierdo de panel-sudaderas.html para volver al panel
    y caer en la sección correcta en vez de siempre en el Dashboard.

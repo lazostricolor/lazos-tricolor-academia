@@ -2,10 +2,25 @@
 
 Aplicación web modular. Firebase Firestore (REST) + Chart.js + GitHub Pages.
 
+## Dirección
+
+Publicado con GitHub Pages en **https://app.academialazostricolor.com** (archivo `CNAME`).
+
+- `/` (`index.html`) solo redirige: a **Coreografías**, o al panel si el enlace trae
+  una sección (`#pagos`, `#alumnos`…), para que los enlaces viejos sigan sirviendo.
+- `/admin.html` → panel administrativo · `/coreografias.html` · `/ensayo.html` · `/metronomo.html`
+
+Configuración (una sola vez):
+1. DNS del dominio: registro **CNAME** `app` → `lazostricolor.github.io`.
+2. GitHub → Settings → Pages → Custom domain `app.academialazostricolor.com` + **Enforce HTTPS**.
+3. Firebase → Authentication → Configuración → Dominios autorizados: agregar
+   `app.academialazostricolor.com` (si no, falla el login con Google y con celular).
+
 ## Estructura
 
 ```
-index.html          Estructura HTML: login, sidebar, secciones y modales
+index.html          Entrada del sitio: redirige a Coreografías o al panel
+admin.html          Panel: login, sidebar, secciones y modales
 styles.css          Todos los estilos
 js/
   state.js          Constantes (precios, categorías, URLs) y el objeto DB
@@ -34,10 +49,10 @@ js/
 ## Cómo cargar
 
 Scripts clásicos (no módulos ES). Todas las funciones son globales, por eso los
-`onclick="..."` del HTML funcionan. **El orden de los `<script>` en index.html importa**:
+`onclick="..."` del HTML funcionan. **El orden de los `<script>` en admin.html importa**:
 `state` → `utils` → módulos → `app`. No lo cambies.
 
-Para probar en local: `python3 -m http.server 8000` y abrir `http://localhost:8000`.
+Para probar en local: `python3 -m http.server 8000` y abrir `http://localhost:8000/admin.html`.
 
 ## Reglas de oro
 
@@ -71,6 +86,34 @@ Solo entra la cuenta de Google `ADMIN_EMAIL`. Toda petición a Firestore lleva
 `headers: await fbHeaders()` (o `fbHeadersSync()` en pagehide): **sin ese encabezado
 la petición falla**, porque `firestore.rules` solo deja leer/escribir a esa cuenta.
 Si cambias las reglas, pégalas en Firebase → Firestore Database → Reglas.
+
+## Coreografías (`coreografias.html`)
+
+App aparte (PC y celular, tono oscuro) para guardar y estudiar coreografías.
+Código en `coreo/`: `datos.js` (sesión y Firebase), `audio.js` (reloj, metrónomo,
+detección de tempo), `app.js` (escenario, línea de tiempo, paneles), `coreo.css`.
+
+- **Coreógrafos** (`COREOGRAFOS` en `coreo/datos.js`): crean y editan todo.
+- **Alumnas**: entran con Google o celular si están en *Alumnas autorizadas*
+  (panel de la lista) y solo ven sus categorías. Pueden pedir que un circulito
+  lleve su nombre; el coreógrafo aprueba. Una coreografía **sellada** ya no acepta cambios.
+- **Modo práctica**: “Probar en este equipo sin cuenta” guarda solo en ese navegador.
+- **Metrónomo libre** (`metronomo.html`, un solo archivo, sin cuenta): BPM 30–260, compás
+  2/4 · 3/4 · 4/4 · 6/8, acento de 1000 Hz en el 1 y 600 Hz en el resto, luces, tap tempo y
+  barra espaciadora. El metrónomo del editor sigue a la canción (suena con ▶).
+- **Ensayo / clase** (`ensayo.html` + `coreo/ensayo.js`, sin cuenta): solo la canción. Detecta
+  tempo, compás (3 o 4, con aviso si es dudoso) y dónde cae el 1; conteo de ochos grande,
+  velocidad 40–150 % sin cambiar el tono (`preservesPitch`), repetir ocho o tramo, metrónomo
+  y subida gradual. Las canciones quedan en IndexedDB del equipo (base `ensayo`).
+
+Firestore: `coreografias/{id}`, `autorizados/{mail:correo | tel:+57…}`, `solicitudes/{id}`.
+La forma de onda y el tempo se calculan al subir la pista y se guardan en el documento.
+
+Para activarla en Firebase (una sola vez):
+1. Pegar `firestore.rules` (Firestore → Reglas) y `storage.rules` (Storage → Reglas).
+2. Activar **Storage** (guarda MP3 y videos). Si el bucket termina en
+   `.firebasestorage.app`, cambiar `storageBucket` en `coreo/datos.js`.
+3. Authentication → Método de acceso → activar **Teléfono** (Google ya está).
 
 ## Datos
 

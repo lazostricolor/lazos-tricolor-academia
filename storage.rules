@@ -1,0 +1,25 @@
+rules_version = '2';
+
+// ═══════════════════════════════════════════════════════════
+//  Reglas de Storage — pistas y videos de coreografías
+//  Se pegan en: Firebase → Storage → Reglas → Publicar
+// ═══════════════════════════════════════════════════════════
+service firebase.storage {
+  match /b/{bucket}/o {
+    function esCoreografo() {
+      return request.auth != null
+        && request.auth.token.get('email_verified', false) == true
+        && request.auth.token.get('email', '') in ['academialazostricolor@gmail.com', 'alfredomariara@gmail.com'];
+    }
+
+    match /coreografias/{coreo}/{archivo} {
+      // Leer: cualquier sesión iniciada (la app solo entrega los enlaces a alumnas autorizadas)
+      allow read: if request.auth != null;
+      // Subir: solo coreógrafos; audio hasta 50 MB y video hasta 1 GB
+      allow write: if esCoreografo()
+        && (request.resource == null
+            || (request.resource.contentType.matches('audio/.*') && request.resource.size < 50 * 1024 * 1024)
+            || (request.resource.contentType.matches('video/.*') && request.resource.size < 1024 * 1024 * 1024));
+    }
+  }
+}

@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0e0f13">
+<meta name="color-scheme" content="dark">
+<title>Coreografías · Lazos Tricolor</title>
+<link rel="icon" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="coreo/coreo.css">
+</head>
+<body>
+
+<!-- ═══════════ ENTRADA ═══════════ -->
+<section id="v-login" class="vista vista-login">
+  <div class="login-card">
+    <img src="logo.png" alt="" class="login-logo" width="72" height="72">
+    <h1>Coreografías</h1>
+    <p class="muted">Academia de Danzas Lazos Tricolor</p>
+
+    <div id="login-opciones">
+      <button id="btn-google" class="btn btn-primario btn-ancho" type="button">Entrar con Google</button>
+      <div class="sep"><span>o con tu celular</span></div>
+      <form id="f-tel" class="fila">
+        <input id="in-tel" type="tel" inputmode="tel" autocomplete="tel" placeholder="300 123 4567" aria-label="Número de celular">
+        <button id="btn-sms" class="btn" type="submit">Enviar código</button>
+      </form>
+      <form id="f-codigo" class="fila" hidden>
+        <input id="in-codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="Código de 6 dígitos" aria-label="Código recibido por SMS">
+        <button class="btn btn-primario" type="submit">Entrar</button>
+      </form>
+    </div>
+
+    <div id="login-sin-acceso" hidden>
+      <p>Tu cuenta todavía no está autorizada.</p>
+      <p class="muted">Pásale este dato al coreógrafo para que te agregue:</p>
+      <code id="clave-sin-acceso" class="clave"></code>
+      <button id="btn-salir-sin" class="btn btn-ancho" type="button">Usar otra cuenta</button>
+    </div>
+
+    <p id="login-msg" class="msg" role="status" aria-live="polite"></p>
+    <button id="btn-demo" class="btn-link" type="button">Probar en este equipo sin cuenta</button>
+  </div>
+</section>
+
+<!-- ═══════════ LISTA ═══════════ -->
+<section id="v-lista" class="vista" hidden>
+  <header class="barra">
+    <img src="logo.png" alt="" class="mini-logo" width="32" height="32">
+    <h1 class="barra-titulo">Coreografías</h1>
+    <span class="espacio"></span>
+    <a href="ensayo.html" class="btn btn-sutil">Ensayo</a>
+    <a href="metronomo.html" class="btn btn-sutil">Metrónomo</a>
+    <span id="usuario" class="usuario"></span>
+    <button id="btn-salir" class="btn btn-sutil" type="button">Salir</button>
+  </header>
+  <div class="lista-wrap">
+    <div class="lista-main">
+      <div class="lista-cabeza">
+        <div class="chips" id="chips-cat" role="tablist" aria-label="Categoría"></div>
+        <button id="btn-nueva" class="btn btn-primario" type="button" hidden>+ Nueva coreografía</button>
+      </div>
+      <div id="grid-coreos" class="grid-coreos"></div>
+    </div>
+    <aside id="panel-admin" class="panel-admin" hidden></aside>
+  </div>
+</section>
+
+<!-- ═══════════ EDITOR ═══════════ -->
+<section id="v-editor" class="vista" hidden>
+  <header class="barra">
+    <button id="btn-volver" class="btn-icono" type="button" aria-label="Volver a la lista">
+      <svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="titulo-ed">
+      <input id="ed-titulo" class="in-titulo" aria-label="Nombre de la coreografía" maxlength="60">
+      <div class="sub">
+        <select id="ed-cat" class="sel-mini" aria-label="Categoría"></select>
+        <span id="ed-sello" class="sello" hidden></span>
+        <span id="estado-guardado" class="estado" role="status" aria-live="polite"></span>
+      </div>
+    </div>
+    <span class="espacio"></span>
+    <button id="btn-guardar" class="btn btn-mini btn-guardar" type="button" title="Guardar (Ctrl+S)" aria-label="Guardar" hidden>
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 4h11l3 3v13H5zM8 4v5h7V4M8 20v-6h8v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      <span>Guardar</span>
+    </button>
+    <label class="switch" id="sw-vista" hidden><input type="checkbox" id="chk-vista-alumna"><span>Vista alumna</span></label>
+  </header>
+
+  <div class="editor">
+    <div class="col-principal">
+      <div class="esc-barra" id="esc-barra" hidden></div>
+      <div class="escenario-wrap">
+        <svg id="escenario" role="img" aria-label="Escenario con la posición de cada bailarín"></svg>
+      </div>
+
+      <div class="conteo" id="conteo" aria-live="off">
+        <div class="conteo-ocho"><span class="eti">Ocho</span><b id="cnt-ocho">–</b></div>
+        <div class="conteo-celdas" id="cnt-celdas"></div>
+        <div class="conteo-form" id="cnt-form"></div>
+      </div>
+
+      <div class="transporte">
+        <button class="btn-icono" data-acc="inicio" type="button" aria-label="Ir al inicio"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 5v14M19 5l-9 7 9 7z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></button>
+        <button class="btn-icono txt" data-acc="atras" type="button" aria-label="Retroceder un ocho">−8</button>
+        <button id="btn-play" class="btn-play" data-acc="play" type="button" aria-label="Reproducir"></button>
+        <button class="btn-icono txt" data-acc="adelante" type="button" aria-label="Avanzar un ocho">+8</button>
+        <label id="btn-musica" class="btn btn-mini btn-musica" for="in-pista" hidden>🎵 <span>Agregar música</span></label>
+        <button id="btn-bucle" class="btn-toggle" data-acc="bucle" type="button" aria-pressed="false">Repetir ocho</button>
+        <span class="tiempo" id="tiempo">0:00.0</span>
+        <span class="espacio"></span>
+        <span class="met-luz" id="met-luz" aria-hidden="true"></span>
+        <button id="btn-met" class="btn-toggle" data-acc="met" type="button" aria-pressed="false">Metrónomo</button>
+        <label class="vel">
+          <span>Velocidad</span>
+          <select id="sel-vel">
+            <option value="0.5">50%</option><option value="0.6">60%</option><option value="0.7">70%</option>
+            <option value="0.75">75%</option><option value="0.8">80%</option><option value="0.9">90%</option>
+            <option value="1" selected>100%</option><option value="1.1">110%</option><option value="1.25">125%</option><option value="1.5">150%</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="linea">
+        <div class="linea-scroll" id="linea-scroll">
+          <div id="linea-espacio" class="linea-espacio"><canvas id="linea-canvas"></canvas></div>
+        </div>
+        <div class="linea-franja" id="linea-franja" aria-label="Formaciones: arrastra para mover, tirador izquierdo para alargar el cambio"></div>
+        <div class="linea-vacia" id="linea-vacia" hidden></div>
+        <div class="linea-zoom">
+          <button class="btn-icono txt" data-zoom="-1" type="button" aria-label="Alejar línea de tiempo">−</button>
+          <button class="btn-icono txt" data-zoom="1" type="button" aria-label="Acercar línea de tiempo">+</button>
+        </div>
+      </div>
+
+      <div class="form-barra" id="form-barra" hidden></div>
+
+      <div class="video-wrap" id="video-wrap" hidden>
+        <video id="video" playsinline preload="auto" muted></video>
+        <div class="video-info" id="video-info"></div>
+      </div>
+    </div>
+
+    <aside class="col-panel">
+      <nav class="tabs" id="tabs" role="tablist"></nav>
+      <div id="panel" class="panel"></div>
+    </aside>
+  </div>
+</section>
+
+<dialog id="modal" class="modal">
+  <form method="dialog" id="modal-form">
+    <h2 id="modal-titulo"></h2>
+    <div id="modal-cuerpo"></div>
+    <div class="modal-botones">
+      <button value="no" class="btn btn-sutil" id="modal-no" type="submit" formnovalidate>Cancelar</button>
+      <button value="si" class="btn btn-primario" id="modal-si" type="submit">Aceptar</button>
+    </div>
+  </form>
+</dialog>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<div id="recaptcha"></div>
+<input type="file" id="in-pista" accept="audio/*,.mp3,.m4a,.wav" hidden>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+<script src="coreo/datos.js"></script>
+<script src="coreo/audio.js"></script>
+<script src="coreo/app.js"></script>
+</body>
+</html>

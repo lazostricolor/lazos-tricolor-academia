@@ -117,7 +117,7 @@
     <button class="sud-btn" id="sud-btnGoogle" style="width:100%;padding:12px">Entrar con Google</button>
     <div id="sud-loginErr" style="color:#dc2626;font-size:12.5px;margin-top:12px"></div>
     <div style="margin-top:16px">
-      <a href="index.html" style="font-size:12.5px;color:var(--muted)">← Volver al panel</a>
+      <a href="admin.html" style="font-size:12.5px;color:var(--muted)">← Volver al panel</a>
     </div>
   </div>
 </div>
@@ -125,7 +125,7 @@
 <!-- ══════════════ PANEL ══════════════ -->
 <div id="overlay" onclick="sudCerrarMenu()"></div>
 
-<!-- Se oculta con visibility, igual que index.html: así no se pisa
+<!-- Se oculta con visibility, igual que admin.html: así no se pisa
      el display que styles.css le asigne al layout. -->
 <div id="app" style="visibility:hidden">
 
@@ -415,7 +415,7 @@ const $ = s => document.querySelector(s);
 let datos = [], alumnas = [], chEstados = null;
 
 /* ---------- Navegación del menú ---------- */
-function sudIr(seccion){ location.href = 'index.html#' + seccion; }
+function sudIr(seccion){ location.href = 'admin.html#' + seccion; }
 function sudAbrirMenu(){
   document.getElementById('sidebar').classList.toggle('open');
   document.getElementById('overlay').classList.toggle('show');
@@ -426,7 +426,7 @@ function sudCerrarMenu(){
 }
 async function sudSalir(){
   try{ await firebase.auth().signOut(); }catch(_){}
-  location.href = 'index.html';
+  location.href = 'admin.html';
 }
 
 /* ---------- Login ---------- */
