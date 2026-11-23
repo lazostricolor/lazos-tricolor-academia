@@ -324,6 +324,141 @@ function detectarTempo(buf) {
   return { bpm: Math.round(mejor * 100) / 100, offset: Math.round(fase * hop / sr * 1000) / 1000 };
 }
 
+/* ── Sincronizar el video con la canción escuchando su audio ──
+   Se compara la "envolvente de ataques" (dónde suenan los golpes) de la canción y del
+   audio del video. Correlación por FFT para el punto global y luego por ventanas de 20 s
+   para detectar si el video va a otra velocidad (ritmo) o tiene cortes.
+   Resultado: tiempoCanción = offset + ritmo × tiempoVideo. */
+function envolventeAtaques(buf, maxSeg) {
+  const sr = buf.sampleRate, L = buf.getChannelData(0), R = buf.numberOfChannels > 1 ? buf.getChannelData(1) : null;
+  const hop = Math.round(sr / 100), n = Math.floor(Math.min(L.length, sr * maxSeg) / hop);
+  const env = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    let e = 0; const ini = i * hop;
+    for (let j = 0; j < hop; j += 2) { const x = R ? (L[ini + j] + R[ini + j]) * 0.5 : L[ini + j]; e += x * x; }
+    env[i] = Math.log(1e-6 + e / hop);
+  }
+  const on = new Float32Array(n);
+  for (let i = 1; i < n; i++) on[i] = Math.max(0, env[i] - env[i - 1]);
+  // quitar la media local y normalizar (así el ruido de la sala pesa menos)
+  const w = 30; let acc = 0; const out = new Float32Array(n);
+  for (let i = 0; i < n; i++) { acc += on[i]; if (i >= w) acc -= on[i - w]; out[i] = Math.max(0, on[i] - acc / Math.min(i + 1, w)); }
+  let m = 0; for (let i = 0; i < n; i++) m += out[i]; m /= n || 1;
+  let v = 0; for (let i = 0; i < n; i++) { out[i] -= m; v += out[i] * out[i]; }
+  const sd = Math.sqrt(v / (n || 1)) || 1;
+  for (let i = 0; i < n; i++) out[i] /= sd;
+  return out;
+}
+function _fft(re, im, inv) {
+  const n = re.length;
+  for (let i = 1, j = 0; i < n; i++) {
+    let bit = n >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit;
+    if (i < j) { let t = re[i]; re[i] = re[j]; re[j] = t; t = im[i]; im[i] = im[j]; im[j] = t; }
+  }
+  for (let len = 2; len <= n; len <<= 1) {
+    const ang = 2 * Math.PI / len * (inv ? 1 : -1), wr = Math.cos(ang), wi = Math.sin(ang);
+    for (let i = 0; i < n; i += len) {
+      let cr = 1, ci = 0;
+      for (let k = 0; k < len / 2; k++) {
+        const a = i + k, b = a + len / 2;
+        const tr = re[b] * cr - im[b] * ci, ti = re[b] * ci + im[b] * cr;
+        re[b] = re[a] - tr; im[b] = im[a] - ti; re[a] += tr; im[a] += ti;
+        const nr = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = nr;
+      }
+    }
+  }
+  if (inv) for (let i = 0; i < n; i++) { re[i] /= n; im[i] /= n; }
+}
+// r[L] = Σ a[i+L]·b[i]  para L en [-(b.length-1), a.length-1]
+function _correlacion(a, b) {
+  let N = 1; while (N < a.length + b.length) N <<= 1;
+  const ar = new Float64Array(N), ai = new Float64Array(N), br = new Float64Array(N), bi = new Float64Array(N);
+  ar.set(a); br.set(b);
+  _fft(ar, ai, false); _fft(br, bi, false);
+  for (let i = 0; i < N; i++) { const r = ar[i] * br[i] + ai[i] * bi[i], im = ai[i] * br[i] - ar[i] * bi[i]; ar[i] = r; ai[i] = im; }
+  _fft(ar, ai, true);
+  return { r: ar, N, en: L => ar[((L % N) + N) % N] };
+}
+function _picoFino(f, L) {   // interpolación parabólica alrededor del máximo
+  const y0 = f(L - 1), y1 = f(L), y2 = f(L + 1), d = y0 - 2 * y1 + y2;
+  return d < 0 ? L + 0.5 * (y0 - y2) / d : L;
+}
+// Video "estirado" a la escala de tiempo de la canción: b'[k] = b(k / ritmo)
+function _estirar(b, ritmo) {
+  if (ritmo === 1) return b;
+  const n = Math.floor(b.length * ritmo), out = new Float32Array(n);
+  for (let k = 0; k < n; k++) { const x = k / ritmo, i = Math.floor(x), f = x - i; out[k] = i + 1 < b.length ? b[i] * (1 - f) + b[i + 1] * f : b[b.length - 1]; }
+  return out;
+}
+function _mejorPico(a, b) {
+  const C = _correlacion(a, b);
+  const solape = L => Math.max(1, Math.min(a.length, L + b.length) - Math.max(0, L));
+  const minSol = Math.min(1000, Math.floor(Math.min(a.length, b.length) * 0.5));   // al menos 10 s en común
+  let L0 = 0, mejor = -Infinity;
+  for (let L = -(b.length - 1); L < a.length; L++) {
+    if (solape(L) < minSol) continue;
+    const v = C.en(L) / solape(L); if (v > mejor) { mejor = v; L0 = L; }
+  }
+  let segundo = -Infinity;
+  for (let L = -(b.length - 1); L < a.length; L++) {
+    if (solape(L) < minSol || Math.abs(L - L0) < 60) continue;   // otro pico a más de 0,6 s
+    const v = C.en(L) / solape(L); if (v > segundo) segundo = v;
+  }
+  return { L0, mejor, segundo, fino: _picoFino(L => C.en(L) / solape(L), L0) };
+}
+function alinearAudios(bufCancion, bufVideo) {
+  const H = 0.01;
+  const a = envolventeAtaques(bufCancion, 900), b = envolventeAtaques(bufVideo, 900);
+  if (a.length < 300 || b.length < 300) return { seguridad: 'baja', motivo: 'corto' };
+  // 1) velocidad y punto global: se prueba el video a 80 %…120 % de velocidad
+  let g = null, rho = 1;
+  for (let r = 0.80; r <= 1.2001; r += 0.01) {
+    const rr = Math.round(r * 100) / 100, p = _mejorPico(a, _estirar(b, rr));
+    if (!g || p.mejor > g.mejor * (rr === 1 ? 0.97 : 1)) { g = p; rho = rr; }   // ante empate, velocidad normal
+  }
+  if (rho !== 1) {   // afinar la velocidad de a 0,1 %
+    for (let r = rho - 0.009; r <= rho + 0.0091; r += 0.001) {
+      const rr = Math.round(r * 1000) / 1000, p = _mejorPico(a, _estirar(b, rr));
+      if (p.mejor > g.mejor) { g = p; rho = rr; }
+    }
+  }
+  const bs = _estirar(b, rho);
+  // 2) ventanas de 20 s: confirma el punto, detecta pequeños cambios de velocidad o cortes
+  const W = 2000, PASO = 1000, BUSCA = 300, crudos = [];
+  for (let s0 = 0; s0 + W <= bs.length; s0 += PASO) {
+    let mb = -Infinity, ml = 0; const vals = {};
+    for (let d = -BUSCA; d <= BUSCA; d++) {
+      const L = g.L0 + d; let sum = 0, k = 0;
+      for (let i = s0; i < s0 + W; i++) { const j = i + L; if (j >= 0 && j < a.length) { sum += a[j] * bs[i]; k++; } }
+      if (k < W * 0.8) continue;
+      const v = sum / k; vals[L] = v; if (v > mb) { mb = v; ml = L; }
+    }
+    if (!isFinite(mb)) continue;
+    const f = L => vals[L] ?? -Infinity, fino = isFinite(f(ml - 1)) && isFinite(f(ml + 1)) ? _picoFino(f, ml) : ml;
+    crudos.push({ x: (s0 + W / 2) * H / rho, y: (s0 + W / 2 + fino) * H, q: mb });   // x: tiempo del video · y: tiempo de la canción
+  }
+  const qs = crudos.map(p => p.q).sort((u, v) => u - v), qMed = qs.length ? qs[Math.floor(qs.length / 2)] : 0;
+  const puntos = crudos.filter(p => p.q > Math.max(0.15, qMed * 0.5));   // fuera ventanas con silencio, aplausos, etc.
+  let ritmo = rho, offset = g.fino * H, cortes = false;
+  const ajustar = ps => {
+    const n = ps.length, mx = ps.reduce((s, p) => s + p.x, 0) / n, my = ps.reduce((s, p) => s + p.y, 0) / n;
+    let sxy = 0, sxx = 0; for (const p of ps) { sxy += (p.x - mx) * (p.y - my); sxx += (p.x - mx) ** 2; }
+    const pend = sxx ? sxy / sxx : rho; return { pend, off: my - pend * mx };
+  };
+  if (puntos.length >= 3) {
+    let f1 = ajustar(puntos);
+    const buenos = puntos.filter(p => Math.abs(p.y - (f1.off + f1.pend * p.x)) < 0.15);
+    if (buenos.length >= 3) f1 = ajustar(buenos);
+    cortes = buenos.length < puntos.length * 0.7;
+    if (Math.abs(f1.pend - 1) < 0.004) {   // misma velocidad: desfase = mediana
+      ritmo = 1; const ds = (buenos.length >= 3 ? buenos : puntos).map(p => p.y - p.x).sort((u, v) => u - v); offset = ds[Math.floor(ds.length / 2)];
+    } else if (Math.abs(f1.pend - rho) < 0.02) { ritmo = f1.pend; offset = f1.off; }
+  }
+  const relacion = g.segundo > 0 ? g.mejor / g.segundo : 9;
+  const seguridad = g.mejor > 0.3 && relacion > 1.4 ? 'alta' : g.mejor > 0.15 && relacion > 1.15 ? 'media' : 'baja';
+  return { offset: Math.round(offset * 1000) / 1000, ritmo: Math.round(ritmo * 10000) / 10000, seguridad, r: Math.round(g.mejor * 100) / 100, relacion: Math.round(relacion * 100) / 100, ventanas: puntos.length, cortes };
+}
+
 /* ── Tap tempo ── */
 const Tap = {
   toques: [],

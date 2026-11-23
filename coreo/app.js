@@ -415,7 +415,7 @@ function idYouTube(url) {
 function sincronizarYT(t) {
   const c = S.coreo, y = S.yt, p = y && y.listo && y.player;
   if (!p || $('#video-wrap').hidden || S.ajusteVideo) return;
-  const objetivo = t - (c.video.offset || 0), dur = p.getDuration() || Infinity;
+  const rv = c.video.ritmo || 1, objetivo = (t - (c.video.offset || 0)) / rv, dur = p.getDuration() || Infinity;
   const info = $('#video-info'), ahora = performance.now(), estado = p.getPlayerState();
   if (objetivo < 0 || objetivo > dur) {
     if (estado === 1) p.pauseVideo();
@@ -424,7 +424,7 @@ function sincronizarYT(t) {
   }
   info.textContent = '';
   if (Motor.tocando) {
-    if (Math.abs(p.getPlaybackRate() - Motor.vel) > .01) p.setPlaybackRate(Motor.vel);
+    if (Math.abs(p.getPlaybackRate() - Motor.vel / rv) > .01) p.setPlaybackRate(Motor.vel / rv);
     if (estado !== 1 && estado !== 3) { if (ahora - y.ultSeek > 600) { p.seekTo(objetivo, true); p.playVideo(); y.ultSeek = ahora; } }
     else if (Math.abs(p.getCurrentTime() - objetivo) > 0.4 && ahora - y.ultSeek > 1500) { p.seekTo(objetivo, true); y.ultSeek = ahora; }
   } else {
@@ -1069,13 +1069,13 @@ function sincronizarVideo(t) {
   const v = $('#video'); const c = S.coreo;
   if (c.video?.yt) return sincronizarYT(t);
   if (!c.video || !v.src || $('#video-wrap').hidden || S.ajusteVideo) return;
-  const objetivo = t - (c.video.offset || 0);
+  const rv = c.video.ritmo || 1, objetivo = (t - (c.video.offset || 0)) / rv;
   const dentro = objetivo >= 0 && (!isFinite(v.duration) || objetivo <= v.duration);
   const info = $('#video-info');
   if (!dentro) { if (!v.paused) v.pause(); info.textContent = objetivo < 0 ? 'El video empieza en ' + fmtT(c.video.offset) : 'Fin del video'; return; }
   info.textContent = '';
   if (Motor.tocando) {
-    if (Math.abs(v.playbackRate - Motor.vel) > .001) v.playbackRate = Motor.vel;
+    if (Math.abs(v.playbackRate - Motor.vel / rv) > .001) v.playbackRate = Motor.vel / rv;
     if (v.paused) { v.currentTime = objetivo; v.play().catch(() => {}); }
     else if (Math.abs(v.currentTime - objetivo) > 0.25) v.currentTime = objetivo;
   } else {
@@ -1328,7 +1328,10 @@ function panelVideo() {
       <label><input type="checkbox" name="video-sonido" ${S.videoSonido ? 'checked' : ''}> Sonido del video</label></div></section>`;
   if (ed) {
     h += `<section><h3>Sincronización</h3>
-      <p class="nota">El video empieza en <b>${fmtT(v.offset || 0)}</b> de la canción${(v.offset || 0) < 0 ? ' (antes de la canción)' : ''}.</p>
+      ${S.progreso?.tipo === 'sinc' ? '<div class="progreso"><i class="indef"></i></div><p class="nota">Escuchando el video y la canción para encontrar el punto exacto…</p>' : ''}
+      <label class="btn btn-primario btn-mini" style="cursor:pointer;margin-bottom:8px">🎧 Sincronizar con el audio del video<input type="file" name="video-audio" accept="video/*,audio/*" hidden></label>
+      <p class="nota">Elige el archivo del video que tienes en el PC o celular (el mismo que subiste${v.yt ? ' a YouTube' : ''}). No se sube a ningún lado: solo se escucha aquí para encontrar dónde coincide con la música.</p>
+      <p class="nota">El video empieza en <b>${fmtT(v.offset || 0)}</b> de la canción${(v.offset || 0) < 0 ? ' (antes de la canción)' : ''}${v.ritmo && v.ritmo !== 1 ? ` · la música del video va al <b>${(v.ritmo * 100).toFixed(1).replace('.', ',')} %</b>` : ''}.</p>
       <div class="botones"><button class="btn btn-mini" data-voff="-1" type="button">−1 s</button><button class="btn btn-mini" data-voff="-0.1" type="button">−0,1 s</button>
         <button class="btn btn-mini" data-voff="0.1" type="button">+0,1 s</button><button class="btn btn-mini" data-voff="1" type="button">+1 s</button></div>
       ${S.ajusteVideo
@@ -1457,7 +1460,7 @@ async function clickPanel(e) {
       const u = r.url.trim(), yt = idYouTube(u);
       if (!yt && !/^https?:\/\/.+\.(mp4|webm|mov)(\?|$)/i.test(u)) return toast('Ese enlace no es de YouTube ni de un archivo de video.', true);
       const viejo = c.video?.path, off = c.video?.offset || 0;
-      c.video = yt ? { url: 'https://youtu.be/' + yt, yt, path: '', nombre: 'Video del ensayo', offset: off }
+      c.video = yt ? { url: 'https://youtu.be/' + yt, yt, path: '', nombre: 'Video del ensayo', offset: off, ...(c.video?.ritmo ? { ritmo: c.video.ritmo } : {}) }
                    : { url: u, path: '', nombre: u.split('/').pop().split('?')[0], offset: off };
       cambio(); await cargarMedios(); renderTodo(); if (viejo) S.st.borrarArchivo(viejo); break;
     }
@@ -1472,7 +1475,7 @@ async function clickPanel(e) {
     }
     case 'video-fijar': {
       const v = $('#video'), tv = c.video.yt ? (S.yt && S.yt.listo ? S.yt.player.getCurrentTime() : 0) : v.currentTime;
-      c.video.offset = Math.round((Motor.tiempo() - tv) * 100) / 100;
+      c.video.offset = Math.round((Motor.tiempo() - tv * (c.video.ritmo || 1)) * 100) / 100;
       S.ajusteVideo = false; v.controls = false; cambio(); S.sucio = true; renderPanel(); toast('Video sincronizado ✓'); break;
     }
     case 'sellar': {
@@ -1523,6 +1526,7 @@ async function cambioPanel(e) {
   }
   if (n === 'pista' && el.files[0]) return subirPista(el.files[0]);
   if (n === 'video' && el.files[0]) return subirVideo(el.files[0]);
+  if (n === 'video-audio' && el.files[0]) { const f = el.files[0]; el.value = ''; return sincronizarConAudio(f); }
   if (!puedeEditar()) return;
   const m = c.musica;
   if (n === 'nombre') { const b = c.bailarines.find(x => x.id === S.sel); if (b) { b.nombre = el.value.trim(); cambio(); renderEscenario(); renderPanel(); } }
@@ -1591,6 +1595,34 @@ async function subirPista(file) {
     toast('La pista suena aquí, pero no se pudo subir: ' + (e.code === 'storage/unauthorized' ? 'sin permiso en Storage' : e.message), true);
   }
   S.progreso = null; renderPanel();
+}
+
+// Sincroniza el video con la canción comparando sus audios (el archivo no se sube)
+async function sincronizarConAudio(file) {
+  const c = S.coreo;
+  if (!c.video) return toast('Primero agrega el video.', true);
+  if (!c.musica.url) return toast('Primero agrega la música de la coreografía.', true);
+  S.progreso = { tipo: 'sinc' }; renderPanel();
+  let r;
+  try {
+    const ctx = Motor._asegurarCtx();
+    const urlM = await S.st.resolverUrl(c.musica.url);
+    const bufM = await ctx.decodeAudioData(await (await fetch(urlM)).arrayBuffer());
+    let bufV;
+    try { bufV = await ctx.decodeAudioData(await file.arrayBuffer()); }
+    catch (_) { throw new Error('No pude leer el audio de ese archivo. Prueba con el video original (MP4) o solo su audio.'); }
+    await new Promise(ok => setTimeout(ok, 30));   // deja pintar el aviso antes del cálculo
+    r = alinearAudios(bufM, bufV);
+  } catch (e) { S.progreso = null; renderPanel(); return toast(e.message || 'No se pudo sincronizar.', true); }
+  S.progreso = null;
+  if (r.seguridad === 'baja') {
+    renderPanel();
+    if (!await confirmar('No encontré una coincidencia clara', 'El audio del video no se parece lo suficiente a la canción (mucho ruido, otra versión de la música o un video distinto). ¿Aplicar de todos modos el mejor punto que encontré? Luego lo puedes ajustar a mano.', 'Aplicar', false)) return;
+  }
+  c.video.offset = Math.round(r.offset * 100) / 100;
+  if (r.ritmo && Math.abs(r.ritmo - 1) > 0.001) c.video.ritmo = r.ritmo; else delete c.video.ritmo;
+  cambio(); S.sucio = true; renderPanel();
+  toast(`Video sincronizado ✓${r.seguridad === 'alta' ? '' : ' (revísalo)'}${c.video.ritmo ? ` · la música del video va al ${(r.ritmo * 100).toFixed(1).replace('.', ',')} %` : ''}${r.cortes ? ' · el video parece tener cortes' : ''}`);
 }
 
 async function subirVideo(file) {
