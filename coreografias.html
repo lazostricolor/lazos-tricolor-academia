@@ -94,8 +94,15 @@
   <div class="editor">
     <div class="col-principal">
       <div class="esc-barra" id="esc-barra" hidden></div>
-      <div class="escenario-wrap">
-        <svg id="escenario" role="img" aria-label="Escenario con la posición de cada bailarín"></svg>
+      <!-- Escenario y video del ensayo, lado a lado cuando hay video -->
+      <div class="zona-esc">
+        <div class="escenario-wrap">
+          <svg id="escenario" role="img" aria-label="Escenario con la posición de cada bailarín"></svg>
+        </div>
+        <div class="video-wrap" id="video-wrap" hidden>
+          <video id="video" playsinline preload="auto" muted></video>
+          <div class="video-info" id="video-info"></div>
+        </div>
       </div>
 
       <div class="conteo" id="conteo" aria-live="off">
@@ -139,10 +146,6 @@
 
       <div class="form-barra" id="form-barra" hidden></div>
 
-      <div class="video-wrap" id="video-wrap" hidden>
-        <video id="video" playsinline preload="auto" muted></video>
-        <div class="video-info" id="video-info"></div>
-      </div>
     </div>
 
     <aside class="col-panel">
