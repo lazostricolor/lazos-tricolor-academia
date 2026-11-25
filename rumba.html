@@ -148,6 +148,8 @@ textarea{background:var(--sup);border:1.5px solid var(--linea);border-radius:10p
 .punto{font-size:.74rem;font-weight:700;border-radius:999px;padding:1px 8px;background:var(--sup2);border:1px solid var(--linea);color:var(--suave)}
 .punto.vino{background:var(--verde-lt);border-color:var(--verde);color:var(--verde)}
 .punto.debe{background:var(--rojo-lt);border-color:var(--rojo);color:var(--rojo)}
+.etq-esp{display:inline-block;font-size:.72rem;font-weight:700;border-radius:999px;padding:1px 8px;background:var(--sol);color:var(--solTinta);vertical-align:middle}
+.asis.esp{border-color:var(--sol);background:color-mix(in srgb,var(--sol) 12%,var(--sup));cursor:default}
 .kpi{background:var(--sup);border:1px solid var(--linea);border-radius:var(--r);padding:16px;box-shadow:var(--sombra)}
 .kpi span{display:block;color:var(--suave);font-size:.84rem;font-weight:700}
 .kpi strong{display:block;font-family:'Bricolage Grotesque';font-weight:800;font-size:1.75rem;line-height:1.15;margin-top:4px}
@@ -327,6 +329,7 @@ dialog::backdrop{background:rgba(15,20,45,.55)}
         <div class="herr">
           <input type="date" id="asFecha" aria-label="Fecha de la clase">
           <span id="asResumen" class="al-meta"></span>
+          <button class="btn peq der" type="button" data-accion="nuevaEsp">＋ Persona esporádica</button>
         </div>
         <div id="asAviso" class="estado gris" style="margin-bottom:12px"></div>
         <ul id="listaAsistencia" class="lista rejilla chica"></ul>
@@ -362,6 +365,7 @@ dialog::backdrop{background:rgba(15,20,45,.55)}
             <option value="pendientes">Sin cruzar</option>
             <option value="todos">Todos</option>
           </select>
+          <button class="btn peq der" type="button" data-accion="nuevaEsp">＋ Persona esporádica</button>
         </div>
         <div class="totales">
           <div class="total efe"><span>Efectivo</span><strong id="tEfectivo"></strong></div>
@@ -480,6 +484,31 @@ dialog::backdrop{background:rgba(15,20,45,.55)}
     <div class="pie">
       <button class="btn" type="button" data-cerrar="dlgPago">Cancelar</button>
       <button class="btn prim" type="button" id="btnGuardarPago">Guardar pago</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Persona esporádica -->
+<dialog id="dlgEsp" aria-labelledby="dlgEspTitulo">
+  <div class="dlg">
+    <h2 id="dlgEspTitulo">Persona esporádica</h2>
+    <p class="quien">Para quien viene a una clase suelta sin estar inscrita. Queda en los pagos y en el cruce de la semana.</p>
+    <div class="campo"><label for="espNombre">Nombre</label><input type="text" id="espNombre" maxlength="80" autocomplete="off"></div>
+    <div class="campos">
+      <div class="campo"><label for="espFecha">Fecha de la clase</label><input type="date" id="espFecha"></div>
+      <div class="campo"><label for="espMonto">Valor pagado</label><input type="number" id="espMonto" min="0" step="500" inputmode="numeric"></div>
+    </div>
+    <div class="campo"><label>¿Cómo pagó?</label>
+      <div class="opciones">
+        <label class="opcion"><input type="radio" name="espMetodo" value="efectivo"><span>Efectivo<small>Lo recibe el profesor</small></span></label>
+        <label class="opcion"><input type="radio" name="espMetodo" value="transferencia"><span>Transferencia<small>Va a la academia</small></span></label>
+      </div>
+    </div>
+    <div class="campo"><label for="espCelular">Celular (opcional)</label><input type="tel" id="espCelular" maxlength="20" inputmode="tel"></div>
+    <div class="error" id="espError"></div>
+    <div class="pie">
+      <button class="btn" type="button" data-cerrar="dlgEsp">Cancelar</button>
+      <button class="btn prim" type="button" id="btnGuardarEsp">Guardar</button>
     </div>
   </div>
 </dialog>
@@ -695,7 +724,7 @@ const RUI = {
     return `<li class="pago${p.anulado ? ' anulado' : ''}">
       <div>
         <div class="p-nom">${RU.esc(al?.nombre || p.alumnaNombre || '')}</div>
-        <div class="p-det">${RU.fecha(p.fecha, true)} · ${PLANES[p.plan]?.nombre || ''}${p.plan === 'diaria' ? '' : ', cubre hasta el ' + RU.fecha(p.cubreHasta, true)} · ${RU.esc(estado)}</div>
+        <div class="p-det">${RU.fecha(p.fecha, true)} · ${p.esporadica ? 'Esporádica' : (PLANES[p.plan]?.nombre || '')}${p.plan === 'diaria' ? '' : ', cubre hasta el ' + RU.fecha(p.cubreHasta, true)} · ${RU.esc(estado)}</div>
         ${anular}
       </div>
       <div class="p-monto">${RU.dinero(p.monto)}<br><span class="metodo ${p.metodo}">${p.metodo === 'efectivo' ? 'Efectivo' : 'Transferencia'}</span></div>
@@ -785,12 +814,14 @@ const RAS = {
     const esClase = RUMBA_CONFIG.diasClase.includes(RU.aFecha(RS.asisFecha).getDay());
     $('asAviso').textContent = (esClase ? '' : 'Ese día no hay clase programada; igual puedes registrarla. ') +
       (reg ? 'Asistencia guardada' + (RS.asisSucio ? ' (tienes cambios sin guardar)' : '') + '.' : 'Aún no se ha guardado la asistencia de este día.');
-    $('asResumen').textContent = RU.fecha(RS.asisFecha) + ': ' + lista.filter(a => RS.asisMarcas.has(a.id)).length + ' de ' + lista.length;
+    const esps = RESP.delDia(RS.asisFecha);
+    $('asResumen').textContent = RU.fecha(RS.asisFecha) + ': ' + lista.filter(a => RS.asisMarcas.has(a.id)).length + ' de ' + lista.length +
+      (esps.length ? ' + ' + esps.length + (esps.length === 1 ? ' esporádica' : ' esporádicas') : '');
     $('listaAsistencia').innerHTML = lista.length ? lista.map(a => `
       <li><button type="button" class="asis" data-accion="marcar" data-id="${a.id}" aria-pressed="${RS.asisMarcas.has(a.id)}">
         <span>${RU.esc(a.nombre)}<small>${PLANES[a.frecuencia]?.nombre || ''}</small></span>
         <span class="marca" aria-hidden="true">${RS.asisMarcas.has(a.id) ? '✓' : ''}</span>
-      </button></li>`).join('') : '<li class="vacio">No hay alumnas inscritas para esa fecha.</li>';
+      </button></li>`).join('') + RESP.tarjetas(esps) : (esps.length ? RESP.tarjetas(esps) : '<li class="vacio">No hay alumnas inscritas para esa fecha.</li>');
   },
   marcar(id) {
     RS.asisMarcas.has(id) ? RS.asisMarcas.delete(id) : RS.asisMarcas.add(id);
@@ -933,6 +964,50 @@ const RG = {
 };
 
 /* ==========================================================================
+   RESP — personas esporádicas (se guardan como pago en rumba_pagos)
+   ========================================================================== */
+const RESP = {
+  delDia(fecha) { return RS.pagos.filter(p => p.esporadica && !p.anulado && (p.cubreDesde || p.fecha) === fecha); },
+  tarjetas(esps) {
+    return esps.map(p => `
+      <li><div class="asis esp">
+        <span>${RU.esc(p.alumnaNombre)}<small>Esporádica · ${RU.dinero(p.monto)} ${p.metodo === 'efectivo' ? 'en efectivo' : 'por transferencia'}</small></span>
+        <span class="marca" aria-hidden="true">✓</span>
+      </div></li>`).join('');
+  },
+  abrirEsp() {
+    $('espNombre').value = ''; $('espCelular').value = '';
+    $('espFecha').value = RS.tab === 'asistencia' && RS.asisFecha ? RS.asisFecha : RU.hoy();
+    $('espMonto').value = RUMBA_CONFIG.precios.diaria;
+    document.querySelectorAll('input[name="espMetodo"]').forEach(r => { r.checked = false; });
+    $('espError').textContent = '';
+    $('dlgEsp').showModal(); $('espNombre').focus();
+  },
+  async guardarEsp() {
+    const nombre = $('espNombre').value.trim().replace(/\s+/g, ' ');
+    const fecha = $('espFecha').value, monto = Number($('espMonto').value);
+    const metodo = document.querySelector('input[name="espMetodo"]:checked')?.value;
+    const celular = $('espCelular').value.trim().slice(0, 20);
+    if (nombre.length < 3) return void ($('espError').textContent = 'Escribe el nombre de la persona.');
+    if (!fecha) return void ($('espError').textContent = 'Indica la fecha de la clase.');
+    if (fecha > RU.hoy()) return void ($('espError').textContent = 'La fecha no puede ser futura.');
+    if (!(monto > 0)) return void ($('espError').textContent = 'Escribe el valor pagado.');
+    if (!metodo) return void ($('espError').textContent = 'Indica si pagó en efectivo o por transferencia.');
+    const btn = $('btnGuardarEsp'); btn.disabled = true; btn.textContent = 'Guardando…';
+    try {
+      await addDoc(collection(db, COL.pagos), {
+        alumnaId: 'esp_' + Date.now().toString(36), alumnaNombre: nombre, esporadica: true, ...(celular ? { celular } : {}),
+        plan: 'diaria', monto, metodo, fecha, cubreDesde: fecha, cubreHasta: fecha,
+        anulado: false, recibidoPor: RS.email, _creadoTs: serverTimestamp(), ...RD.sello()
+      });
+      $('dlgEsp').close();
+      RUI.toast(nombre + ' registrada: ' + RU.dinero(monto) + (metodo === 'efectivo' ? ' en efectivo' : ' por transferencia'));
+    } catch (e) { $('espError').textContent = RD.errorTexto(e); }
+    finally { btn.disabled = false; btn.textContent = 'Guardar'; }
+  }
+};
+
+/* ==========================================================================
    RSEM — finanza semanal basada en la asistencia
    ========================================================================== */
 const RSEM = {
@@ -959,23 +1034,26 @@ const RSEM = {
     const pagos = RS.pagos.filter(p => !p.anulado && p.fecha >= ini && p.fecha <= fin);
     const caja = RP.sumar(pagos);
     const ids = new Set(clases.flatMap(c => c.presentes).concat(pagos.map(p => p.alumnaId)));
+    const esporadicas = pagos.filter(p => p.esporadica).length;
     const filas = [...ids].map(id => {
-      const a = RS.alumnas.find(x => x.id === id) || { id, nombre: (pagos.find(p => p.alumnaId === id) || {}).alumnaNombre || 'Alumna eliminada', frecuencia: 'diaria' };
-      const vino = clases.filter(c => c.presentes.includes(id)).map(c => c.fecha);
+      const pEsp = pagos.find(p => p.alumnaId === id && p.esporadica);
+      const a = RS.alumnas.find(x => x.id === id) || { id, nombre: (pagos.find(p => p.alumnaId === id) || {}).alumnaNombre || 'Alumna eliminada', frecuencia: 'diaria', esporadica: !!pEsp };
+      const vino = pEsp ? [pEsp.cubreDesde || pEsp.fecha] : clases.filter(c => c.presentes.includes(id)).map(c => c.fecha);
       const sinCubrir = vino.filter(f => !RSEM.cubierta(id, f));
       const suyos = pagos.filter(p => p.alumnaId === id);
       const pago = RP.sumar(suyos);
       const diariaPagada = RS.pagos.filter(p => p.alumnaId === id && !p.anulado && p.plan === 'diaria' && (p.cubreDesde || p.fecha) >= ini && (p.cubreDesde || p.fecha) <= fin)
         .reduce((s, p) => s + (Number(p.monto) || 0), 0);
       let debe = 0;
-      if (a.frecuencia === 'diaria') debe = Math.max(0, sinCubrir.length * RUMBA_CONFIG.precios.diaria - diariaPagada);
+      if (a.esporadica) debe = 0;
+      else if (a.frecuencia === 'diaria') debe = Math.max(0, sinCubrir.length * RUMBA_CONFIG.precios.diaria - diariaPagada);
       else if (sinCubrir.length - Math.floor(diariaPagada / RUMBA_CONFIG.precios.diaria) > 0) debe = RUMBA_CONFIG.precios[a.frecuencia] || 0;
       return { a, vino, sinCubrir, pago, debe };
     }).sort((x, y) => (y.debe > 0) - (x.debe > 0) || RU.norm(x.a.nombre).localeCompare(RU.norm(y.a.nombre)));
     const honorario = RSEM.honorario(ini);
     const corte = RS.cortes.find(c => c.desde <= ini && c.hasta >= fin);
-    return { ini, fin, clases, caja, filas, honorario, saldo: caja.efectivo - honorario, corte,
-      asistencias: clases.reduce((s, c) => s + c.presentes.length, 0),
+    return { ini, fin, clases, caja, filas, honorario, saldo: caja.efectivo - honorario, corte, esporadicas,
+      asistencias: clases.reduce((s, c) => s + c.presentes.length, 0) + esporadicas,
       porCobrar: filas.reduce((s, f) => s + f.debe, 0), deudoras: filas.filter(f => f.debe > 0) };
   },
   mes(pref) {
@@ -992,7 +1070,8 @@ const RSEM = {
     $('semLabel').textContent = RU.fecha(d.ini, true) + ' – ' + RU.fecha(d.fin, true) + (RSEM.ofs === 0 ? ' (esta semana)' : '');
     $('semSig').disabled = RSEM.ofs >= 0;
     $('semAsis').textContent = d.asistencias;
-    $('semAsisDet').textContent = d.clases.length + (d.clases.length === 1 ? ' clase registrada' : ' clases registradas');
+    $('semAsisDet').textContent = d.clases.length + (d.clases.length === 1 ? ' clase registrada' : ' clases registradas') +
+      (d.esporadicas ? ' · ' + d.esporadicas + (d.esporadicas === 1 ? ' esporádica' : ' esporádicas') : '');
     $('semEfe').textContent = RU.dinero(d.caja.efectivo);
     $('semTra').textContent = RU.dinero(d.caja.transferencia);
     $('semTot').textContent = RU.dinero(d.caja.total);
@@ -1013,7 +1092,7 @@ const RSEM = {
     }
     $('listaSemana').innerHTML = d.filas.length ? d.filas.map(f => `
       <li class="alumna ${f.debe ? 'rojo' : 'verde'}">
-        <div class="al-fila"><span class="al-nombre">${RU.esc(f.a.nombre)}</span><span class="al-meta">${PLANES[f.a.frecuencia]?.nombre || ''}</span></div>
+        <div class="al-fila"><span class="al-nombre">${RU.esc(f.a.nombre)}</span><span class="al-meta">${f.a.esporadica ? '<span class="etq-esp">Esporádica</span>' : (PLANES[f.a.frecuencia]?.nombre || '')}</span></div>
         <div class="puntos">${d.clases.map(c => `<span class="punto ${f.sinCubrir.includes(c.fecha) ? 'debe' : f.vino.includes(c.fecha) ? 'vino' : ''}">${RU.aFecha(c.fecha).toLocaleDateString('es-CO', { weekday: 'short' })}</span>`).join('')}</div>
         <div class="contacto">Vino ${f.vino.length} ${f.vino.length === 1 ? 'vez' : 'veces'}${f.pago.total ? ' · pagó ' + RU.dinero(f.pago.total) + (f.pago.efectivo && f.pago.transferencia ? '' : f.pago.efectivo ? ' en efectivo' : ' por transferencia') : ''}</div>
         <div class="estado ${f.debe ? 'rojo' : 'verde'}">${f.debe ? 'Debe ' + RU.dinero(f.debe) : 'Al día'}</div>
@@ -1023,7 +1102,7 @@ const RSEM = {
   texto() {
     const d = RSEM.datosSemana();
     return '💃 *Rumba · Lazos Tricolor*\n📊 Resumen semana del ' + RU.fecha(d.ini, true) + ' al ' + RU.fecha(d.fin, true) + '\n\n' +
-      '🗓️ Clases: ' + d.clases.length + ' · Asistencias: ' + d.asistencias + '\n' +
+      '🗓️ Clases: ' + d.clases.length + ' · Asistencias: ' + d.asistencias + (d.esporadicas ? ' (incluye ' + d.esporadicas + (d.esporadicas === 1 ? ' esporádica)' : ' esporádicas)') : '') + '\n' +
       '💵 Efectivo recibido por el profe: ' + RU.dinero(d.caja.efectivo) + '\n' +
       '🏦 Transferencias a la academia: ' + RU.dinero(d.caja.transferencia) + '\n' +
       '💰 Total recaudado: ' + RU.dinero(d.caja.total) + '\n' +
@@ -1378,6 +1457,7 @@ $('corteSemanas').addEventListener('input', RUI.pintarCorte);
 $('btnCorte').addEventListener('click', RA.registrarCorte);
 $('btnCopiarPend').addEventListener('click', () => RU.copiar(RG.textoPendientes()));
 $('btnLinkInsc').addEventListener('click', RSOL.copiarLink);
+$('btnGuardarEsp').addEventListener('click', RESP.guardarEsp);
 $('semAnt').addEventListener('click', () => { RSEM.ofs--; RSEM.pintarSemana(); });
 $('semSig').addEventListener('click', () => { if (RSEM.ofs < 0) { RSEM.ofs++; RSEM.pintarSemana(); } });
 $('btnCopiarSemana').addEventListener('click', () => RU.copiar(RSEM.texto()));
@@ -1400,6 +1480,7 @@ document.addEventListener('click', e => {
     editar: () => RA.abrirAlumna(id),
     anular: () => RA.anular(id),
     marcar: () => RAS.marcar(id),
+    nuevaEsp: () => RESP.abrirEsp(),
     activar: () => RA.cambiarActiva(id, true),
     desactivar: () => RA.cambiarActiva(id, false),
     aprobarSol: () => RSOL.aprobarSol(id),
