@@ -6,8 +6,8 @@ Aplicación web modular. Firebase Firestore (REST) + Chart.js + GitHub Pages.
 
 Publicado con GitHub Pages en **https://app.academialazostricolor.com** (archivo `CNAME`).
 
-- `/` (`index.html`) solo redirige: a **Coreografías**, o al panel si el enlace trae
-  una sección (`#pagos`, `#alumnos`…), para que los enlaces viejos sigan sirviendo.
+- `/` (`index.html`) solo redirige: al **panel** (con su sección si el enlace la trae:
+  `#pagos`, `#alumnos`…). Solo los enlaces de una coreografía (`#c=…`) van a Coreografías.
 - `/admin.html` → panel administrativo · `/coreografias.html` · `/ensayo.html` · `/metronomo.html`
 
 Configuración (una sola vez):
@@ -19,7 +19,7 @@ Configuración (una sola vez):
 ## Estructura
 
 ```
-index.html          Entrada del sitio: redirige a Coreografías o al panel
+index.html          Entrada del sitio: redirige al panel (o a Coreografías con #c=)
 admin.html          Panel: login, sidebar, secciones y modales
 styles.css          Todos los estilos
 js/

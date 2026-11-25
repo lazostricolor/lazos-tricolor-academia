@@ -8,12 +8,13 @@
 <title>Academia de Danzas Lazos Tricolor</title>
 <link rel="icon" href="logo.png">
 <script>
-  // Entrada de app.academialazostricolor.com:
-  // los enlaces viejos del panel (index.html#pagos, #alumnos…) siguen yendo al panel;
-  // todo lo demás abre Coreografías.
+  // Entrada de app.academialazostricolor.com: abre el panel administrativo
+  // (con su sección si viene en el enlace: #pagos, #alumnos…).
+  // Solo los enlaces de una coreografía (#c=…) van a Coreografías,
+  // que además tiene su propia dirección: /coreografias.html
   (function () {
     var h = location.hash || '';
-    var destino = h && h.indexOf('#c=') !== 0 ? 'admin.html' : 'coreografias.html';
+    var destino = h.indexOf('#c=') === 0 ? 'coreografias.html' : 'admin.html';
     location.replace(destino + h);
   })();
 </script>
@@ -23,6 +24,6 @@
 </style>
 </head>
 <body>
-  <p>Abriendo… Si no pasa nada, entra a <a href="coreografias.html">Coreografías</a> o al <a href="admin.html">panel</a>.</p>
+  <p>Abriendo… Si no pasa nada, entra al <a href="admin.html">panel</a> o a <a href="coreografias.html">Coreografías</a>.</p>
 </body>
 </html>
